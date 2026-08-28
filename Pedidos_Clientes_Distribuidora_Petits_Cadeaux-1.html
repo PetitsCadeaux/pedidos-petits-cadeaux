@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#7c3aed">
+<title>Pedidos · Distribuidora Petits Cadeaux</title>
+<style>
+:root{--bg:#f7f7fb;--card:#fff;--text:#202124;--muted:#6b7280;--border:#e5e7eb;--accent:#7c3aed;--soft:#ede9fe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--accent);color:#fff;padding:22px 16px}header h1{margin:0;font-size:22px}header p{margin:4px 0 0;font-size:13px;opacity:.9}
+main{max-width:720px;margin:auto;padding:14px 14px 40px}.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+h2{font-size:17px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:10px}input,select,textarea{width:100%;margin-top:5px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-size:16px}textarea{min-height:100px}
+.notice{background:var(--soft);border-radius:12px;padding:12px;font-size:13px;margin-bottom:12px}.muted{color:var(--muted);font-size:13px}
+.product{display:grid;grid-template-columns:1fr 70px 90px;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}@media(max-width:480px){.product{grid-template-columns:1fr 58px 82px;font-size:13px}}
+.product input{margin:0;min-height:40px}.price{font-weight:750;text-align:right}.total{font-size:27px;font-weight:850}
+button{width:100%;min-height:48px;border:0;border-radius:11px;padding:11px 14px;font-weight:800;font-size:15px;cursor:pointer}.primary{background:var(--accent);color:#fff}.secondary{background:var(--soft);color:#4c1d95}
+.row{display:flex;gap:9px}.row>*{flex:1}.hidden{display:none!important}.success{text-align:center;padding:18px}.orderNo{font-size:24px;font-weight:850;margin:8px 0}
+</style>
+</head>
+<body>
+<header><h1>Distribuidora Petits Cadeaux</h1><p>Pedidos mayoristas para comercios</p></header>
+<main>
+<div class="card">
+<div class="notice">📦 <strong>Días de entrega: miércoles y viernes.</strong><br>Los pedidos se toman hasta el día anterior.</div>
+<h2>Datos del comercio</h2>
+<div class="grid">
+<label>Nombre del comercio<input id="shop" placeholder="Ej. Almacén Don Pedro"></label>
+<label>WhatsApp<input id="phone" inputmode="tel" placeholder="Ej. 11 1234 5678"></label>
+</div>
+<label>Día de entrega<select id="delivery"><option value="">Seleccionar día</option><option value="Miércoles">Miércoles</option><option value="Viernes">Viernes</option></select></label>
+</div>
+
+<div class="card">
+<h2>Elegí tus productos</h2>
+<div id="products"></div>
+<div class="row" style="justify-content:space-between;align-items:center;margin-top:15px">
+<div><div class="muted">Total del pedido</div><div id="total" class="total">$0</div></div>
+<button id="send" class="primary" type="button">Enviar pedido</button>
+</div>
+</div>
+
+<div class="card">
+<h2>Observaciones</h2>
+<textarea id="notes" placeholder="Horario de entrega, forma de pago u otra indicación"></textarea>
+</div>
+
+<div id="confirmation" class="card hidden success">
+<div>✅ Pedido enviado</div>
+<div class="orderNo" id="orderNo"></div>
+<div class="muted" id="confirmText"></div>
+<button id="newOrder" class="secondary" type="button" style="margin-top:14px">Hacer otro pedido</button>
+</div>
+</main>
+
+<script>
+const PRODUCTS=[
+["Clásica x4",2760],["Semillas x4",2890],["Queso x4",3400],["Vegana x4",3200],["Smash x4",2240],["Smash x8",4180],
+["Clásicos x6",2250],["Semillas x6",2250],["Con Queso x6",2950],
+["Clásicos XL x6",3920],["Semillas XL x6",3920],["Con Queso XL x6",5250],
+["Chips Comunes x6",1540],["Chips con Queso x6",2070],["Pebete x2",1220],["Pan de Molde x1",2550],["Pan Árabe x4",1690]
+];
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const $=id=>document.getElementById(id);
+let lastMessage="";
+function render(){
+ $("products").innerHTML=PRODUCTS.map((p,i)=>`<div class="product"><span>${p[0]}<br><span class="muted">${money(p[1])}</span></span><input data-i="${i}" type="number" min="0" max="999" value="0" aria-label="Cantidad ${p[0]}"><span class="price" id="line${i}">$0</span></div>`).join("");
+ document.querySelectorAll("[data-i]").forEach(x=>x.addEventListener("input",updateTotal));
+}
+function updateTotal(){
+ let total=0;
+ PRODUCTS.forEach((p,i)=>{const q=Math.max(0,Math.min(999,parseInt(document.querySelector(`[data-i="${i}"]`).value)||0));document.getElementById("line"+i).textContent=money(q*p[1]);total+=q*p[1]});
+ $("total").textContent=money(total);return total;
+}
+function nextLocalNo(){const k="petits_client_seq";const n=(parseInt(localStorage.getItem(k)||"0")||0)+1;localStorage.setItem(k,String(n));return n}
+function makeMessage(no){
+ const lines=[];PRODUCTS.forEach((p,i)=>{const q=Math.max(0,parseInt(document.querySelector(`[data-i="${i}"]`).value)||0);if(q)lines.push(`• ${q} × ${p[0]} — ${money(q*p[1])}`)});
+ const total=updateTotal();
+ return `Hola! 👋\nQuiero realizar este pedido para el comercio ${$("shop").value.trim()}.\n\nDía de entrega: ${$("delivery").value}\n\n${lines.join("\n")}\n\nTOTAL: ${money(total)}${$("notes").value.trim()?`\n\nObservaciones: ${$("notes").value.trim()}`:""}\n\nDistribuidora Petits Cadeaux\nPedido #${String(no).padStart(4,"0")}`;
+}
+$("send").addEventListener("click",()=>{
+ const shop=$("shop").value.trim(),delivery=$("delivery").value;
+ if(!shop){alert("Ingresá el nombre del comercio.");return}
+ if(!delivery){alert("Seleccioná miércoles o viernes.");return}
+ const total=updateTotal();
+ if(total<=0){alert("Seleccioná al menos un producto.");return}
+ const no=nextLocalNo(),msg=makeMessage(no),phone=$("phone").value.replace(/\D/g,"");
+ lastMessage=msg;
+ $("orderNo").textContent="Pedido #"+String(no).padStart(4,"0");
+ $("confirmText").textContent=`Pedido para ${shop}, entrega ${delivery}. Se abrirá WhatsApp para enviarlo.`;
+ $("confirmation").classList.remove("hidden");
+ let t=phone;if(t&&!t.startsWith("54"))t="54"+t;
+ const url="https://wa.me/"+t+"?text="+encodeURIComponent(msg);
+ window.open(url,"_blank","noopener");
+ window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+});
+$("newOrder").addEventListener("click",()=>{
+ $("confirmation").classList.add("hidden");$("shop").value="";$("phone").value="";$("delivery").value="";$("notes").value="";
+ document.querySelectorAll("[data-i]").forEach(x=>x.value=0);updateTotal();window.scrollTo({top:0,behavior:"smooth"});
+});
+render();updateTotal();
+</script>
+</body>
+</html>
