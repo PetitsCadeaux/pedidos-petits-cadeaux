@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Pedidos - Petits Cadeaux</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --purple:#542477;
+  --purple2:#7b43a8;
+  --purple3:#a66ac7;
+  --lavender:#ead9f3;
+  --pink:#f8eaf4;
+  --pink2:#fff7fb;
+  --ink:#382342;
+  --muted:#75657c;
+  --line:#eaddea;
+  --white:#fff;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  font-family:Poppins,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 12% 8%,#fff 0,transparent 30%),
+    linear-gradient(180deg,#f9edf5 0%,#fff 42%,#f8effa 100%);
+}
+header{
+  padding:34px 18px 30px;
+  text-align:center;
+  color:#fff;
+  background:
+    radial-gradient(circle at 50% -20%,#b77bd3 0,#7e4aab 34%,#542477 78%,#432064 100%);
+  box-shadow:0 12px 34px rgba(76,35,103,.22);
+  position:relative;
+  overflow:hidden;
+}
+header:after{
+  content:"";
+  position:absolute;
+  left:7%;
+  right:7%;
+  bottom:-42px;
+  height:80px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+.brand{
+  width:min(180px,45vw);
+  aspect-ratio:1;
+  margin:0 auto 8px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  position:relative;
+  background:linear-gradient(145deg,#fff9fc,#efdaf2);
+  border:5px solid rgba(255,255,255,.8);
+  box-shadow:0 12px 30px rgba(31,12,48,.28);
+  overflow:hidden;
+}
+.brand .butterfly{
+  position:absolute;
+  top:9%;
+  font-size:38px;
+  filter:saturate(.9);
+}
+.brand strong{
+  font-family:"Cormorant Garamond",Georgia,serif;
+  font-size:31px;
+  line-height:.9;
+  margin-top:25px;
+  color:#8b55b0;
+}
+.brand small{
+  position:absolute;
+  bottom:19%;
+  font-family:"Great Vibes",cursive;
+  font-size:28px;
+  color:#74418e;
+}
+header h1{
+  margin:10px 0 4px;
+  font-family:"Great Vibes",cursive;
+  font-size:clamp(44px,9vw,72px);
+  font-weight:400;
+  line-height:1;
+  letter-spacing:.3px;
+  text-shadow:0 2px 0 rgba(255,255,255,.18);
+}
+header p{
+  margin:5px 0 0;
+  color:#f9eafa;
+  font-size:14px;
+  font-weight:500;
+}
+main{max-width:980px;margin:auto;padding:20px 14px 45px}
+.card{
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(225,205,231,.9);
+  border-radius:26px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 10px 32px rgba(86,42,113,.08);
+}
+h2{
+  margin:0 0 14px;
+  font-family:"Cormorant Garamond",Georgia,serif;
+  font-size:31px;
+  line-height:1;
+  color:var(--purple);
+  font-weight:700;
+}
+.info{
+  background:linear-gradient(135deg,#fff3f8,#f1e6f8);
+  border:1px solid #ead7eb;
+  border-radius:18px;
+  padding:14px 15px;
+  font-size:14px;
+  line-height:1.5;
+  margin-bottom:20px;
+}
+label{
+  display:block;
+  font-weight:700;
+  font-size:14px;
+  color:#604d68;
+  margin-top:12px;
+}
+input,select,textarea{
+  width:100%;
+  padding:14px 15px;
+  margin-top:7px;
+  border:1px solid #dccde0;
+  border-radius:16px;
+  font:500 16px Poppins,Arial,sans-serif;
+  background:#fff;
+  color:var(--ink);
+  outline:none;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#a66ac7;
+  box-shadow:0 0 0 4px rgba(166,106,199,.14);
+}
+textarea{min-height:105px;resize:vertical}
+.catalog-title{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+.cart-pill{
+  background:linear-gradient(135deg,#f6e8f7,#ead8f2);
+  color:#633a78;
+  border:1px solid #dfcde8;
+  border-radius:999px;
+  padding:9px 13px;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.sub{margin:-7px 0 14px;color:var(--muted);font-size:13px}
+.tools{
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:rgba(255,255,255,.94);
+  padding:7px 0 13px;
+  backdrop-filter:blur(10px);
+}
+.search{margin:0 0 11px!important}
+.chips{
+  display:flex;
+  gap:9px;
+  overflow-x:auto;
+  padding:2px 1px 4px;
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  width:auto!important;
+  margin:0!important;
+  padding:10px 16px!important;
+  border:1px solid #decfe5!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  color:#674575!important;
+  font:700 12px Poppins,Arial,sans-serif!important;
+  white-space:nowrap;
+  transition:.2s ease;
+}
+.chip.active{
+  background:linear-gradient(135deg,#6c3896,#a365c6)!important;
+  color:#fff!important;
+  border-color:#6c3896!important;
+  box-shadow:0 5px 14px rgba(108,56,150,.22);
+}
+.category{
+  margin:20px 0 10px;
+  padding:10px 14px;
+  border-radius:15px;
+  background:linear-gradient(90deg,#f5e7f6,#fff7fc);
+  color:var(--purple);
+  font-family:"Cormorant Garamond",Georgia,serif;
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:.2px;
+  border-left:6px solid #9a5fbe;
+}
+.products{display:grid;gap:10px}
+.product{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:13px;
+  align-items:center;
+  background:linear-gradient(180deg,#fff,#fdf9fe);
+  border:1px solid #eee2f0;
+  border-radius:19px;
+  padding:14px 14px 14px 16px;
+}
+.product-name{font-weight:800;font-size:16px}
+.product-unit{font-size:13px;color:#7c6c82;margin-top:4px}
+.product-right{display:flex;align-items:center;gap:11px}
+.qty{
+  display:flex;
+  align-items:center;
+  border:1px solid #ddcfe2;
+  border-radius:14px;
+  overflow:hidden;
+  background:#fbf7fc;
+}
+.qty button{
+  width:40px;height:42px;border:0;background:transparent;
+  color:var(--purple);font-size:23px;font-weight:800;
+}
+.qty input{
+  width:44px;height:42px;margin:0;padding:0;border:0;border-radius:0;
+  text-align:center;background:transparent;font-weight:800;
+}
+.line-total{min-width:92px;text-align:right;font-weight:850;font-size:14px;color:#4e3964}
+.unknown{color:#93649f;font-size:12px;font-weight:700}
+.empty{
+  padding:26px;text-align:center;color:#817287;
+  background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;
+}
+.total-box{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:19px;padding:18px 19px;border-radius:20px;
+  background:linear-gradient(135deg,#542477,#7d45a9);
+  color:#fff;box-shadow:0 8px 22px rgba(84,36,119,.18);
+}
+.total-box span{font-size:13px;opacity:.94;font-weight:600}
+.total-box strong{font-size:27px}
+button.send{
+  width:100%;margin-top:12px;padding:16px;border:0;border-radius:17px;
+  background:linear-gradient(135deg,#9a5bc3,#71369e);
+  color:#fff;font:800 16px Poppins,Arial,sans-serif;
+  box-shadow:0 8px 20px rgba(113,54,158,.22);
+}
+button.send:disabled{opacity:.65}
+.ok,.err{padding:13px 14px;border-radius:14px;margin-top:12px;font-weight:650}
+.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2}
+.note{font-size:12px;color:#7b6d80;margin-top:8px}
+@media(min-width:760px){
+  main{padding-top:26px}
+  .products{grid-template-columns:1fr 1fr}
+  .category{grid-column:1/-1}
+}
+@media(max-width:560px){
+  header{padding-top:26px}
+  .brand{width:126px}
+  .brand strong{font-size:27px}
+  .brand small{font-size:24px}
+  header h1{font-size:48px}
+  .product{grid-template-columns:1fr}
+  .product-right{justify-content:space-between}
+  .line-total{min-width:auto}
+  .catalog-title{align-items:flex-start}
+  .cart-pill{font-size:11px;padding:7px 9px}
+  .category{font-size:24px}
+}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="butterfly">🦋</span>
+    <strong>Petits</strong>
+    <small>Cadeaux</small>
+  </div>
+  <h1>Petits Cadeaux</h1>
+  <p>Distribuidora mayorista · Pedidos para comercios · WhatsApp 11 2362-7052</p>
+</header>
+
+<main>
+<div class="card">
+  <div class="info">📦 <strong>Días de entrega: miércoles y viernes.</strong><br>Los pedidos se toman hasta el día anterior.</div>
+  <h2>Datos del comercio</h2>
+  <label>Nombre del comercio<input id="shop" placeholder="Ej. Almacén Don Pedro"></label>
+  <label>WhatsApp del comercio<input id="phone" placeholder="Ej. 11 1234 5678" inputmode="tel"></label>
+  <label>Día de entrega<select id="delivery"><option value="">Seleccionar día</option><option>Miércoles</option><option>Viernes</option></select></label>
+</div>
+
+<div class="card">
+  <div class="catalog-title">
+    <div><h2>Elegí tus productos</h2><p class="sub">Elegí una categoría o buscá por nombre.</p></div>
+    <div class="cart-pill" id="cartPill">0 productos</div>
+  </div>
+  <div class="tools">
+    <input id="search" class="search" placeholder="🔎 Buscar producto..." autocomplete="off">
+    <div class="chips" id="filters"></div>
+  </div>
+  <div class="products" id="products"></div>
+  <div class="total-box"><span>TOTAL DEL PEDIDO</span><strong id="total">$0</strong></div>
+  <button class="send" id="send">Enviar pedido por WhatsApp</button>
+  <div id="status"></div>
+</div>
+
+<div class="card">
+  <h2>Observaciones</h2>
+  <textarea id="notes" placeholder="Horario de entrega, forma de pago u otra indicación"></textarea>
+  <div class="note">El pedido se guarda automáticamente antes de abrir WhatsApp.</div>
+</div>
+</main>
+
+<script>
+const SUPABASE_URL="https://xwqrswfeimmzdufvfpha.supabase.co";
+const SUPABASE_KEY="sb_publishable_1rnww5jSQ8rGSYNhhRFWww_rfbC4AET";
+const DESTINO_WHATSAPP="5491123627052";
+
+const PRODUCTS=[
+ ["Clásica x4",2760,"Hamburguesa"],
+ ["Semillas x4",2890,"Hamburguesa"],
+ ["Queso x4",3400,"Hamburguesa"],
+ ["Vegano x4",3200,"Hamburguesa"],
+ ["Smash x4",2240,"Hamburguesa"],
+ ["Smash x8",4180,"Hamburguesa"],
+ ["Hamburguesa Queso x2",1880,"Hamburguesa"],
+
+ ["Corto clásico x6",2250,"Panchos"],
+ ["Corto semillas x6",2250,"Panchos"],
+ ["Corto queso x6",2950,"Panchos"],
+ ["XL clásico x6",3920,"Panchos"],
+ ["XL Mix x6",3920,"Panchos"],
+ ["XL Queso x6",5250,"Panchos"],
+
+ ["Chips Comunes x6",1540,"Variedades"],
+ ["Chips con Queso x6",2070,"Variedades"],
+ ["Pebete x2",1220,"Variedades"],
+ ["Molde x1",2550,"Variedades"],
+ ["Árabe x4",1690,"Variedades"],
+ ["Lomitero x2",1770,"Variedades"],
+
+ ["Hamburguesa Clásica x42",29490,"Gastronómicos"],
+ ["Hamburguesa Semillas x42",30000,"Gastronómicos"],
+ ["Hamburguesa Queso x42",34220,"Gastronómicos"],
+ ["Smash Especial x1",550,"Gastronómicos"]
+];
+
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const $=id=>document.getElementById(id);
+let activeFilter="Todos";
+const selectedQty=Array(PRODUCTS.length).fill(0);
+
+function renderFilters(){const cats=["Todos","Hamburguesa","Panchos","Variedades","Gastronómicos"];$("filters").innerHTML=cats.map(c=>`<button type="button" class="chip ${c===activeFilter?"active":""}" onclick="setFilter('${c}')">${c}</button>`).join("");
+}
+function setFilter(c){activeFilter=c;renderFilters();render()}
+function qty(i){return selectedQty[i]||0}
+function changeQty(i,d){selectedQty[i]=Math.max(0,Math.min(999,qty(i)+d));render()}
+
+function render(){
+ const term=($("search").value||"").toLowerCase().trim();
+ const visible=PRODUCTS.map((p,i)=>({p,i}))
+  .filter(x=>activeFilter==="Todos"||x.p[2]===activeFilter)
+  .filter(x=>!term||x.p[0].toLowerCase().includes(term));
+
+ if(!visible.length){$("products").innerHTML='<div class="empty">No encontramos productos con esa búsqueda.</div>';return}
+
+ let last="",html="";
+ visible.forEach(({p,i})=>{
+  if(p[2]!==last){html+=`<div class="category">${p[2]}</div>`;last=p[2]}
+  const precio=p[1]==null?'<span class="unknown">Precio a confirmar</span>':money(p[1])+" por unidad";
+  const subtotal=p[1]==null?(qty(i)?"A confirmar":"$0"):money(qty(i)*p[1]);
+  html+=`<div class="product">
+   <div><div class="product-name">${p[0]}</div><div class="product-unit">${precio}</div></div>
+   <div class="product-right"><div class="qty">
+    <button type="button" onclick="changeQty(${i},-1)">−</button>
+    <input data-i="${i}" type="number" min="0" max="999" value="${qty(i)}" inputmode="numeric">
+    <button type="button" onclick="changeQty(${i},1)">+</button>
+   </div><div class="line-total" id="line${i}">${subtotal}</div></div>
+  </div>`;
+ });
+ $("products").innerHTML=html;
+
+ document.querySelectorAll("[data-i]").forEach(x=>x.addEventListener("input",()=>{
+  const i=Number(x.dataset.i);
+  selectedQty[i]=Math.max(0,Math.min(999,parseInt(x.value)||0));
+  totalizar();
+ }));
+ totalizar();
+}
+
+function totalizar(){
+ let total=0,count=0,confirmar=false;
+ PRODUCTS.forEach((p,i)=>{
+  const q=qty(i); count+=q;
+  if(q&&p[1]==null)confirmar=true;
+  if(q&&p[1]!=null)total+=q*p[1];
+  const line=$("line"+i);
+  if(line)line.textContent=q?(p[1]==null?"A confirmar":money(q*p[1])):"$0";
+ });
+ $("total").textContent=confirmar?money(total)+" + confirmar":money(total);
+ $("cartPill").textContent=count+" "+(count===1?"producto":"productos");
+ return {total,confirmar};
+}
+
+function items(){
+ return PRODUCTS.map((p,i)=>({producto:p[0],cantidad:qty(i),precio_unitario:p[1]})).filter(x=>x.cantidad>0);
+}
+function show(msg,ok){$("status").className=ok?"ok":"err";$("status").textContent=msg}
+function limpiarFormulario(){
+ $("shop").value="";$("phone").value="";$("delivery").value="";$("notes").value="";
+ selectedQty.fill(0);$("search").value="";activeFilter="Todos";renderFilters();render();
+}
+
+async function enviar(){
+ const comercio=$("shop").value.trim(),dia=$("delivery").value,wa=$("phone").value.trim(),obs=$("notes").value.trim();
+ if(!comercio)return show("Ingresá el nombre del comercio.",false);
+ if(!dia)return show("Seleccioná miércoles o viernes.",false);
+
+ const calc=totalizar(),lista=items();
+ if(!lista.length)return show("Seleccioná al menos un producto.",false);
+
+ $("send").disabled=true;$("send").textContent="Guardando pedido...";
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos",{
+   method:"POST",
+   headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+   body:JSON.stringify({
+    comercio,whatsapp:wa,dia_entrega:dia,productos:lista,
+    total:calc.confirmar?null:calc.total,observaciones:obs||null,estado:"Pendiente"
+   })
+  });
+  const text=await r.text();
+  if(!r.ok)throw new Error(text);
+
+  show("✅ Pedido registrado correctamente.",true);
+  const lines=lista.map(x=>`• ${x.cantidad} × ${x.producto} — ${x.precio_unitario==null?"Precio a confirmar":money(x.cantidad*x.precio_unitario)}`).join("\n");
+  const msg=`Hola! 👋\nNuevo pedido\nComercio: ${comercio}\nWhatsApp: ${wa||"No informado"}\nDía de entrega: ${dia}\n\n${lines}\n\nTOTAL: ${calc.confirmar?money(calc.total)+" + productos con precio a confirmar":money(calc.total)}${obs?"\n\nObservaciones: "+obs:""}\n\nDistribuidora Petits Cadeaux`;
+  window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(msg),"_blank");
+  setTimeout(limpiarFormulario,1200);
+ }catch(e){
+  console.error(e);
+  show("❌ No se pudo registrar el pedido. Supabase respondió: "+(e.message||"error desconocido"),false);
+ }
+ $("send").disabled=false;$("send").textContent="Enviar pedido por WhatsApp";
+}
+
+$("send").addEventListener("click",enviar);
+$("search").addEventListener("input",render);
+renderFilters();render();
+</script>
+</body>
+</html>
