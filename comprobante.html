@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobantes - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#66566c;--line:#d9c8db}
+*{box-sizing:border-box}
+body{margin:0;font-family:Poppins,Arial,sans-serif;color:var(--ink);background:#e9e2ec}
+
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,.06);z-index:10}
+.toolbar h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;margin:0;color:var(--purple);flex:1 0 auto}
+.toolbar select,.toolbar button{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font:700 13px Poppins,Arial,sans-serif;background:#fff;color:var(--ink)}
+.toolbar button.primary{background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;border:0;cursor:pointer}
+.toolbar a{color:var(--muted);font-size:13px;text-decoration:none;font-weight:700}
+
+.sheet{padding:14px;display:flex;flex-wrap:wrap;gap:6mm;justify-content:flex-start;max-width:1200px;margin:auto}
+
+.receipt{background:#fff;border:1px solid #d9c8db;border-radius:6px;padding:5mm;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.receipt.size-10x15{width:100mm;min-height:150mm;font-size:9.5px}
+.receipt.size-a5{width:148mm;min-height:210mm;font-size:11.5px}
+
+.r-head{text-align:center;border-bottom:1.5px solid var(--purple);padding-bottom:2mm;margin-bottom:2.5mm}
+.r-head .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:1.7em;line-height:1.1}
+.r-head .sub{color:var(--muted);font-size:.85em;margin-top:1mm}
+
+.r-info{margin-bottom:2.5mm}
+.r-info div{display:flex;justify-content:space-between;padding:.6mm 0;border-bottom:1px dotted #e4d7e6}
+.r-info span:first-child{font-weight:800;color:var(--muted)}
+.r-info span:last-child{text-align:right;max-width:65%}
+
+.r-items{flex:1;margin-bottom:2mm}
+.r-items h4{margin:0 0 1.5mm;font-size:.95em;color:var(--purple);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #eee1ef;padding-bottom:1mm}
+.r-item{display:flex;justify-content:space-between;padding:.9mm 0;border-bottom:1px dotted #eee1ef}
+.r-item .qty{color:var(--muted);margin-right:1mm}
+
+.r-total{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;padding:2mm 3mm;border-radius:5px;font-weight:800;margin-bottom:2.5mm}
+.r-total .lbl{font-size:.85em}
+.r-total .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:1.5em}
+
+.r-notes{font-size:.85em;color:var(--muted);font-style:italic;margin-bottom:2.5mm}
+
+.r-sign{margin-top:auto;padding-top:3mm;border-top:1px dashed #d9c8db;font-size:.85em;color:var(--muted)}
+.r-sign .line{border-bottom:1px solid #b9a4bc;margin-top:6mm;margin-bottom:1mm}
+
+.loading,.err,.empty{padding:30px;text-align:center;color:#66566c}
+
+@media print{
+ body{background:#fff}
+ .toolbar{display:none}
+ .sheet{padding:0;gap:4mm}
+ .receipt{box-shadow:none;border-color:#ccc}
+ @page{size:A4;margin:8mm}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+ <h1>🖨️ Comprobantes</h1>
+ <select id="sizeSelect">
+  <option value="10x15">Tamaño 10×15 cm</option>
+  <option value="a5">Tamaño A5</option>
+ </select>
+ <button class="primary" id="printBtn">Imprimir</button>
+ <a href="admin.html">← Volver al panel</a>
+</div>
+
+<div class="sheet" id="sheet"><div class="loading">Cargando...</div></div>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const params=new URLSearchParams(location.search);
+const ids=(params.get("ids")||"").split(",").map(s=>s.trim()).filter(Boolean);
+
+function fmtFecha(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+
+function renderReceipts(orders,size){
+ if(!orders.length){$("sheet").innerHTML='<div class="empty">No se encontraron pedidos para imprimir.</div>';return}
+ $("sheet").innerHTML=orders.map(o=>{
+  const items=(o.productos||[]).map(it=>`<div class="r-item"><span><span class="qty">${it.cantidad}×</span>${it.producto}</span><span>${it.precio_unitario!=null?money(it.cantidad*it.precio_unitario):"a confirmar"}</span></div>`).join("");
+  return `<div class="receipt size-${size}">
+   <div class="r-head">
+    <div class="biz">Petits Cadeaux</div>
+    <div class="sub">Comprobante de pedido · ${fmtFecha(o.created_at)}</div>
+   </div>
+   <div class="r-info">
+    <div><span>Comercio</span><span>${o.comercio||"-"}</span></div>
+    <div><span>Domicilio</span><span>${o.domicilio||"-"}</span></div>
+    <div><span>WhatsApp</span><span>${o.whatsapp||"-"}</span></div>
+    <div><span>Día entrega</span><span>${o.dia_entrega||"-"}</span></div>
+   </div>
+   <div class="r-items">
+    <h4>Productos</h4>
+    ${items||"Sin productos"}
+   </div>
+   ${o.observaciones?`<div class="r-notes">📝 ${o.observaciones}</div>`:""}
+   <div class="r-total"><span class="lbl">TOTAL</span><span class="val">${money(o.total)}</span></div>
+   <div class="r-sign">
+    Recibí conforme
+    <div class="line"></div>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+async function cargar(){
+ if(!session){$("sheet").innerHTML='<div class="err">Iniciá sesión en el panel primero.</div>';return}
+ if(!ids.length){$("sheet").innerHTML='<div class="empty">No se especificaron pedidos para imprimir.</div>';return}
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id=in.("+ids.join(",")+")&select=*",{
+   headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}
+  });
+  const orders=await r.json();
+  window._orders=orders;
+  renderReceipts(orders,$("sizeSelect").value);
+ }catch(e){
+  $("sheet").innerHTML='<div class="err">❌ Error al cargar los pedidos.</div>';
+ }
+}
+
+$("sizeSelect").addEventListener("change",()=>{if(window._orders)renderReceipts(window._orders,$("sizeSelect").value)});
+$("printBtn").addEventListener("click",()=>window.print());
+cargar();
+</script>
+</body>
+</html>
