@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estado de Cuenta - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#66566c;--line:#d9c8db}
+*{box-sizing:border-box}
+body{margin:0;font-family:Poppins,Arial,sans-serif;color:var(--ink);background:#e9e2ec}
+
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,.06);z-index:10}
+.toolbar h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;margin:0;color:var(--purple);flex:1 0 auto}
+.toolbar button{padding:10px 16px;border-radius:12px;border:0;font:800 13px Poppins,Arial,sans-serif;cursor:pointer;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.toolbar a{color:var(--muted);font-size:13px;text-decoration:none;font-weight:700}
+
+.page{max-width:210mm;margin:20px auto;background:#fff;border-radius:8px;padding:14mm;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.head{text-align:center;border-bottom:2px solid var(--purple);padding-bottom:4mm;margin-bottom:5mm}
+.head .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:28px}
+.head .sub{color:var(--muted);font-size:13px;margin-top:2mm}
+
+.info{display:flex;justify-content:space-between;margin-bottom:6mm;flex-wrap:wrap;gap:4mm}
+.info div span{display:block}
+.info .lbl{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}
+.info .val{font-size:15px;font-weight:700}
+
+h3{color:var(--purple);font-size:14px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #eee1ef;padding-bottom:2mm;margin:6mm 0 3mm}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1.5px solid var(--purple);padding:4px 2px}
+th.num,td.num{text-align:right}
+td{padding:6px 2px;border-bottom:1px dotted #eee1ef}
+
+.saldo-box{margin-top:6mm;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;border-radius:8px;padding:5mm 6mm;display:flex;justify-content:space-between;align-items:center}
+.saldo-box .lbl{font-size:13px}
+.saldo-box .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;font-weight:700}
+
+.foot{margin-top:8mm;font-size:11px;color:var(--muted);text-align:center}
+.loading,.err{padding:30px;text-align:center;color:#66566c}
+
+@media print{
+ body{background:#fff}
+ .toolbar{display:none}
+ .page{box-shadow:none;margin:0;padding:0;max-width:none}
+ @page{size:A4;margin:15mm}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+ <h1>📄 Estado de Cuenta</h1>
+ <button id="printBtn">Descargar / Imprimir</button>
+ <a href="cuenta.html">← Volver a cuenta corriente</a>
+</div>
+
+<div class="page" id="page"><div class="loading">Cargando...</div></div>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+const normDom=d=>(d||"").trim().toLowerCase().replace(/\s+/g," ");
+
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const domicilio=new URLSearchParams(location.search).get("domicilio")||"";
+
+function fmtFecha(iso){
+ if(!iso)return "-";
+ const d=new Date(iso.length===10?iso+"T00:00:00":iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+
+async function cargar(){
+ if(!session){$("page").innerHTML='<div class="err">Iniciá sesión en el panel primero.</div>';return}
+ if(!domicilio){$("page").innerHTML='<div class="err">No se especificó un cliente.</div>';return}
+ try{
+  const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token};
+  const [rOrders,rPagos]=await Promise.all([
+   fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=comercio,domicilio,total,created_at&order=created_at.asc",{headers}),
+   fetch(SUPABASE_URL+"/rest/v1/pagos_clientes?select=*&order=fecha.asc",{headers})
+  ]);
+  const allOrders=await rOrders.json();
+  const allPagos=await rPagos.json();
+  const key=normDom(domicilio);
+  const pedidos=allOrders.filter(o=>normDom(o.domicilio)===key);
+  const pagos=allPagos.filter(p=>normDom(p.domicilio)===key);
+  const comercios=[...new Set(pedidos.map(o=>o.comercio||"Sin nombre"))];
+  const debe=pedidos.reduce((s,o)=>s+(o.total||0),0);
+  const haber=pagos.reduce((s,p)=>s+(p.monto||0),0);
+  const saldo=debe-haber;
+
+  const pedidosRows=pedidos.map(o=>`<tr><td>${fmtFecha(o.created_at)}</td><td>${o.comercio||"-"}</td><td class="num">${o.total==null?"A confirmar":money(o.total)}</td></tr>`).join("")||'<tr><td colspan="3">Sin pedidos registrados</td></tr>';
+  const pagosRows=pagos.map(p=>`<tr><td>${fmtFecha(p.fecha)}</td><td>${p.nota||"-"}</td><td class="num">${money(p.monto)}</td></tr>`).join("")||'<tr><td colspan="3">Sin pagos registrados</td></tr>';
+
+  $("page").innerHTML=`
+   <div class="head">
+    <div class="biz">Distribuidora Petits Cadeaux</div>
+    <div class="sub">Estado de cuenta · ${new Date().toLocaleDateString("es-AR")}</div>
+   </div>
+   <div class="info">
+    <div><span class="lbl">Cliente</span><span class="val">${comercios.join(", ")}</span></div>
+    <div><span class="lbl">Domicilio</span><span class="val">${domicilio}</span></div>
+   </div>
+
+   <h3>Pedidos</h3>
+   <table><thead><tr><th>Fecha</th><th>Comercio</th><th class="num">Importe</th></tr></thead><tbody>${pedidosRows}</tbody></table>
+
+   <h3>Pagos registrados</h3>
+   <table><thead><tr><th>Fecha</th><th>Nota</th><th class="num">Monto</th></tr></thead><tbody>${pagosRows}</tbody></table>
+
+   <div class="saldo-box">
+    <span class="lbl">${saldo<=0?"Cuenta al día":"Saldo pendiente"}</span>
+    <span class="val">${money(Math.abs(saldo))}</span>
+   </div>
+   <div class="foot">Distribuidora Petits Cadeaux · WhatsApp 11 2362-7052</div>
+  `;
+ }catch(e){
+  $("page").innerHTML='<div class="err">❌ Error al generar el estado de cuenta.</div>';
+ }
+}
+
+$("printBtn").addEventListener("click",()=>window.print());
+cargar();
+</script>
+</body>
+</html>
