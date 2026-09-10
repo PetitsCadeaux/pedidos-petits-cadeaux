@@ -1,0 +1,13 @@
+{
+  "name": "Distribuidora Petits Cadeaux - Panel Admin",
+  "short_name": "Panel Admin",
+  "start_url": "./admin.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8edf4",
+  "theme_color": "#542477",
+  "icons": [
+    { "src": "icon-admin-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-admin-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Hoja de Ruta - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-sec{padding:14px 18px;background:#fff;border:1px solid #ddcde4;color:#654273}
+.btn-main{padding:14px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btns-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btns-row button{flex:1;min-width:140px}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:8px 5px}
+th.num,td.num{text-align:right}
+th.chk,td.chk{text-align:center;width:60px}
+td{padding:10px 5px;border-bottom:1px dotted #eee1ef;font-size:14.5px}
+tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);border-bottom:0}
+.pago-tag{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800}
+.pago-tag.efectivo{background:#e6f7ee;color:#177a4d}
+.pago-tag.transferencia{background:#e8f0fe;color:#1a56b0}
+.pago-tag.demorado{background:#fde8e8;color:#a13030}
+.pago-tag.pendiente{background:#fff1de;color:#a15b00}
+.checkbox-print{width:22px;height:22px;border:2px solid #b9a4bc;border-radius:5px;display:inline-block}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.print-title{display:none}
+@media print{
+ header,.no-print{display:none}
+ body{background:#fff}
+ .card{box-shadow:none;border:1px solid #ccc}
+ .print-title{display:block;text-align:center;margin-bottom:10px}
+ .print-title .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:#542477;font-size:24px}
+ .print-title .sub{color:#66566c;font-size:13px;margin-top:2px}
+ @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<header class="no-print">
+ <h1>🗺️ Hoja de Ruta</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="content" style="display:none">
+
+ <div class="card no-print">
+  <label>Día de entrega
+   <select id="fDia">
+    <option value="Todos">Todos</option>
+    <option value="Miércoles">Miércoles</option>
+    <option value="Viernes">Viernes</option>
+   </select>
+  </label>
+  <div class="row2">
+   <label>Desde<input type="date" id="fDesde"></label>
+   <label>Hasta<input type="date" id="fHasta"></label>
+  </div>
+  <div class="btns-row">
+   <button class="btn-main" id="aplicarBtn">Aplicar filtro</button>
+   <button class="btn-sec" id="exportBtn">⬇️ Exportar CSV</button>
+   <button class="btn-sec" id="printBtn">🖨️ Imprimir hoja de ruta</button>
+  </div>
+ </div>
+
+ <div class="print-title">
+  <div class="biz">Distribuidora Petits Cadeaux</div>
+  <div class="sub" id="printSub"></div>
+ </div>
+
+ <div class="card">
+  <h2 id="tituloReporte" style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:24px">Listado para el repartidor</h2>
+  <div id="tablaWrap"><div class="loading">Cargando...</div></div>
+ </div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let orders=[];
+let currentRows=[];
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/json",...(options.headers||{})}
+ });
+ if(r.status===401){localStorage.removeItem("admin_session");location.href="admin.html";throw new Error("Sesión vencida")}
+ return r;
+}
+
+function fmtFechaCorta(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+
+async function cargar(){
+ $("tablaWrap").innerHTML='<div class="loading">Cargando...</div>';
+ try{
+  const r=await apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=domicilio.asc");
+  orders=await r.json();
+  aplicarFiltro();
+ }catch(e){
+  $("tablaWrap").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar pedidos")+'</div>';
+ }
+}
+
+function aplicarFiltro(){
+ const dia=$("fDia").value;
+ const desde=$("fDesde").value;
+ const hasta=$("fHasta").value;
+
+ currentRows=orders.filter(o=>{
+  if(dia!=="Todos"&&o.dia_entrega!==dia)return false;
+  const fecha=(o.created_at||"").slice(0,10);
+  if(desde&&fecha<desde)return false;
+  if(hasta&&fecha>hasta)return false;
+  return true;
+ });
+
+ const subLabel=(dia==="Todos"?"Todos los días":dia)+(desde||hasta?" · "+(desde||"...")+" a "+(hasta||"..."):"");
+ $("printSub").textContent=subLabel;
+
+ if(!currentRows.length){$("tablaWrap").innerHTML='<div class="empty">No hay pedidos que coincidan con el filtro.</div>';return}
+
+ const total=currentRows.reduce((s,o)=>s+(o.total||0),0);
+
+ $("tablaWrap").innerHTML=`<table>
+  <thead><tr><th>Fecha</th><th>Dirección</th><th class="num">Importe</th><th>Modo de pago</th><th class="chk">Pago</th></tr></thead>
+  <tbody>${currentRows.map(o=>{
+   const pago=o.estado_pago||"Pendiente";
+   const clase=pago==="Efectivo"?"efectivo":pago==="Transferencia"?"transferencia":pago==="Demorado"?"demorado":"pendiente";
+   return `<tr>
+    <td>${fmtFechaCorta(o.created_at)}</td>
+    <td>${o.domicilio||"-"}</td>
+    <td class="num">${o.total==null?"A confirmar":money(o.total)}</td>
+    <td><span class="pago-tag ${clase}">${pago}</span></td>
+    <td class="chk"><span class="checkbox-print"></span></td>
+   </tr>`;
+  }).join("")}</tbody>
+  <tfoot><tr><td colspan="2">Total (${currentRows.length} pedidos)</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>
+ </table>`;
+}
+
+function exportarCSV(){
+ if(!currentRows.length){alert("No hay datos para exportar.");return}
+ let csv="Fecha,Direccion,Importe,Modo de pago\n";
+ currentRows.forEach(o=>{
+  csv+=`"${fmtFechaCorta(o.created_at)}","${o.domicilio||""}",${o.total==null?"A confirmar":o.total},"${o.estado_pago||"Pendiente"}"\n`;
+ });
+ const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="hoja_de_ruta_"+new Date().toISOString().slice(0,10)+".csv";
+ a.click();
+ URL.revokeObjectURL(url);
+}
+
+$("aplicarBtn").addEventListener("click",aplicarFiltro);
+$("exportBtn").addEventListener("click",exportarCSV);
+$("printBtn").addEventListener("click",()=>window.print());
+
+if(session){
+ $("content").style.display="block";
+ cargar();
+}else{
+ $("noSession").style.display="block";
+}
+</script>
+</body>
+</html>
