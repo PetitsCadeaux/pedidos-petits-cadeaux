@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Cuenta Corriente - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:820px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select,textarea{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{width:100%;margin-top:16px;padding:15px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.search{margin-top:12px}
+.client{border:1px solid #eee1ef;border-radius:18px;padding:15px 16px;margin-top:12px;background:linear-gradient(180deg,#fff,#fdf9fe);cursor:pointer}
+.client-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.client-addr{font-weight:800;font-size:16px}
+.client-shops{font-size:13px;color:var(--muted);margin-top:2px}
+.saldo{text-align:right}
+.saldo-val{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;font-weight:700}
+.saldo-val.debe{color:#a13030}
+.saldo-val.saldado{color:#177a4d}
+.saldo-label{font-size:11px;color:var(--muted);font-weight:700}
+.detail{margin-top:14px;border-top:1px dashed #e6d9e8;padding-top:12px;display:none}
+.detail.open{display:block}
+.detail h4{margin:0 0 8px;font-size:13px;color:var(--purple);text-transform:uppercase;letter-spacing:.3px}
+.mini-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px dashed #f0e5f0}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.del-pago{background:none;border:0;color:#c0435a;font-size:12px;font-weight:700;padding:2px 6px}
+.totales{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tot-stat{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:14px 15px;box-shadow:0 8px 22px rgba(84,36,119,.07)}
+.tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:700;color:var(--purple)}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>📒 Cuenta Corriente</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a> &nbsp;·&nbsp; <a class="navlink" href="facturas.html">🧾 Facturas proveedor</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="content" style="display:none">
+
+ <div class="totales" id="totales"></div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Registrar un pago</h2>
+  <label>Cliente (domicilio)
+   <select id="pagoDomicilio"><option value="">Seleccionar domicilio...</option></select>
+  </label>
+  <label>Monto<input id="pagoMonto" type="number" min="0" inputmode="decimal" placeholder="Ej. 5000"></label>
+  <label>Fecha<input id="pagoFecha" type="date"></label>
+  <label>Nota (opcional)<input id="pagoNota" placeholder="Ej. Seña, pago parcial..."></label>
+  <button class="btn-main" id="guardarPagoBtn">Guardar pago</button>
+  <div id="pagoMsg"></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Cargar saldo pendiente anterior</h2>
+  <p style="margin:0;color:var(--muted);font-size:13px">Para sumar una deuda de un cliente que ya arrastraba desde antes de usar la app.</p>
+  <label>Cliente (domicilio)
+   <select id="saldoDomicilio"><option value="">Seleccionar domicilio...</option></select>
+  </label>
+  <label>Monto adeudado<input id="saldoMonto" type="number" min="0" inputmode="decimal" placeholder="Ej. 15000"></label>
+  <label>Fecha<input id="saldoFecha" type="date"></label>
+  <label>Nota (opcional)<input id="saldoNota" placeholder="Ej. Deuda anterior a la app"></label>
+  <button class="btn-main" id="guardarSaldoBtn">Guardar saldo anterior</button>
+  <div id="saldoMsg"></div>
+ </div>
+
+ <div class="card">
+  <div class="topbar">
+   <strong id="countLabel">0 clientes</strong>
+   <button class="logout" id="exportExcelBtn" style="padding:9px 15px;background:#fff;border:1px solid #ddcde4;color:#654273;border-radius:15px;font:800 13px Poppins,Arial,sans-serif;cursor:pointer">⬇️ Exportar Excel</button>
+  </div>
+  <input id="searchClients" class="search" placeholder="🔎 Buscar por domicilio o comercio...">
+ </div>
+
+ <div id="clientsList"></div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+const normDom=d=>(d||"").trim().toLowerCase().replace(/\s+/g," ");
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let orders=[];
+let pagos=[];
+let saldosIniciales=[];
+let clients=[];
+let openKey=null;
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{
+   "apikey":SUPABASE_KEY,
+   "Authorization":"Bearer "+session.access_token,
+   "Content-Type":"application/json",
+   ...(options.headers||{})
+  }
+ });
+ if(r.status===401){localStorage.removeItem("admin_session");location.href="admin.html";throw new Error("Sesión vencida")}
+ return r;
+}
+
+function buildClients(){
+ const map={};
+ orders.forEach(o=>{
+  if(!o.domicilio)return;
+  const key=normDom(o.domicilio);
+  if(!map[key])map[key]={key,domicilio:o.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  map[key].comercios.add(o.comercio||"Sin nombre");
+  map[key].pedidos.push(o);
+  if(o.total==null)map[key].confirmar=true;
+  else map[key].debe+=o.total;
+ });
+ pagos.forEach(p=>{
+  const key=normDom(p.domicilio);
+  if(!map[key])map[key]={key,domicilio:p.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  if(!map[key].pagos)map[key].pagos=[];
+  map[key].pagos.push(p);
+ });
+ saldosIniciales.forEach(s=>{
+  const key=normDom(s.domicilio);
+  if(!map[key])map[key]={key,domicilio:s.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  if(!map[key].saldos)map[key].saldos=[];
+  map[key].saldos.push(s);
+  map[key].debe+=(s.monto||0);
+ });
+ clients=Object.values(map).map(c=>{
+  const haber=(c.pagos||[]).reduce((s,p)=>s+(p.monto||0),0);
+  return {...c,comercios:[...c.comercios],pagos:c.pagos||[],saldos:c.saldos||[],haber,saldo:c.debe-haber};
+ }).sort((a,b)=>b.saldo-a.saldo);
+}
+
+function renderTotales(){
+ const totalDebe=clients.reduce((s,c)=>s+c.debe,0);
+ const totalHaber=clients.reduce((s,c)=>s+c.haber,0);
+ const totalSaldo=totalDebe-totalHaber;
+ $("totales").innerHTML=`
+  <div class="tot-stat"><div class="tot-label">Total facturado</div><div class="tot-value">${money(totalDebe)}</div></div>
+  <div class="tot-stat"><div class="tot-label">Total cobrado</div><div class="tot-value">${money(totalHaber)}</div></div>
+  <div class="tot-stat"><div class="tot-label">Saldo total pendiente</div><div class="tot-value">${money(totalSaldo)}</div></div>
+ `;
+}
+
+function fillDomicilioSelect(){
+ const opts=clients.map(c=>`<option value="${c.domicilio.replace(/"/g,'&quot;')}">${c.domicilio}</option>`).join("");
+ $("pagoDomicilio").innerHTML='<option value="">Seleccionar domicilio...</option>'+opts;
+ $("saldoDomicilio").innerHTML='<option value="">Seleccionar domicilio...</option>'+opts;
+}
+
+function fmtFechaCorta(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit"});
+}
+
+function renderClients(){
+ const term=($("searchClients").value||"").toLowerCase().trim();
+ const visible=clients.filter(c=>!term||c.domicilio.toLowerCase().includes(term)||c.comercios.some(s=>s.toLowerCase().includes(term)));
+
+ $("countLabel").textContent=visible.length+" "+(visible.length===1?"cliente":"clientes");
+
+ if(!visible.length){$("clientsList").innerHTML='<div class="empty">No hay clientes para mostrar.</div>';return}
+
+ $("clientsList").innerHTML=visible.map(c=>{
+  const saldado=c.saldo<=0;
+  const open=openKey===c.key;
+  const pedidosHtml=c.pedidos.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(o=>
+   `<div class="mini-row"><span>${fmtFechaCorta(o.created_at)} · ${o.comercio||"-"}</span><span>${o.total==null?"A confirmar":money(o.total)}</span></div>`
+  ).join("")||'<div class="mini-row"><span>Sin pedidos registrados</span></div>';
+  const pagosHtml=c.pagos.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(p=>
+   `<div class="mini-row"><span>${p.fecha} ${p.nota?"· "+p.nota:""}</span><span>${money(p.monto)} <button class="del-pago" onclick="event.stopPropagation();borrarPago(${p.id})">✕</button></span></div>`
+  ).join("")||'<div class="mini-row"><span>Sin pagos registrados</span></div>';
+  const saldosHtml=(c.saldos||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(s=>
+   `<div class="mini-row"><span>${s.fecha} ${s.nota?"· "+s.nota:""}</span><span>${money(s.monto)} <button class="del-pago" onclick="event.stopPropagation();borrarSaldo(${s.id})">✕</button></span></div>`
+  ).join("")||'';
+
+  return `<div class="client" onclick="toggleClient('${c.key.replace(/'/g,"\\'")}')">
+   <div class="client-top">
+    <div>
+     <div class="client-addr">📍 ${c.domicilio}</div>
+     <div class="client-shops">${c.comercios.join(", ")} · ${c.pedidos.length} pedido${c.pedidos.length===1?"":"s"}</div>
+    </div>
+    <div class="saldo">
+     <div class="saldo-label">${saldado?"Al día":"Debe"}</div>
+     <div class="saldo-val ${saldado?"saldado":"debe"}">${money(Math.abs(c.saldo))}</div>
+    </div>
+   </div>
+   <div class="detail ${open?"open":""}">
+    <h4>Pedidos</h4>
+    ${pedidosHtml}
+    ${saldosHtml?`<h4 style="margin-top:12px">Saldo pendiente anterior</h4>${saldosHtml}`:""}
+    <h4 style="margin-top:12px">Pagos registrados</h4>
+    ${pagosHtml}
+    <button onclick="event.stopPropagation();window.open('estado-cuenta.html?domicilio=${encodeURIComponent(c.domicilio)}','_blank')" style="margin-top:12px;width:100%;padding:11px;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;border:0;border-radius:14px;font:800 13px Poppins,Arial,sans-serif;cursor:pointer">📄 Estado de cuenta (para enviar / PDF)</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+function toggleClient(key){
+ openKey=openKey===key?null:key;
+ renderClients();
+}
+
+async function cargarTodo(){
+ $("clientsList").innerHTML='<div class="loading">Cargando...</div>';
+ try{
+  const [rOrders,rPagos,rSaldos]=await Promise.all([
+   apiFetch("/rest/v1/pedidos_distribuidora?select=id,comercio,domicilio,total,created_at&order=created_at.desc"),
+   apiFetch("/rest/v1/pagos_clientes?select=*&order=fecha.desc"),
+   apiFetch("/rest/v1/saldos_iniciales?select=*&order=fecha.desc")
+  ]);
+  orders=await rOrders.json();
+  pagos=await rPagos.json();
+  saldosIniciales=await rSaldos.json();
+  buildClients();
+  renderTotales();
+  fillDomicilioSelect();
+  renderClients();
+ }catch(e){
+  $("clientsList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar datos")+'</div>';
+ }
+}
+
+async function guardarPago(){
+ const domicilio=$("pagoDomicilio").value;
+ const monto=parseFloat($("pagoMonto").value);
+ const fecha=$("pagoFecha").value;
+ const nota=$("pagoNota").value.trim();
+ $("pagoMsg").innerHTML="";
+ if(!domicilio)return $("pagoMsg").innerHTML='<div class="err">Elegí un cliente.</div>';
+ if(!monto||monto<=0)return $("pagoMsg").innerHTML='<div class="err">Ingresá un monto válido.</div>';
+ if(!fecha)return $("pagoMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
+
+ $("guardarPagoBtn").disabled=true;$("guardarPagoBtn").textContent="Guardando...";
+ try{
+  await apiFetch("/rest/v1/pagos_clientes",{
+   method:"POST",
+   headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({domicilio,monto,fecha,nota:nota||null})
+  });
+  $("pagoMsg").innerHTML='<div class="ok">✅ Pago registrado.</div>';
+  $("pagoMonto").value="";$("pagoNota").value="";
+  await cargarTodo();
+ }catch(e){
+  $("pagoMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ $("guardarPagoBtn").disabled=false;$("guardarPagoBtn").textContent="Guardar pago";
+}
+
+async function borrarPago(id){
+ if(!confirm("¿Borrar este pago?"))return;
+ try{
+  await apiFetch("/rest/v1/pagos_clientes?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  await cargarTodo();
+ }catch(e){
+  alert("No se pudo borrar: "+(e.message||"error desconocido"));
+ }
+}
+
+async function guardarSaldo(){
+ const domicilio=$("saldoDomicilio").value;
+ const monto=parseFloat($("saldoMonto").value);
+ const fecha=$("saldoFecha").value;
+ const nota=$("saldoNota").value.trim();
+ $("saldoMsg").innerHTML="";
+ if(!domicilio)return $("saldoMsg").innerHTML='<div class="err">Elegí un cliente.</div>';
+ if(!monto||monto<=0)return $("saldoMsg").innerHTML='<div class="err">Ingresá un monto válido.</div>';
+ if(!fecha)return $("saldoMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
+
+ $("guardarSaldoBtn").disabled=true;$("guardarSaldoBtn").textContent="Guardando...";
+ try{
+  await apiFetch("/rest/v1/saldos_iniciales",{
+   method:"POST",
+   headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({domicilio,monto,fecha,nota:nota||null})
+  });
+  $("saldoMsg").innerHTML='<div class="ok">✅ Saldo anterior cargado.</div>';
+  $("saldoMonto").value="";$("saldoNota").value="";
+  await cargarTodo();
+ }catch(e){
+  $("saldoMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ $("guardarSaldoBtn").disabled=false;$("guardarSaldoBtn").textContent="Guardar saldo anterior";
+}
+
+async function borrarSaldo(id){
+ if(!confirm("¿Borrar este saldo pendiente anterior?"))return;
+ try{
+  await apiFetch("/rest/v1/saldos_iniciales?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  await cargarTodo();
+ }catch(e){
+  alert("No se pudo borrar: "+(e.message||"error desconocido"));
+ }
+}
+
+function exportarExcel(){
+ if(!clients.length){alert("No hay clientes para exportar.");return}
+ let csv="Domicilio,Comercios,Pedidos,Debe,Haber,Saldo\n";
+ clients.forEach(c=>{
+  csv+=`"${c.domicilio}","${c.comercios.join(" / ")}",${c.pedidos.length},${c.debe},${c.haber},${c.saldo}\n`;
+ });
+ const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="cuenta_corriente_"+new Date().toISOString().slice(0,10)+".csv";
+ a.click();
+ URL.revokeObjectURL(url);
+}
+
+$("guardarPagoBtn").addEventListener("click",guardarPago);
+$("guardarSaldoBtn").addEventListener("click",guardarSaldo);
+$("searchClients").addEventListener("input",renderClients);
+$("exportExcelBtn").addEventListener("click",exportarExcel);
+$("pagoFecha").value=new Date().toISOString().slice(0,10);
+$("saldoFecha").value=new Date().toISOString().slice(0,10);
+
+if(session){
+ $("content").style.display="block";
+ cargarTodo();
+}else{
+ $("noSession").style.display="block";
+}
+</script>
+</body>
+</html>
