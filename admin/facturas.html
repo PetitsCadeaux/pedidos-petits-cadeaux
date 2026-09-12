@@ -53,7 +53,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 
 <header>
  <h1>🧾 Facturas del Proveedor</h1>
- <a class="navlink" href="admin.html">← Volver al panel de pedidos</a>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a> &nbsp;·&nbsp; <a class="navlink" href="costos.html">💰 Costos y márgenes</a>
 </header>
 
 <main>
@@ -73,6 +73,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
   <label>Descripción (opcional)<input id="fDescripcion" placeholder="Ej. Factura N° 0001-00023"></label>
   <label>Importe<input id="fImporte" type="number" min="0" inputmode="decimal" placeholder="Ej. 50000"></label>
   <label>Fecha<input id="fFecha" type="date"></label>
+  <label>Foto o PDF de la factura/remito (opcional)<input id="fArchivo" type="file" accept="image/*,application/pdf"></label>
   <button class="btn-main" id="guardarFacturaBtn">Guardar factura</button>
   <div id="facturaMsg"></div>
  </div>
@@ -158,6 +159,7 @@ function renderFacturas(){
    <div class="factura-importe">${money(f.importe)}</div>
    <div class="actions">
     ${!f.pagada?`<button class="btn-pay" onclick="marcarPagada(${f.id},this)">Marcar como pagada</button>`:""}
+    ${f.archivo_url?`<button class="btn-del" onclick="window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
     <button class="btn-del" onclick="borrarFactura(${f.id})">Borrar</button>
    </div>
   </div>`;
@@ -176,6 +178,18 @@ async function cargarFacturas(){
  }
 }
 
+async function subirArchivo(file){
+ const ext=file.name.split(".").pop();
+ const path="factura-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"."+ext;
+ const r=await fetch(SUPABASE_URL+"/storage/v1/object/facturas-proveedor/"+path,{
+  method:"POST",
+  headers:{"Authorization":"Bearer "+session.access_token,"apikey":SUPABASE_KEY,"Content-Type":file.type||"application/octet-stream"},
+  body:file
+ });
+ if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.message||"No se pudo subir el archivo")}
+ return SUPABASE_URL+"/storage/v1/object/public/facturas-proveedor/"+path;
+}
+
 async function guardarFactura(){
  const proveedor=$("fProveedor").value.trim();
  const descripcion=$("fDescripcion").value.trim();
@@ -188,13 +202,19 @@ async function guardarFactura(){
 
  $("guardarFacturaBtn").disabled=true;$("guardarFacturaBtn").textContent="Guardando...";
  try{
+  let archivo_url=null;
+  const file=$("fArchivo").files[0];
+  if(file){
+   $("guardarFacturaBtn").textContent="Subiendo archivo...";
+   archivo_url=await subirArchivo(file);
+  }
   await apiFetch("/rest/v1/facturas_proveedor",{
    method:"POST",
    headers:{"Prefer":"return=minimal"},
-   body:JSON.stringify({proveedor,descripcion:descripcion||null,importe,fecha,pagada:false})
+   body:JSON.stringify({proveedor,descripcion:descripcion||null,importe,fecha,pagada:false,archivo_url})
   });
   $("facturaMsg").innerHTML='<div class="ok">✅ Factura registrada.</div>';
-  $("fDescripcion").value="";$("fImporte").value="";
+  $("fDescripcion").value="";$("fImporte").value="";$("fArchivo").value="";
   await cargarFacturas();
  }catch(e){
   $("facturaMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';

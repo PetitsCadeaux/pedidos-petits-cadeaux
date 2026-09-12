@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Costos y Márgenes - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-main{padding:14px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22);width:100%;margin-top:16px}
+.btn-main:disabled{opacity:.6}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:8px 5px}
+th.num,td.num{text-align:right}
+td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
+.del-cost{background:none;border:0;color:#c0435a;font-size:12px;font-weight:700;padding:2px 6px;cursor:pointer}
+.margin-pos{color:#177a4d;font-weight:800}
+.margin-neg{color:#a13030;font-weight:800}
+.margin-na{color:var(--muted)}
+.totales{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tot-stat{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:14px 15px;box-shadow:0 8px 22px rgba(84,36,119,.07)}
+.tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:22px;font-weight:700;color:var(--purple)}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.row2b{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>💰 Costos y Márgenes</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a> &nbsp;·&nbsp; <a class="navlink" href="facturas.html">🧾 Facturas proveedor</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="content" style="display:none">
+
+ <div class="totales" id="totales"></div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Cargar costo de un producto</h2>
+  <p style="margin:0;color:var(--muted);font-size:13px">Esto es lo que a vos te cuesta cada producto (precio de tu proveedor). Con eso calculamos el margen de cada pedido.</p>
+  <div class="row2b">
+   <label>Producto
+    <select id="cProducto"><option value="">Seleccionar de la lista...</option></select>
+   </label>
+   <label>o escribí uno nuevo<input id="cProductoNuevo" placeholder="Nombre exacto"></label>
+  </div>
+  <label>Costo por unidad<input id="cCosto" type="number" min="0" inputmode="decimal" placeholder="Ej. 1800"></label>
+  <button class="btn-main" id="guardarCostoBtn">Guardar costo</button>
+  <div id="costoMsg"></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Costos cargados</h2>
+  <div id="costosList"><div class="loading">Cargando...</div></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Margen por pedido</h2>
+  <p style="margin:0 0 6px;color:var(--muted);font-size:13px">Últimos 30 pedidos. "Sin datos" significa que falta cargar el costo de alguno de sus productos.</p>
+  <div id="margenesList"><div class="loading">Cargando...</div></div>
+ </div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let costos=[];
+let orders=[];
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/json",...(options.headers||{})}
+ });
+ if(r.status===401){localStorage.removeItem("admin_session");location.href="admin.html";throw new Error("Sesión vencida")}
+ return r;
+}
+
+function costoDe(producto){
+ const c=costos.find(x=>x.producto===producto);
+ return c?c.costo:null;
+}
+
+function calcularMargen(o){
+ let costoTotal=0, ventaTotal=0, faltan=false;
+ (o.productos||[]).forEach(it=>{
+  if(it.precio_unitario!=null)ventaTotal+=it.cantidad*it.precio_unitario;
+  const c=costoDe(it.producto);
+  if(c==null)faltan=true;
+  else costoTotal+=it.cantidad*c;
+ });
+ return {ventaTotal, costoTotal, margen:ventaTotal-costoTotal, faltan};
+}
+
+function renderTotales(){
+ const recientes=orders.slice(0,30);
+ let venta=0, costo=0, algunoCompleto=false;
+ recientes.forEach(o=>{
+  const m=calcularMargen(o);
+  if(!m.faltan){venta+=m.ventaTotal;costo+=m.costoTotal;algunoCompleto=true}
+ });
+ $("totales").innerHTML=`
+  <div class="tot-stat"><div class="tot-label">Productos con costo cargado</div><div class="tot-value">${costos.length}</div></div>
+  <div class="tot-stat"><div class="tot-label">Ventas (pedidos completos)</div><div class="tot-value">${money(venta)}</div></div>
+  <div class="tot-stat"><div class="tot-label">Margen total</div><div class="tot-value">${algunoCompleto?money(venta-costo):"-"}</div></div>
+ `;
+}
+
+function fillProductoSelect(){
+ const nombres=new Set();
+ orders.forEach(o=>(o.productos||[]).forEach(it=>nombres.add(it.producto)));
+ const opts=[...nombres].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}${costoDe(n)!=null?" (ya cargado)":""}</option>`).join("");
+ $("cProducto").innerHTML='<option value="">Seleccionar de la lista...</option>'+opts;
+}
+
+function renderCostos(){
+ if(!costos.length){$("costosList").innerHTML='<div class="empty">Todavía no cargaste ningún costo.</div>';return}
+ $("costosList").innerHTML=`<table>
+  <thead><tr><th>Producto</th><th class="num">Costo</th><th class="num"></th></tr></thead>
+  <tbody>${costos.slice().sort((a,b)=>a.producto.localeCompare(b.producto)).map(c=>
+   `<tr><td>${c.producto}</td><td class="num">${money(c.costo)}</td><td class="num"><button class="del-cost" onclick="borrarCosto('${c.producto.replace(/'/g,"\\'")}')">✕</button></td></tr>`
+  ).join("")}</tbody>
+ </table>`;
+}
+
+function fmtFechaCorta(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"});
+}
+
+function renderMargenes(){
+ const recientes=orders.slice(0,30);
+ if(!recientes.length){$("margenesList").innerHTML='<div class="empty">No hay pedidos todavía.</div>';return}
+ $("margenesList").innerHTML=`<table>
+  <thead><tr><th>Pedido</th><th class="num">Venta</th><th class="num">Costo</th><th class="num">Margen</th></tr></thead>
+  <tbody>${recientes.map(o=>{
+   const m=calcularMargen(o);
+   const cls=m.faltan?"margin-na":(m.margen>=0?"margin-pos":"margin-neg");
+   const val=m.faltan?"Sin datos":money(m.margen);
+   return `<tr><td>${fmtFechaCorta(o.created_at)} · ${o.comercio||"-"}</td><td class="num">${money(m.ventaTotal)}</td><td class="num">${m.faltan?"-":money(m.costoTotal)}</td><td class="num ${cls}">${val}</td></tr>`;
+  }).join("")}</tbody>
+ </table>`;
+}
+
+async function cargarTodo(){
+ $("costosList").innerHTML='<div class="loading">Cargando...</div>';
+ $("margenesList").innerHTML='<div class="loading">Cargando...</div>';
+ try{
+  const [rCostos,rOrders]=await Promise.all([
+   apiFetch("/rest/v1/costos_productos?select=*"),
+   apiFetch("/rest/v1/pedidos_distribuidora?select=id,comercio,productos,created_at&order=created_at.desc&limit=30")
+  ]);
+  costos=await rCostos.json();
+  orders=await rOrders.json();
+  renderTotales();
+  fillProductoSelect();
+  renderCostos();
+  renderMargenes();
+ }catch(e){
+  $("costosList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar datos")+'</div>';
+ }
+}
+
+async function guardarCosto(){
+ const producto=($("cProductoNuevo").value.trim())||$("cProducto").value;
+ const costo=parseFloat($("cCosto").value);
+ $("costoMsg").innerHTML="";
+ if(!producto)return $("costoMsg").innerHTML='<div class="err">Elegí o escribí un producto.</div>';
+ if(!costo||costo<=0)return $("costoMsg").innerHTML='<div class="err">Ingresá un costo válido.</div>';
+
+ $("guardarCostoBtn").disabled=true;$("guardarCostoBtn").textContent="Guardando...";
+ try{
+  const existe=costos.find(c=>c.producto===producto);
+  if(existe){
+   await apiFetch("/rest/v1/costos_productos?producto=eq."+encodeURIComponent(producto),{
+    method:"PATCH",
+    headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({costo})
+   });
+  }else{
+   await apiFetch("/rest/v1/costos_productos",{
+    method:"POST",
+    headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({producto,costo})
+   });
+  }
+  $("costoMsg").innerHTML='<div class="ok">✅ Costo guardado.</div>';
+  $("cProductoNuevo").value="";$("cCosto").value="";
+  await cargarTodo();
+ }catch(e){
+  $("costoMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ $("guardarCostoBtn").disabled=false;$("guardarCostoBtn").textContent="Guardar costo";
+}
+
+async function borrarCosto(producto){
+ if(!confirm("¿Borrar el costo de \""+producto+"\"?"))return;
+ try{
+  await apiFetch("/rest/v1/costos_productos?producto=eq."+encodeURIComponent(producto),{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  await cargarTodo();
+ }catch(e){
+  alert("No se pudo borrar: "+(e.message||"error desconocido"));
+ }
+}
+
+$("guardarCostoBtn").addEventListener("click",guardarCosto);
+
+if(session){
+ $("content").style.display="block";
+ cargarTodo();
+}else{
+ $("noSession").style.display="block";
+}
+</script>
+</body>
+</html>
