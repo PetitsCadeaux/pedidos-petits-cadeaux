@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Facturas Proveedor - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{width:100%;margin-top:16px;padding:15px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6}
+.btn-sec{width:100%;margin-top:12px;padding:13px;background:#fff;border:1.5px dashed #c9a8d1;color:#654273}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 4px;margin:12px 0 0}
+.chip{padding:9px 15px;border:1px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 12px Poppins,Arial,sans-serif;white-space:nowrap}
+.chip.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
+.factura{border:1px solid #eee1ef;border-radius:18px;padding:15px 16px;margin-top:12px;background:linear-gradient(180deg,#fff,#fdf9fe);cursor:pointer}
+.factura.pagada{opacity:.68}
+.factura-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.factura-prov{font-weight:800;font-size:16px}
+.factura-meta{font-size:13px;color:var(--muted);margin-top:2px}
+.factura-importe{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:700;color:var(--purple);margin-top:8px}
+.badge{padding:5px 11px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.badge.pendiente{background:#fff1de;color:#a15b00}
+.badge.pagada{background:#e6f7ee;color:#177a4d}
+.badge.tipo{background:#e8f0fe;color:#1a56b0;margin-left:6px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.actions button{padding:10px 14px;font-size:13px}
+.btn-pay{background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;flex:1}
+.btn-del{background:none;border:1px solid #f2ccd2;color:#9b3040}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.totales{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tot-stat{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:14px 15px;box-shadow:0 8px 22px rgba(84,36,119,.07)}
+.tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:22px;font-weight:700;color:var(--purple)}
+.item-form{border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#fbf7fc}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.radio-row{display:flex;gap:14px;margin-top:8px}
+.radio-row label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);font-weight:600;margin:0}
+.radio-row input{width:auto;margin:0}
+.item-preview{margin-top:10px;font-size:13px;color:var(--muted);background:#fff;border-radius:10px;padding:8px 10px}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:6px 4px}
+th.num,td.num{text-align:right}
+td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
+.del-item{background:none;border:0;color:#c0435a;font-size:12px;font-weight:700;padding:2px 6px;cursor:pointer}
+.detail{margin-top:12px;border-top:1px dashed #e6d9e8;padding-top:10px;display:none}
+.detail.open{display:block}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>🧾 Facturas del Proveedor</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a> &nbsp;·&nbsp; <a class="navlink" href="costos.html">💰 Costos y márgenes</a> &nbsp;·&nbsp; <a class="navlink" href="cuenta-proveedor.html">📒 Cuenta corriente proveedor</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="content" style="display:none">
+
+ <div class="totales" id="totales"></div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Cargar factura</h2>
+
+  <label>Proveedor<input id="fProveedor" placeholder="Ej. Pazzi S.A."></label>
+  <div class="row2">
+   <label>Tipo de comprobante
+    <select id="fTipo">
+     <option value="Factura A">Factura A</option>
+     <option value="Remito">Remito</option>
+     <option value="Compromiso de pago">Compromiso de pago</option>
+    </select>
+   </label>
+   <label>Fecha<input id="fFecha" type="date"></label>
+  </div>
+  <label>N° de comprobante / descripción (opcional)<input id="fDescripcion" placeholder="Ej. O 57496"></label>
+  <label>Foto o PDF de la factura/remito (opcional)<input id="fArchivo" type="file" accept="image/*,application/pdf"></label>
+
+  <div class="item-form">
+   <strong style="color:var(--purple)">Agregar ítem a la factura</strong>
+   <div class="radio-row">
+    <label><input type="radio" name="itemTipo" value="producto" checked> Producto</label>
+    <label><input type="radio" name="itemTipo" value="servicio"> Servicio</label>
+   </div>
+
+   <div id="productoFields">
+    <label>Producto
+     <select id="iProducto"><option value="">Seleccionar de la lista...</option></select>
+    </label>
+    <input id="iProductoNuevo" placeholder="...o escribí uno nuevo" style="margin-top:7px">
+   </div>
+   <div id="servicioFields" style="display:none">
+    <label>Nombre del servicio<input id="iServicioNombre" placeholder="Ej. Pago al repartidor, Community manager"></label>
+   </div>
+
+   <div class="row3">
+    <label>Cantidad<input id="iCantidad" type="number" min="0" step="1" placeholder="10" value="1"></label>
+    <label>Precio unitario<input id="iPrecio" type="number" min="0" step="0.01" placeholder="1457.17"></label>
+    <label>IVA %<input id="iIva" type="number" min="0" step="0.1" value="21"></label>
+   </div>
+   <div class="radio-row">
+    <label><input type="radio" name="ivaTipo" value="con" checked> El precio que puse es CON IVA</label>
+    <label><input type="radio" name="ivaTipo" value="sin"> El precio que puse es SIN IVA</label>
+   </div>
+   <label>Bonificación %<input id="iBonif" type="number" min="0" max="100" step="0.1" value="0"></label>
+   <div class="item-preview" id="itemPreview">Completá los datos para ver el cálculo.</div>
+   <button class="btn-sec" id="agregarItemBtn" type="button">+ Agregar ítem a la factura</button>
+  </div>
+
+  <div id="itemsWrap"></div>
+
+  <button class="btn-main" id="guardarFacturaBtn">Guardar factura</button>
+  <div id="facturaMsg"></div>
+ </div>
+
+ <div class="card">
+  <div class="topbar">
+   <strong id="countLabel">0 facturas</strong>
+  </div>
+  <div class="filters" id="estadoFilters">
+   <button type="button" class="chip active" data-f="Todas">Todas</button>
+   <button type="button" class="chip" data-f="Pendiente">Pendientes</button>
+   <button type="button" class="chip" data-f="Pagada">Pagadas</button>
+  </div>
+ </div>
+
+ <div id="facturasList"></div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(n||0);
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let facturas=[];
+let estadoFilter="Todas";
+let currentItems=[];
+let openFacturaId=null;
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{
+   "apikey":SUPABASE_KEY,
+   "Authorization":"Bearer "+session.access_token,
+   "Content-Type":"application/json",
+   ...(options.headers||{})
+  }
+ });
+ if(r.status===401){localStorage.removeItem("admin_session");location.href="admin.html";throw new Error("Sesión vencida")}
+ return r;
+}
+
+function renderTotales(){
+ const total=facturas.reduce((s,f)=>s+(f.importe||0),0);
+ const pagado=facturas.filter(f=>f.pagada).reduce((s,f)=>s+(f.importe||0),0);
+ const pendiente=total-pagado;
+ $("totales").innerHTML=`
+  <div class="tot-stat"><div class="tot-label">Total facturado</div><div class="tot-value">${money(total)}</div></div>
+  <div class="tot-stat"><div class="tot-label">Total pagado</div><div class="tot-value">${money(pagado)}</div></div>
+  <div class="tot-stat"><div class="tot-label">Pendiente de pago</div><div class="tot-value">${money(pendiente)}</div></div>
+ `;
+}
+
+function fmtFechaCorta(iso){
+ if(!iso)return "-";
+ const [y,m,d]=iso.split("-");
+ return `${d}/${m}/${y.slice(2)}`;
+}
+
+// ---- Item calculation, matching the "precio con IVA / bonif / precio final / subtotal" logic ----
+function tipoItemActual(){return document.querySelector('input[name="itemTipo"]:checked').value}
+
+function buscarUltimoPrecio(producto){
+ if(!producto)return null;
+ const conProducto=facturas
+  .slice()
+  .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))
+  .flatMap(f=>(f.items||[]).map(it=>({...it,_fecha:f.fecha})))
+  .filter(it=>it.tipo!=="servicio"&&it.producto===producto);
+ return conProducto[0]||null;
+}
+
+function autocompletarPrecio(){
+ const producto=($("iProductoNuevo").value.trim())||$("iProducto").value;
+ if(tipoItemActual()!=="producto"||!producto)return;
+ const ultimo=buscarUltimoPrecio(producto);
+ if(!ultimo)return;
+ $("iPrecio").value=Math.round(ultimo.precioSinIva*100)/100;
+ document.querySelector('input[name="ivaTipo"][value="sin"]').checked=true;
+ $("iIva").value=ultimo.ivaPct;
+ $("iBonif").value="0";
+ calcularItem();
+ $("itemPreview").innerHTML+=`<br><span style="color:var(--muted)">↳ Autocompletado con el último precio cargado (${new Date(ultimo._fecha).toLocaleDateString("es-AR")})</span>`;
+}
+
+function calcularItem(){
+ const cantidad=parseFloat($("iCantidad").value);
+ const precio=parseFloat($("iPrecio").value);
+ const ivaPct=parseFloat($("iIva").value)||0;
+ const bonifPct=parseFloat($("iBonif").value)||0;
+ const tipo=document.querySelector('input[name="ivaTipo"]:checked').value;
+ if(!cantidad||!precio){$("itemPreview").textContent="Completá los datos para ver el cálculo.";return null}
+
+ let precioConIva, precioSinIva;
+ if(tipo==="con"){precioConIva=precio;precioSinIva=precio/(1+ivaPct/100)}
+ else{precioSinIva=precio;precioConIva=precio*(1+ivaPct/100)}
+
+ const precioFinal=precioConIva*(1-bonifPct/100);
+ const ivaMonto=precioFinal-(precioFinal/(1+ivaPct/100));
+ const subtotal=precioFinal*cantidad;
+
+ const calc={cantidad,precioConIva,precioSinIva,bonifPct,precioFinal,ivaPct,ivaMonto,subtotal};
+ $("itemPreview").innerHTML=`Precio final: <strong>${money(precioFinal)}</strong> por unidad &nbsp;→&nbsp; Subtotal: <strong>${money(subtotal)}</strong>`;
+ return calc;
+}
+
+["iCantidad","iPrecio","iIva","iBonif"].forEach(id=>$(id).addEventListener("input",calcularItem));
+document.querySelectorAll('input[name="ivaTipo"]').forEach(r=>r.addEventListener("change",calcularItem));
+
+document.querySelectorAll('input[name="itemTipo"]').forEach(r=>r.addEventListener("change",()=>{
+ const esServicio=tipoItemActual()==="servicio";
+ $("productoFields").style.display=esServicio?"none":"block";
+ $("servicioFields").style.display=esServicio?"block":"none";
+}));
+
+$("iProducto").addEventListener("change",autocompletarPrecio);
+$("iProductoNuevo").addEventListener("blur",autocompletarPrecio);
+
+function agregarItem(){
+ const tipo=tipoItemActual();
+ const producto=tipo==="servicio"
+  ? $("iServicioNombre").value.trim()
+  : ($("iProductoNuevo").value.trim())||$("iProducto").value;
+ if(!producto){$("facturaMsg").innerHTML='<div class="err">'+(tipo==="servicio"?"Escribí el nombre del servicio.":"Elegí o escribí el producto del ítem.")+'</div>';return}
+ const calc=calcularItem();
+ if(!calc){$("facturaMsg").innerHTML='<div class="err">Completá cantidad y precio del ítem.</div>';return}
+ $("facturaMsg").innerHTML="";
+ currentItems.push({producto, tipo, ...calc});
+ $("iProductoNuevo").value="";$("iProducto").value="";$("iServicioNombre").value="";$("iCantidad").value="1";$("iPrecio").value="";$("iBonif").value="0";
+ $("itemPreview").textContent="Completá los datos para ver el cálculo.";
+ renderItemsWrap();
+}
+
+function renderItemsWrap(){
+ if(!currentItems.length){$("itemsWrap").innerHTML="";return}
+ const total=currentItems.reduce((s,it)=>s+it.subtotal,0);
+ $("itemsWrap").innerHTML=`<table>
+  <thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th><th></th></tr></thead>
+  <tbody>${currentItems.map((it,i)=>`<tr>
+    <td>${it.producto}${it.tipo==="servicio"?' <span class="badge tipo" style="font-size:9px">Servicio</span>':""}</td>
+    <td class="num">${it.cantidad}</td>
+    <td class="num">${money(it.precioFinal)}</td>
+    <td class="num">${money(it.subtotal)}</td>
+    <td class="num"><button class="del-item" onclick="quitarItem(${i})">✕</button></td>
+   </tr>`).join("")}
+  </tbody>
+  <tfoot><tr><td colspan="3" style="font-weight:800;color:var(--purple)">Total factura</td><td class="num" style="font-weight:800;color:var(--purple)">${money(total)}</td><td></td></tr></tfoot>
+ </table>`;
+}
+
+function quitarItem(i){currentItems.splice(i,1);renderItemsWrap()}
+
+async function subirArchivo(file){
+ const ext=file.name.split(".").pop();
+ const path="factura-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"."+ext;
+ const r=await fetch(SUPABASE_URL+"/storage/v1/object/facturas-proveedor/"+path,{
+  method:"POST",
+  headers:{"Authorization":"Bearer "+session.access_token,"apikey":SUPABASE_KEY,"Content-Type":file.type||"application/octet-stream"},
+  body:file
+ });
+ if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.message||"No se pudo subir el archivo")}
+ return SUPABASE_URL+"/storage/v1/object/public/facturas-proveedor/"+path;
+}
+
+async function actualizarCostos(items){
+ const soloProductos=items.filter(it=>it.tipo!=="servicio");
+ for(const it of soloProductos){
+  const r=await apiFetch("/rest/v1/costos_productos?producto=eq."+encodeURIComponent(it.producto)+"&select=producto");
+  const existe=await r.json();
+  if(existe.length){
+   await apiFetch("/rest/v1/costos_productos?producto=eq."+encodeURIComponent(it.producto),{
+    method:"PATCH",headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({costo:it.precioFinal})
+   });
+  }else{
+   await apiFetch("/rest/v1/costos_productos",{
+    method:"POST",headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({producto:it.producto,costo:it.precioFinal})
+   });
+  }
+ }
+}
+
+async function guardarFactura(){
+ const proveedor=$("fProveedor").value.trim();
+ const tipo_comprobante=$("fTipo").value;
+ const descripcion=$("fDescripcion").value.trim();
+ const fecha=$("fFecha").value;
+ $("facturaMsg").innerHTML="";
+ if(!proveedor)return $("facturaMsg").innerHTML='<div class="err">Ingresá el nombre del proveedor.</div>';
+ if(!fecha)return $("facturaMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
+ if(!currentItems.length)return $("facturaMsg").innerHTML='<div class="err">Agregá al menos un producto a la factura.</div>';
+
+ const importe=currentItems.reduce((s,it)=>s+it.subtotal,0);
+
+ $("guardarFacturaBtn").disabled=true;$("guardarFacturaBtn").textContent="Guardando...";
+ try{
+  let archivo_url=null;
+  const file=$("fArchivo").files[0];
+  if(file){
+   $("guardarFacturaBtn").textContent="Subiendo archivo...";
+   archivo_url=await subirArchivo(file);
+  }
+  $("guardarFacturaBtn").textContent="Guardando...";
+  await apiFetch("/rest/v1/facturas_proveedor",{
+   method:"POST",
+   headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({proveedor,tipo_comprobante,descripcion:descripcion||null,importe,fecha,pagada:false,archivo_url,items:currentItems})
+  });
+  $("guardarFacturaBtn").textContent="Actualizando costos...";
+  await actualizarCostos(currentItems);
+
+  $("facturaMsg").innerHTML='<div class="ok">✅ Factura registrada y costos actualizados.</div>';
+  $("fDescripcion").value="";$("fArchivo").value="";
+  currentItems=[];renderItemsWrap();
+  await cargarFacturas();
+ }catch(e){
+  $("facturaMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ $("guardarFacturaBtn").disabled=false;$("guardarFacturaBtn").textContent="Guardar factura";
+}
+
+function renderFacturas(){
+ const visible=facturas.filter(f=>{
+  if(estadoFilter==="Todas")return true;
+  if(estadoFilter==="Pagada")return f.pagada;
+  return !f.pagada;
+ });
+
+ $("countLabel").textContent=visible.length+" "+(visible.length===1?"factura":"facturas");
+
+ if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';return}
+
+ $("facturasList").innerHTML=visible.map(f=>{
+  const open=openFacturaId===f.id;
+  const itemsHtml=(f.items||[]).map(it=>`<tr><td>${it.producto}${it.tipo==="servicio"?' <span class="badge tipo" style="font-size:9px">Servicio</span>':""}</td><td class="num">${it.cantidad}</td><td class="num">${money(it.precioFinal)}</td><td class="num">${money(it.subtotal)}</td></tr>`).join("");
+  return `<div class="factura ${f.pagada?"pagada":""}" onclick="toggleFactura(${f.id})">
+   <div class="factura-top">
+    <div>
+     <div class="factura-prov">${f.proveedor||"Sin nombre"}</div>
+     <div class="factura-meta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}</div>
+    </div>
+    <div>
+     <span class="badge ${f.pagada?"pagada":"pendiente"}">${f.pagada?"Pagada":"Pendiente"}</span>
+     ${f.tipo_comprobante?`<span class="badge tipo">${f.tipo_comprobante}</span>`:""}
+    </div>
+   </div>
+   <div class="factura-importe" onclick="event.stopPropagation();editarImporte(${f.id},this)" style="cursor:pointer" title="Tocá para editar">${money(f.importe)} ✏️</div>
+   ${itemsHtml?`<div class="detail ${open?"open":""}"><table><thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table></div>`:""}
+   <div class="actions">
+    ${!f.pagada?`<button class="btn-pay" onclick="event.stopPropagation();marcarPagada(${f.id},this)">Marcar como pagada</button>`:""}
+    ${f.archivo_url?`<button class="btn-del" onclick="event.stopPropagation();window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
+    <button class="btn-del" onclick="event.stopPropagation();borrarFactura(${f.id})">Borrar</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+function toggleFactura(id){openFacturaId=openFacturaId===id?null:id;renderFacturas()}
+
+async function cargarFacturas(){
+ $("facturasList").innerHTML='<div class="loading">Cargando...</div>';
+ try{
+  const r=await apiFetch("/rest/v1/facturas_proveedor?select=*&order=fecha.desc");
+  facturas=await r.json();
+  renderTotales();
+  renderFacturas();
+  fillProductoSelect();
+ }catch(e){
+  $("facturasList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar facturas")+'</div>';
+ }
+}
+
+const CATALOGO_ACTUAL=[
+ "Hamburguesa Clásica x4","Hamburguesa Mix x4","Hamburguesa Queso x4","Hamburguesa Picante x2",
+ "Hamburguesa Vegano x4","Hamburguesa Smash x4","Hamburguesa Smash x8","Hamburguesa Queso x2",
+ "Pancho Corto Clásico x6","Pancho Corto Mix x6","Pancho Corto Queso x6",
+ "Pancho XL Clásico x6","Pancho XL Mix x6","Pancho XL Queso x6",
+ "Chips Comunes x6","Chips con Queso x6","Pebete x2","Molde x1","Árabe x4","Lomitero x2",
+ "Hamburguesa Clásica x42","Hamburguesa Mix x42","Hamburguesa Queso x42","Smash Especial x1",
+];
+
+function fillProductoSelect(){
+ const opts=CATALOGO_ACTUAL.slice().sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join("");
+ $("iProducto").innerHTML='<option value="">Seleccionar de la lista...</option>'+opts;
+}
+
+function editarImporte(id,el){
+ const f=facturas.find(x=>x.id===id);
+ if(!f)return;
+ const input=document.createElement("input");
+ input.type="number";input.min="0";input.step="0.01";input.value=f.importe;
+ input.style.cssText="width:140px;display:inline-block;margin:0;padding:8px 10px;font-size:16px";
+ input.onclick=e=>e.stopPropagation();
+ const guardar=async()=>{
+  const nuevo=parseFloat(input.value);
+  if(!nuevo||nuevo<0){renderFacturas();return}
+  try{
+   await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{
+    method:"PATCH",headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({importe:nuevo})
+   });
+   f.importe=nuevo;
+   renderTotales();renderFacturas();
+  }catch(e){alert("No se pudo actualizar: "+(e.message||"error desconocido"))}
+ };
+ input.onblur=guardar;
+ input.onkeydown=e=>{if(e.key==="Enter")input.blur()};
+ el.replaceWith(input);
+ input.focus();input.select();
+}
+
+async function marcarPagada(id,btn){
+ btn.disabled=true;btn.textContent="Guardando...";
+ try{
+  const hoy=new Date().toISOString().slice(0,10);
+  await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{
+   method:"PATCH",
+   headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({pagada:true,fecha_pago:hoy})
+  });
+  await cargarFacturas();
+ }catch(e){
+  alert("No se pudo actualizar: "+(e.message||"error desconocido"));
+  btn.disabled=false;btn.textContent="Marcar como pagada";
+ }
+}
+
+async function borrarFactura(id){
+ if(!confirm("¿Borrar esta factura?"))return;
+ try{
+  await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  await cargarFacturas();
+ }catch(e){
+  alert("No se pudo borrar: "+(e.message||"error desconocido"));
+ }
+}
+
+document.querySelectorAll("#estadoFilters .chip").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  estadoFilter=btn.dataset.f;
+  document.querySelectorAll("#estadoFilters .chip").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderFacturas();
+ });
+});
+
+$("agregarItemBtn").addEventListener("click",agregarItem);
+$("guardarFacturaBtn").addEventListener("click",guardarFactura);
+$("fFecha").value=new Date().toISOString().slice(0,10);
+
+if(session){
+ $("content").style.display="block";
+ cargarFacturas();
+}else{
+ $("noSession").style.display="block";
+}
+</script>
+</body>
+</html>
