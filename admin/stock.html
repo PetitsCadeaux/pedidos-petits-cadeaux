@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Stock - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{width:100%;margin-top:16px;padding:15px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.radio-row{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.radio-row label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);font-weight:600;margin:0}
+.radio-row input{width:auto;margin:0}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:8px 5px}
+th.num,td.num{text-align:right}
+td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
+.stock-baja{color:#a13030;font-weight:800}
+.stock-ok{color:#177a4d;font-weight:800}
+.min-input{width:56px;padding:6px 8px;margin:0;font-size:12px;border-radius:9px;display:inline-block}
+.totales{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.tot-stat{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:14px 15px;box-shadow:0 8px 22px rgba(84,36,119,.07)}
+.tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:700;color:var(--purple)}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.mov-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px dashed #f0e5f0}
+.mov-tipo{font-weight:800;padding:2px 8px;border-radius:999px;font-size:10px}
+.mov-tipo.entrada{background:#e6f7ee;color:#177a4d}
+.mov-tipo.salida{background:#fde8e8;color:#a13030}
+.mov-tipo.ajuste{background:#e8f0fe;color:#1a56b0}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>📦 Control de Stock</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="content" style="display:none">
+
+ <div class="totales" id="totales"></div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Ajustar stock</h2>
+  <label>Producto
+   <select id="mProducto"><option value="">Seleccionar producto...</option></select>
+  </label>
+  <div class="radio-row">
+   <label><input type="radio" name="mTipo" value="sumar" checked> Sumar</label>
+   <label><input type="radio" name="mTipo" value="restar"> Restar</label>
+   <label><input type="radio" name="mTipo" value="fijar"> Establecer valor exacto</label>
+  </div>
+  <label>Cantidad<input id="mCantidad" type="number" min="0" step="1" placeholder="Ej. 20"></label>
+  <label>Motivo (opcional)<input id="mMotivo" placeholder="Ej. Conteo físico, rotura, ajuste inicial"></label>
+  <button class="btn-main" id="guardarMovBtn">Aplicar</button>
+  <div id="movMsg"></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Stock actual</h2>
+  <div id="stockList"><div class="loading">Cargando...</div></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Últimos movimientos</h2>
+  <div id="movList"><div class="loading">Cargando...</div></div>
+ </div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+
+const CATALOGO_ACTUAL=[
+ "Hamburguesa Clásica x4","Hamburguesa Mix x4","Hamburguesa Queso x4","Hamburguesa Picante x2",
+ "Hamburguesa Vegano x4","Hamburguesa Smash x4","Hamburguesa Smash x8","Hamburguesa Queso x2",
+ "Pancho Corto Clásico x6","Pancho Corto Mix x6","Pancho Corto Queso x6",
+ "Pancho XL Clásico x6","Pancho XL Mix x6","Pancho XL Queso x6",
+ "Chips Comunes x6","Chips con Queso x6","Pebete x2","Molde x1","Árabe x4","Lomitero x2",
+ "Hamburguesa Clásica x42","Hamburguesa Mix x42","Hamburguesa Queso x42","Gastro BOOM x1 (Smash Especial)","Gastro BOOM XL x1",
+];
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let stock=[];
+let movimientos=[];
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/json",...(options.headers||{})}
+ });
+ if(r.status===401){localStorage.removeItem("admin_session");location.href="admin.html";throw new Error("Sesión vencida")}
+ return r;
+}
+
+function fillProductoSelect(){
+ const opts=CATALOGO_ACTUAL.slice().sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join("");
+ $("mProducto").innerHTML='<option value="">Seleccionar producto...</option>'+opts;
+}
+
+function stockDe(producto){
+ const s=stock.find(x=>x.producto===producto);
+ return s?s.cantidad:0;
+}
+
+function renderTotales(){
+ const bajos=CATALOGO_ACTUAL.filter(p=>{
+  const s=stock.find(x=>x.producto===p);
+  const min=s?s.stock_minimo:5;
+  return stockDe(p)<=min;
+ }).length;
+ $("totales").innerHTML=`
+  <div class="tot-stat"><div class="tot-label">Productos con stock cargado</div><div class="tot-value">${stock.length}</div></div>
+  <div class="tot-stat"><div class="tot-label">Con stock bajo</div><div class="tot-value" style="color:${bajos>0?'#a13030':'#177a4d'}">${bajos}</div></div>
+ `;
+}
+
+function renderStock(){
+ const filas=CATALOGO_ACTUAL.slice().sort().map(producto=>{
+  const s=stock.find(x=>x.producto===producto);
+  const cantidad=s?s.cantidad:0;
+  const min=s?s.stock_minimo:5;
+  const bajo=cantidad<=min;
+  return {producto,cantidad,min,bajo};
+ });
+ $("stockList").innerHTML=`<table>
+  <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th></tr></thead>
+  <tbody>${filas.map(f=>`<tr>
+    <td>${f.producto}${f.bajo?' ⚠️':''}</td>
+    <td class="num ${f.bajo?'stock-baja':'stock-ok'}">${f.cantidad}</td>
+    <td class="num"><input class="min-input" type="number" min="0" value="${f.min}" onchange="cambiarMinimo('${f.producto.replace(/'/g,"\\'")}',this.value)"></td>
+   </tr>`).join("")}</tbody>
+ </table>`;
+}
+
+function fmtFechaCorta(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+}
+
+function renderMovimientos(){
+ if(!movimientos.length){$("movList").innerHTML='<div class="empty">Sin movimientos todavía.</div>';return}
+ $("movList").innerHTML=movimientos.slice(0,40).map(m=>`
+  <div class="mov-row">
+   <span><span class="mov-tipo ${m.tipo}">${m.tipo}</span> ${m.producto} ${m.motivo?"· "+m.motivo:""}</span>
+   <span>${m.tipo==="salida"?"-":"+"}${m.cantidad} · ${fmtFechaCorta(m.fecha)}</span>
+  </div>`).join("");
+}
+
+async function cargarTodo(){
+ $("stockList").innerHTML='<div class="loading">Cargando...</div>';
+ $("movList").innerHTML='<div class="loading">Cargando...</div>';
+ try{
+  const [rStock,rMov]=await Promise.all([
+   apiFetch("/rest/v1/stock_productos?select=*"),
+   apiFetch("/rest/v1/movimientos_stock?select=*&order=fecha.desc&limit=40")
+  ]);
+  stock=await rStock.json();
+  movimientos=await rMov.json();
+  renderTotales();
+  renderStock();
+  renderMovimientos();
+ }catch(e){
+  $("stockList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar datos")+'</div>';
+ }
+}
+
+async function cambiarMinimo(producto,valor){
+ const min=parseFloat(valor)||0;
+ try{
+  const existe=stock.find(x=>x.producto===producto);
+  if(existe){
+   await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(producto),{
+    method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({stock_minimo:min})
+   });
+  }else{
+   await apiFetch("/rest/v1/stock_productos",{
+    method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({producto,cantidad:0,stock_minimo:min})
+   });
+  }
+  await cargarTodo();
+ }catch(e){
+  alert("No se pudo actualizar el mínimo: "+(e.message||"error desconocido"));
+ }
+}
+
+async function guardarMovimiento(){
+ const producto=$("mProducto").value;
+ const tipoAccion=document.querySelector('input[name="mTipo"]:checked').value;
+ const cantidadInput=parseFloat($("mCantidad").value);
+ const motivo=$("mMotivo").value.trim();
+ $("movMsg").innerHTML="";
+ if(!producto)return $("movMsg").innerHTML='<div class="err">Elegí un producto.</div>';
+ if(!cantidadInput&&cantidadInput!==0)return $("movMsg").innerHTML='<div class="err">Ingresá una cantidad.</div>';
+ if(cantidadInput<0)return $("movMsg").innerHTML='<div class="err">La cantidad no puede ser negativa.</div>';
+
+ $("guardarMovBtn").disabled=true;$("guardarMovBtn").textContent="Guardando...";
+ try{
+  const actual=stockDe(producto);
+  let nuevo,tipoLog,cantidadLog;
+  if(tipoAccion==="sumar"){nuevo=actual+cantidadInput;tipoLog="entrada";cantidadLog=cantidadInput}
+  else if(tipoAccion==="restar"){nuevo=Math.max(0,actual-cantidadInput);tipoLog="salida";cantidadLog=cantidadInput}
+  else{nuevo=cantidadInput;tipoLog="ajuste";cantidadLog=Math.abs(cantidadInput-actual)}
+
+  const existe=stock.find(x=>x.producto===producto);
+  if(existe){
+   await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(producto),{
+    method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({cantidad:nuevo})
+   });
+  }else{
+   await apiFetch("/rest/v1/stock_productos",{
+    method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({producto,cantidad:nuevo})
+   });
+  }
+  await apiFetch("/rest/v1/movimientos_stock",{
+   method:"POST",headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({producto,tipo:tipoLog,cantidad:cantidadLog,motivo:motivo||null})
+  });
+
+  $("movMsg").innerHTML='<div class="ok">✅ Stock actualizado.</div>';
+  $("mCantidad").value="";$("mMotivo").value="";
+  await cargarTodo();
+ }catch(e){
+  $("movMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ $("guardarMovBtn").disabled=false;$("guardarMovBtn").textContent="Aplicar";
+}
+
+$("guardarMovBtn").addEventListener("click",guardarMovimiento);
+
+if(session){
+ $("content").style.display="block";
+ fillProductoSelect();
+ cargarTodo();
+}else{
+ $("noSession").style.display="block";
+}
+</script>
+</body>
+</html>
