@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tienda · Distribuidora Petits Cadeaux</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Poppins',Arial,sans-serif;background:#faf6fb;color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--purple),#7d45a9);padding:22px 16px;text-align:center;color:#fff;}
+  header h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;margin:0;}
+  header p{margin:6px 0 0;font-size:13px;color:#e9d9ee;}
+
+  main{max-width:640px;margin:0 auto;padding:18px 14px 120px;}
+
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:4px 0 16px;}
+  .filters button{
+    flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .filters button.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+
+  .product-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(84,36,119,.06);margin-bottom:16px;}
+  .product-head{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
+  .product-head img{width:58px;height:58px;border-radius:12px;object-fit:cover;background:#f3e8f5;flex:0 0 auto;}
+  .product-head .ph-noimg{width:58px;height:58px;border-radius:12px;background:#f3e8f5;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;color:#b79fbd;text-align:center;}
+  .product-head .name{font-weight:700;font-size:15px;}
+
+  .tiers{display:flex;flex-direction:column;gap:8px;}
+  .tier{
+    position:relative;border:2px solid var(--line);border-radius:13px;padding:11px 14px;
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  }
+  .tier.selected{border-color:var(--purple);background:#f8f1fb;}
+  .tier input{position:absolute;opacity:0;pointer-events:none;}
+  .tier-left{display:flex;align-items:center;gap:10px;}
+  .radio{width:18px;height:18px;border-radius:50%;border:2px solid #cbb7d2;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+  .tier.selected .radio{border-color:var(--purple);}
+  .radio::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--purple);opacity:0;transition:opacity .15s;}
+  .tier.selected .radio::after{opacity:1;}
+  .tier-qty{font-weight:700;font-size:13.5px;}
+  .save-tag{display:inline-block;margin-top:2px;font-size:10.5px;font-weight:700;color:#1a7a3d;background:#e6f6ea;padding:1px 7px;border-radius:6px;}
+  .tier-right{text-align:right;}
+  .tier-price{font-weight:800;font-size:14.5px;}
+  .tier-old{color:#b79fbd;font-size:11.5px;text-decoration:line-through;margin-right:5px;}
+  .badge{
+    position:absolute;top:-9px;right:12px;background:var(--purple);color:#fff;
+    font-size:9.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  }
+
+  .no-precio{color:var(--muted);font-size:13px;padding:6px 0;}
+
+  #cartBar{
+    position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+    box-shadow:0 -6px 18px rgba(84,36,119,.10);padding:12px 16px;display:none;
+    align-items:center;justify-content:space-between;gap:12px;z-index:50;
+  }
+  #cartBar .info{font-size:13px;color:var(--muted);}
+  #cartBar .total{font-weight:800;font-size:17px;color:var(--purple);}
+  #cartBar button{
+    background:linear-gradient(135deg,var(--purple),#7d45a9);color:#fff;border:none;
+    border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(57,37,65,.45);z-index:100;align-items:flex-end;justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:20px 20px 0 0;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px 26px;}
+  .modal h2{font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);margin:0 0 14px;font-size:22px;}
+  .modal label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 5px;}
+  .modal input,.modal textarea,.modal select{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;
+  }
+  .modal textarea{resize:vertical;min-height:60px;}
+  .cart-items{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);margin:14px 0;padding:10px 0;}
+  .cart-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+  .cart-total{display:flex;justify-content:space-between;font-weight:800;font-size:17px;color:var(--purple);margin-top:8px;}
+  .modal .send-btn{
+    width:100%;margin-top:16px;background:linear-gradient(135deg,var(--purple),#7d45a9);
+    color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;
+  }
+  .modal .close-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;float:right;}
+  #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
+  #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;}
+  #modalMsg.err{display:block;background:#fbe7ea;color:#a3273f;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Distribuidora Petits Cadeaux</h1>
+  <p>Venta al público · packs con descuento por cantidad</p>
+</header>
+
+<main>
+  <div class="filters" id="filters"></div>
+  <div id="catalog"></div>
+</main>
+
+<div id="cartBar">
+  <div class="info">
+    <div id="cartCount">0 productos</div>
+    <div class="total" id="cartTotal">$0</div>
+  </div>
+  <button id="openCheckout">Ver pedido</button>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="close-btn" id="closeModal">Cerrar ✕</button>
+    <h2>Tu pedido</h2>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-total"><span>Total</span><span id="modalTotal">$0</span></div>
+
+    <label>Nombre</label>
+    <input type="text" id="fNombre" placeholder="Tu nombre">
+    <label>WhatsApp</label>
+    <input type="tel" id="fWhatsapp" placeholder="11 1234-5678">
+    <label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>
+    <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com">
+    <label>Dirección de entrega o retiro</label>
+    <input type="text" id="fDireccion" placeholder="Calle, número, localidad">
+    <label>Forma de pago</label>
+    <select id="fPago">
+      <option value="Efectivo">Efectivo</option>
+      <option value="Transferencia">Transferencia</option>
+      <option value="Mercado Pago">Mercado Pago</option>
+    </select>
+    <label>Observaciones</label>
+    <textarea id="fObs" placeholder="Horario, indicaciones, etc."></textarea>
+
+    <button class="send-btn" id="sendOrder">Enviar pedido por WhatsApp</button>
+    <a class="send-btn" id="payLink" href="#" target="_blank" rel="noopener" style="display:none;text-align:center;text-decoration:none">Tocá para pagar con Mercado Pago</a>
+    <div id="modalMsg"></div>
+  </div>
+</div>
+
+<script>
+// Captura cualquier error inesperado y lo muestra en pantalla (para poder
+// diagnosticar problemas sin acceso a la consola del navegador).
+window.addEventListener("error", function(e){
+  const m=document.getElementById("modalMsg");
+  if(m){m.className="err";m.style.display="block";m.textContent="Error técnico: "+(e.message||"desconocido")+" (línea "+(e.lineno||"?")+")";}
+});
+window.addEventListener("unhandledrejection", function(e){
+  const m=document.getElementById("modalMsg");
+  if(m){m.className="err";m.style.display="block";m.textContent="Error técnico (promesa): "+(e.reason&&e.reason.message||e.reason||"desconocido");}
+});
+
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const DESTINO_WHATSAPP="5491123627052";
+
+const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
+
+// Cada producto tiene sus 3 niveles: x1 (precio normal), x3 y x5 (con descuento).
+// precio = total de esa cantidad de packs, ya con el descuento aplicado (tal cual la tabla que pasaste).
+const PRODUCTOS=[
+ {nombre:"Hamburguesa Clásica x4",categoria:"Hamburguesas",foto:"clasica-x4.jpg",
+  tiers:[{qty:1,precio:4200},{qty:3,precio:11970},{qty:5,precio:18480}]},
+ {nombre:"Hamburguesa Semillas x4",categoria:"Hamburguesas",foto:"semillas-x4.jpg",
+  tiers:[{qty:1,precio:4500},{qty:3,precio:12825},{qty:5,precio:19800}]},
+ {nombre:"Hamburguesa Queso x4",categoria:"Hamburguesas",foto:"queso-x4.jpg",
+  tiers:[{qty:1,precio:4900},{qty:3,precio:13965},{qty:5,precio:21560}]},
+ {nombre:"Hamburguesa Vegana x4",categoria:"Hamburguesas",foto:"vegano-x4.jpg",
+  tiers:[{qty:1,precio:4600},{qty:3,precio:13110},{qty:5,precio:20240}]},
+ {nombre:"Hamburguesa Smash x4",categoria:"Hamburguesas",foto:"smash-x4.jpg",
+  tiers:[{qty:1,precio:3300},{qty:3,precio:9405},{qty:5,precio:14520}]},
+ {nombre:"Pancho Corto Clásico x6",categoria:"Panchos",foto:"corto-clasico-x6.jpg",
+  tiers:[{qty:1,precio:3400},{qty:3,precio:9690},{qty:5,precio:14960}]},
+ {nombre:"Pancho Corto Semillas x6",categoria:"Panchos",foto:"corto-semillas-x6.jpg",
+  tiers:[{qty:1,precio:3400},{qty:3,precio:9690},{qty:5,precio:14960}]},
+ {nombre:"Pancho Corto Queso x6",categoria:"Panchos",foto:"corto-queso-x6.jpg",
+  tiers:[{qty:1,precio:4400},{qty:3,precio:12540},{qty:5,precio:19360}]},
+ {nombre:"Pebete x2",categoria:"Variedades",foto:"pebete-x2.jpg",
+  tiers:[{qty:1,precio:1820},{qty:3,precio:5187},{qty:5,precio:8008}]},
+ {nombre:"Pan de Molde x1",categoria:"Variedades",foto:"molde-x1.jpg",
+  tiers:[{qty:1,precio:3500},{qty:3,precio:9975},{qty:5,precio:15400}]},
+ {nombre:"Árabe x4",categoria:"Variedades",foto:"arabe-x4.jpg",
+  tiers:[{qty:1,precio:2500},{qty:3,precio:7125},{qty:5,precio:11000}]},
+ {nombre:"Lomitero x2",categoria:"Variedades",foto:null,
+  tiers:[{qty:1,precio:2600},{qty:3,precio:7410},{qty:5,precio:11440}]},
+ {nombre:"Chips x6",categoria:"Variedades",foto:"chips-comunes-x6.jpg",
+  tiers:[{qty:1,precio:2250},{qty:3,precio:6412.50},{qty:5,precio:9900}]},
+ {nombre:"Chips Queso x6",categoria:"Variedades",foto:"chips-con-queso-x6.jpg",
+  tiers:[{qty:1,precio:3100},{qty:3,precio:8835},{qty:5,precio:13640}]},
+];
+
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
+const $=id=>document.getElementById(id);
+
+// selected[i] = índice del tier elegido (0,1,2) o null si no se agregó
+let selected=Array(PRODUCTOS.length).fill(null);
+let activeFilter="Todos";
+
+function categorias(){
+  return ["Todos",...new Set(PRODUCTOS.map(p=>p.categoria))];
+}
+
+function renderFilters(){
+  $("filters").innerHTML=categorias().map(c=>
+    `<button class="${c===activeFilter?"active":""}" data-c="${c}">${c}</button>`
+  ).join("");
+  $("filters").querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click",()=>{activeFilter=b.dataset.c;renderFilters();renderCatalog();});
+  });
+}
+
+function tierBadge(p,tierIdx){
+  // el nivel de mayor cantidad se marca como mayor ahorro
+  if(tierIdx===p.tiers.length-1 && p.tiers.length>1) return "Mayor ahorro";
+  return null;
+}
+
+function renderCatalog(){
+  const lista=PRODUCTOS.filter(p=>activeFilter==="Todos"||p.categoria===activeFilter);
+  $("catalog").innerHTML=lista.map((p)=>{
+    const i=PRODUCTOS.indexOf(p);
+    const sel=selected[i];
+    const imgTag=p.foto?`<img src="${BUCKET}${p.foto}" alt="">`:`<div class="ph-noimg">Sin foto</div>`;
+    const tiersHtml=p.tiers.map((t,ti)=>{
+      const isSel=sel===ti;
+      const base=p.tiers[0].precio*t.qty;
+      const ahorro=t.qty>1?Math.round((1-t.precio/base)*100):null;
+      const badge=tierBadge(p,ti);
+      const unitLabel=t.qty===1?"1 pack":`${t.qty} packs`;
+      return `
+        <div class="tier ${isSel?"selected":""}" data-i="${i}" data-ti="${ti}">
+          ${badge?`<span class="badge">${badge}</span>`:""}
+          <div class="tier-left">
+            <span class="radio"></span>
+            <div>
+              <div class="tier-qty">${unitLabel}</div>
+              ${ahorro?`<span class="save-tag">Ahorrás ${ahorro}%</span>`:""}
+            </div>
+          </div>
+          <div class="tier-right">
+            ${t.qty>1?`<span class="tier-old">${money(base)}</span>`:""}
+            <span class="tier-price">${money(t.precio)}</span>
+          </div>
+        </div>`;
+    }).join("");
+    return `
+      <div class="product-card">
+        <div class="product-head">
+          ${imgTag}
+          <div class="name">${p.nombre}</div>
+        </div>
+        <div class="tiers">${tiersHtml}</div>
+      </div>`;
+  }).join("");
+
+  $("catalog").querySelectorAll(".tier").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const i=parseInt(el.dataset.i);
+      const ti=parseInt(el.dataset.ti);
+      selected[i]=selected[i]===ti?null:ti; // click de nuevo lo deselecciona
+      renderCatalog();
+      updateCartBar();
+    });
+  });
+}
+
+function carrito(){
+  return PRODUCTOS.map((p,i)=>({p,tier:selected[i]!=null?p.tiers[selected[i]]:null}))
+    .filter(x=>x.tier);
+}
+
+function totalCarrito(){
+  return carrito().reduce((s,x)=>s+x.tier.precio,0);
+}
+
+function updateCartBar(){
+  const items=carrito();
+  const bar=$("cartBar");
+  if(items.length===0){bar.style.display="none";return;}
+  bar.style.display="flex";
+  $("cartCount").textContent=items.length+(items.length===1?" producto":" productos");
+  $("cartTotal").textContent=money(totalCarrito());
+}
+
+function renderModalCart(){
+  const items=carrito();
+  $("cartItems").innerHTML=items.map(x=>
+    `<div class="cart-item"><span>${x.p.nombre} · ${x.tier.qty} pack${x.tier.qty>1?"s":""}</span><span>${money(x.tier.precio)}</span></div>`
+  ).join("")||`<div class="cart-item"><span>Sin productos todavía</span></div>`;
+  $("modalTotal").textContent=money(totalCarrito());
+}
+
+$("openCheckout").addEventListener("click",()=>{
+  renderModalCart();
+  $("modalBg").classList.add("open");
+});
+$("closeModal").addEventListener("click",()=>$("modalBg").classList.remove("open"));
+$("modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")$("modalBg").classList.remove("open");});
+
+function actualizarTextoBoton(){
+  const pago=$("fPago").value;
+  $("sendOrder").textContent=pago==="Mercado Pago"?"Continuar y pagar":"Enviar pedido por WhatsApp";
+}
+$("fPago").addEventListener("change",actualizarTextoBoton);
+
+async function enviarPedido(){
+  const items=carrito();
+  const nombre=$("fNombre").value.trim();
+  const wa=$("fWhatsapp").value.trim();
+  const email=$("fEmail").value.trim();
+  const direccion=$("fDireccion").value.trim();
+  const pago=$("fPago").value;
+  const obs=$("fObs").value.trim();
+  const msg=$("modalMsg");
+  const btn=$("sendOrder");
+  const payLink=$("payLink");
+  msg.className="";msg.style.display="none";
+  payLink.style.display="none";
+  btn.style.display="inline-block";
+
+  if(items.length===0){msg.className="err";msg.textContent="Agregá al menos un producto.";return;}
+  if(!nombre||!wa||!direccion){msg.className="err";msg.textContent="Completá nombre, WhatsApp y dirección.";return;}
+  if(pago==="Mercado Pago"&&!email){msg.className="err";msg.textContent="Para pagar con Mercado Pago necesitamos tu email.";return;}
+
+  const productos=items.map(x=>({
+    producto:`${x.p.nombre} (Pack x${x.tier.qty})`,
+    cantidad:1,
+    precio_unitario:x.tier.precio
+  }));
+  const total=totalCarrito();
+
+  // Generamos nosotros mismos un código único para este pedido. Así no
+  // necesitamos que Supabase nos devuelva el registro recién creado
+  // (el rol público no tiene permiso de lectura, solo de escritura).
+  const referencia="MP-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+
+  btn.disabled=true;btn.textContent="Enviando...";
+
+  try{
+    const resp=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora",{
+      method:"POST",
+      headers:{
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+SUPABASE_KEY,
+        "Content-Type":"application/json",
+        "Prefer":"return=minimal"
+      },
+      body:JSON.stringify({
+        comercio:nombre,
+        whatsapp:wa,
+        domicilio:direccion,
+        productos:productos,
+        total:total,
+        observaciones:obs||null,
+        estado:"Pendiente",
+        estado_pago:pago,
+        canal:"minorista",
+        referencia_pago:pago==="Mercado Pago"?referencia:null
+      })
+    });
+    if(!resp.ok){
+      const t=await resp.text();
+      throw new Error(t);
+    }
+
+    if(pago==="Mercado Pago"){
+      btn.textContent="Generando link de pago...";
+      const mpResp=await fetch("/api/crear-preferencia",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          items:productos.map(p=>({title:p.producto,quantity:1,unit_price:p.precio_unitario})),
+          payer:{name:nombre,email:email},
+          external_reference:referencia
+        })
+      });
+      const mpData=await mpResp.json();
+      if(!mpResp.ok||!mpData.init_point){
+        throw new Error(mpData.error||"No se pudo generar el link de pago");
+      }
+      btn.style.display="none";
+      payLink.href=mpData.init_point;
+      payLink.style.display="block";
+      msg.className="ok";
+      msg.textContent="¡Pedido guardado! Tocá el botón de abajo para pagar.";
+      selected=Array(PRODUCTOS.length).fill(null);
+      renderCatalog();updateCartBar();
+      return;
+    }
+
+    let texto=`🛒 *Pedido tienda minorista*\n\n`;
+    texto+=`👤 ${nombre}\n📱 ${wa}\n📍 ${direccion}\n💳 ${pago}\n\n`;
+    productos.forEach(p=>{texto+=`• ${p.producto} — ${money(p.precio_unitario)}\n`;});
+    texto+=`\n*Total: ${money(total)}*`;
+    if(obs)texto+=`\n\n📝 ${obs}`;
+
+    window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(texto),"_blank");
+
+    msg.className="ok";
+    msg.textContent="¡Pedido enviado! Te abrimos WhatsApp para confirmar.";
+    selected=Array(PRODUCTOS.length).fill(null);
+    renderCatalog();updateCartBar();
+    $("fNombre").value="";$("fWhatsapp").value="";$("fDireccion").value="";$("fObs").value="";
+  }catch(e){
+    msg.className="err";
+    msg.textContent="No se pudo registrar el pedido. "+(e.message||"Error desconocido");
+  }finally{
+    btn.disabled=false;
+    actualizarTextoBoton();
+  }
+}
+
+$("sendOrder").addEventListener("click",enviarPedido);
+actualizarTextoBoton();
+
+renderFilters();
+renderCatalog();
+</script>
+</body>
+</html>
