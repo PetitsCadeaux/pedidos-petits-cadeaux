@@ -1,8 +1,0 @@
-{
-  "name": "pedidos-petits-cadeaux",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "nodemailer": "^6.9.14"
-  }
-}
