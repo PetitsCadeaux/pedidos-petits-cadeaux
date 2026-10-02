@@ -114,8 +114,6 @@
     <button class="close-btn" id="closeModal">Cerrar ✕</button>
     <h2>Tu pedido</h2>
     <div class="cart-items" id="cartItems"></div>
-    <div class="cart-item"><span>Subtotal</span><span id="cartSubtotal">$0</span></div>
-    <div class="cart-item"><span>Envío</span><span id="cartEnvio">$0</span></div>
     <div class="cart-total"><span>Total</span><span id="modalTotal">$0</span></div>
 
     <label>Nombre</label>
@@ -124,11 +122,6 @@
     <input type="tel" id="fWhatsapp" placeholder="11 1234-5678">
     <label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>
     <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com">
-    <label>Zona de entrega</label>
-    <select id="fZona">
-      <option value="CABA">CABA</option>
-      <option value="GBA">GBA / otra zona</option>
-    </select>
     <label>Dirección de entrega o retiro</label>
     <input type="text" id="fDireccion" placeholder="Calle, número, localidad">
     <label>Forma de pago</label>
@@ -146,10 +139,6 @@
   </div>
 </div>
 
-<div class="modal-bg" id="confBg">
-  <div class="modal" id="confContent"></div>
-</div>
-
 <script>
 // Captura cualquier error inesperado y lo muestra en pantalla (para poder
 // diagnosticar problemas sin acceso a la consola del navegador).
@@ -165,15 +154,6 @@ window.addEventListener("unhandledrejection", function(e){
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
 const DESTINO_WHATSAPP="5491123627052";
-
-// Envío: costo fijo, gratis en CABA a partir de cierto monto de compra.
-// Fuera de CABA siempre se cobra, sin importar el total.
-const ENVIO_COSTO=5000;
-const ENVIO_GRATIS_DESDE=30000;
-function calcularEnvio(subtotal,zona){
-  if(zona==="CABA"&&subtotal>=ENVIO_GRATIS_DESDE)return 0;
-  return ENVIO_COSTO;
-}
 
 const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
 
@@ -305,15 +285,10 @@ function updateCartBar(){
 
 function renderModalCart(){
   const items=carrito();
-  const subtotal=totalCarrito();
-  const zona=$("fZona").value;
-  const envio=calcularEnvio(subtotal,zona);
   $("cartItems").innerHTML=items.map(x=>
     `<div class="cart-item"><span>${x.p.nombre} · ${x.tier.qty} pack${x.tier.qty>1?"s":""}</span><span>${money(x.tier.precio)}</span></div>`
   ).join("")||`<div class="cart-item"><span>Sin productos todavía</span></div>`;
-  $("cartSubtotal").textContent=money(subtotal);
-  $("cartEnvio").textContent=envio===0?"Gratis":money(envio);
-  $("modalTotal").textContent=money(subtotal+envio);
+  $("modalTotal").textContent=money(totalCarrito());
 }
 
 $("openCheckout").addEventListener("click",()=>{
@@ -322,7 +297,6 @@ $("openCheckout").addEventListener("click",()=>{
 });
 $("closeModal").addEventListener("click",()=>$("modalBg").classList.remove("open"));
 $("modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")$("modalBg").classList.remove("open");});
-$("fZona").addEventListener("change",renderModalCart);
 
 function actualizarTextoBoton(){
   const pago=$("fPago").value;
@@ -336,7 +310,6 @@ async function enviarPedido(){
   const wa=$("fWhatsapp").value.trim();
   const email=$("fEmail").value.trim();
   const direccion=$("fDireccion").value.trim();
-  const zona=$("fZona").value;
   const pago=$("fPago").value;
   const obs=$("fObs").value.trim();
   const msg=$("modalMsg");
@@ -350,19 +323,12 @@ async function enviarPedido(){
   if(!nombre||!wa||!direccion){msg.className="err";msg.textContent="Completá nombre, WhatsApp y dirección.";return;}
   if(pago==="Mercado Pago"&&!email){msg.className="err";msg.textContent="Para pagar con Mercado Pago necesitamos tu email.";return;}
 
-  const subtotal=totalCarrito();
-  const envio=calcularEnvio(subtotal,zona);
   const productos=items.map(x=>({
     producto:`${x.p.nombre} (Pack x${x.tier.qty})`,
     cantidad:1,
     precio_unitario:x.tier.precio
   }));
-  productos.push({
-    producto:`Envío (${zona==="CABA"?"CABA":"GBA / otra zona"})${envio===0?" — gratis":""}`,
-    cantidad:1,
-    precio_unitario:envio
-  });
-  const total=subtotal+envio;
+  const total=totalCarrito();
 
   // Generamos nosotros mismos un código único para este pedido. Así no
   // necesitamos que Supabase nos devuelva el registro recién creado
@@ -413,14 +379,6 @@ async function enviarPedido(){
       if(!mpResp.ok||!mpData.init_point){
         throw new Error(mpData.error||"No se pudo generar el link de pago");
       }
-
-      // Guardamos el detalle de este pedido en el navegador para poder
-      // mostrarlo en la pantalla de confirmación cuando Mercado Pago
-      // redirija de vuelta (no podemos leerlo de Supabase desde acá).
-      try{
-        localStorage.setItem("pedido_"+referencia,JSON.stringify({nombre,productos,total,fecha:Date.now()}));
-      }catch(e){}
-
       btn.style.display="none";
       payLink.href=mpData.init_point;
       payLink.style.display="block";
@@ -458,65 +416,11 @@ actualizarTextoBoton();
 
 renderFilters();
 renderCatalog();
-
-// Pantalla de confirmación al volver desde Mercado Pago. La URL llega como
-// tienda.html?pago=exito&external_reference=MP-...&status=approved&...
-function mostrarConfirmacionPago(){
-  const params=new URLSearchParams(window.location.search);
-  const estado=params.get("pago");
-  if(!estado)return;
-
-  const referencia=params.get("external_reference");
-  let pedido=null;
-  if(referencia){
-    try{
-      const raw=localStorage.getItem("pedido_"+referencia);
-      if(raw)pedido=JSON.parse(raw);
-    }catch(e){}
-  }
-
-  const box=$("confContent");
-  let html="";
-
-  if(estado==="exito"){
-    const itemsHtml=pedido?pedido.productos.map(p=>
-      `<div class="cart-item"><span>${p.producto}</span><span>${money(p.precio_unitario)}</span></div>`
-    ).join(""):"";
-    html=`
-      <div style="text-align:center;padding:6px 0 2px">
-        <div style="font-size:44px">✅</div>
-        <h2 style="font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);margin:10px 0 4px">¡Pedido confirmado!</h2>
-        <p style="color:var(--muted);font-size:13.5px;margin:0 0 14px">Gracias${pedido?", "+pedido.nombre:""}. Tu pago fue aprobado y ya estamos preparando tu pedido.${pedido?" Te mandamos el detalle por email.":""}</p>
-      </div>
-      ${itemsHtml?`<div class="cart-items">${itemsHtml}</div><div class="cart-total"><span>Total pagado</span><span>${money(pedido.total)}</span></div>`:""}
-      <button class="send-btn" id="confCerrar">Volver a la tienda</button>`;
-  }else if(estado==="pendiente"){
-    html=`
-      <div style="text-align:center;padding:6px 0 2px">
-        <div style="font-size:44px">⏳</div>
-        <h2 style="font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);margin:10px 0 4px">Pago pendiente</h2>
-        <p style="color:var(--muted);font-size:13.5px;margin:0 0 14px">Tu pago está siendo procesado. Te vamos a avisar apenas se confirme.</p>
-      </div>
-      <button class="send-btn" id="confCerrar">Volver a la tienda</button>`;
-  }else{
-    html=`
-      <div style="text-align:center;padding:6px 0 2px">
-        <div style="font-size:44px">❌</div>
-        <h2 style="font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);margin:10px 0 4px">El pago no se completó</h2>
-        <p style="color:var(--muted);font-size:13.5px;margin:0 0 14px">Podés intentar de nuevo cuando quieras.</p>
-      </div>
-      <button class="send-btn" id="confCerrar">Volver a la tienda</button>`;
-  }
-
-  box.innerHTML=html;
-  $("confBg").classList.add("open");
-  $("confCerrar").addEventListener("click",()=>{
-    $("confBg").classList.remove("open");
-  });
-  // Limpiamos la URL para que no se vuelva a mostrar si recargan la página.
-  window.history.replaceState({},"",window.location.pathname);
-}
-mostrarConfirmacionPago();
 </script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+@media print{.app-copyright{display:none}}
+</style>
 </body>
 </html>
