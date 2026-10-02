@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobantes - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#66566c;--line:#d9c8db}
+*{box-sizing:border-box}
+body{margin:0;font-family:Poppins,Arial,sans-serif;color:var(--ink);background:#e9e2ec}
+
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,.06);z-index:10}
+.toolbar h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;margin:0;color:var(--purple);flex:1 0 auto}
+.toolbar select,.toolbar button{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font:700 13px Poppins,Arial,sans-serif;background:#fff;color:var(--ink)}
+.toolbar button.primary{background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;border:0;cursor:pointer}
+.toolbar a{color:var(--muted);font-size:13px;text-decoration:none;font-weight:700}
+
+.sheet{padding:14px;display:flex;flex-wrap:wrap;gap:6mm;justify-content:flex-start;max-width:1200px;margin:auto}
+
+.receipt{background:#fff;border:1px solid #d9c8db;border-radius:6px;padding:6mm;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.receipt.size-10x15{width:100mm;font-size:10px}
+.receipt.size-a5{width:190mm;min-height:135mm;font-size:13.5px}
+
+.r-head{text-align:center;border-bottom:2px solid var(--purple);padding-bottom:2.5mm;margin-bottom:3mm}
+.r-head .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:1.9em;line-height:1.1}
+.r-head .sub{color:var(--muted);font-size:.85em;margin-top:1mm}
+.r-head .num{display:inline-block;margin-top:2mm;background:#f2e5f7;color:var(--purple);border-radius:999px;padding:1mm 3.5mm;font-weight:800;font-size:1em}
+
+.r-info{margin-bottom:3mm}
+.r-info div{display:flex;justify-content:space-between;padding:.8mm 0;border-bottom:1px dotted #e4d7e6}
+.r-info span:first-child{font-weight:800;color:var(--muted)}
+.r-info span:last-child{text-align:right;max-width:65%}
+.r-info .destacado span:first-child{color:var(--ink)}
+.r-info .destacado span:last-child{font-weight:800;color:var(--ink);font-size:1.35em}
+
+.r-items{flex:1;margin-bottom:2mm}
+.r-items h4{margin:0 0 1.5mm;font-size:.95em;color:var(--purple);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #eee1ef;padding-bottom:1mm}
+.r-table{width:100%;border-collapse:collapse}
+.r-table thead th{text-align:left;font-size:.85em;color:var(--muted);font-weight:800;border-bottom:1.5px solid var(--purple);padding:0 0 1mm}
+.r-table thead th:not(:first-child){text-align:right}
+.r-table td{padding:1mm 0;border-bottom:1px dotted #eee1ef;vertical-align:top}
+.r-table td.c-qty{width:8mm;color:var(--muted)}
+.r-table td.c-imp{text-align:right;white-space:nowrap}
+
+.r-total{display:flex;justify-content:space-between;align-items:center;background:#fff;color:var(--ink);border:2.5px solid var(--purple);padding:2.5mm 4mm;border-radius:5px;font-weight:900;margin-bottom:3mm}
+.r-total .lbl{font-size:1em;color:var(--purple);letter-spacing:.4px}
+.r-total .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:2.3em;color:#1a0e24;font-weight:700}
+.c-desc{font-size:.8em;color:var(--muted);margin-top:.5mm}
+.c-tachado{text-decoration:line-through;color:#a898ac}
+.c-pct{color:#177a4d;font-weight:800}
+.r-ahorro{background:#ecfaf4;color:#176044;border:1px solid #bfe8d4;border-radius:5px;padding:2mm 3mm;font-weight:800;font-size:.9em;margin-bottom:2.5mm;text-align:center}
+
+.r-notes{font-size:.85em;color:var(--muted);font-style:italic;margin-bottom:2.5mm}
+
+.r-sign{margin-top:auto;padding-top:3mm;border-top:1px dashed #d9c8db;font-size:.85em;color:var(--muted)}
+.r-sign .line{border-bottom:1px solid #b9a4bc;margin-top:6mm;margin-bottom:1mm}
+
+.r-cae-pend{margin-top:2.5mm;text-align:center}
+.btn-facturar{padding:8px 14px;border-radius:10px;border:1px solid var(--purple);background:#fff;color:var(--purple);font:700 12px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-facturar:disabled{opacity:.6;cursor:default}
+.r-cae-err{margin-top:2mm;font-size:.78em;color:#a33;text-align:center}
+
+/* --- Factura oficial (una vez que tiene CAE), estilo ARCA --- */
+.factura{background:#fff;border:1px solid #333;width:190mm;padding:6mm 7mm;font-size:11px;color:#111;page-break-inside:avoid;break-inside:avoid}
+.fa-top{display:flex;align-items:flex-start;gap:4mm;border-bottom:2px solid #111;padding-bottom:3mm;margin-bottom:3mm}
+.fa-logo{flex:0 0 auto}
+.fa-logo img{height:20mm;width:auto;display:block}
+.fa-tipo{flex:0 0 auto;border:1.5px solid #111;border-radius:3px;text-align:center;padding:1mm 3mm;margin-top:1mm}
+.fa-tipo .fa-letra{font-size:1.8em;font-weight:900;line-height:1}
+.fa-tipo .fa-cod{font-size:.75em}
+.fa-meta{flex:1;text-align:right;align-self:center}
+.fa-meta .fa-titulo{font-size:1.4em;font-weight:800;letter-spacing:.5px}
+.fa-meta div{margin-top:.5mm}
+
+.fa-emisor{margin-bottom:3mm;line-height:1.55}
+.fa-emisor .fa-razon{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:1.5em;margin-bottom:1mm}
+
+.fa-cliente{border-top:1px solid #111;border-bottom:1px solid #111;padding:2.5mm 0;margin-bottom:3mm}
+.fa-cliente div{display:flex;gap:2mm;padding:.5mm 0}
+.fa-cliente span:first-child{font-weight:800;min-width:46mm}
+
+.fa-table{width:100%;border-collapse:collapse;margin-bottom:3mm;font-size:.95em}
+.fa-table th,.fa-table td{border:1px solid #999;padding:1.2mm 1.5mm}
+.fa-table thead th{background:#f2f2f2;font-weight:800;text-align:left}
+.fa-table td.fa-num,.fa-table th.fa-num{text-align:right}
+
+.fa-totales{display:flex;flex-direction:column;align-items:flex-end;gap:1mm;margin-bottom:4mm}
+.fa-totales div{display:flex;justify-content:space-between;width:55mm;padding:.5mm 0}
+.fa-totales .fa-total-final{font-weight:900;font-size:1.25em;border-top:1.5px solid #111;padding-top:1.5mm;color:var(--purple)}
+
+.fa-pie{display:flex;align-items:center;gap:5mm;border-top:1px dashed #999;padding-top:3mm}
+.fa-pie img.fa-qr{width:28mm;height:28mm;flex:0 0 auto}
+.fa-arca{flex:1;font-size:.95em;line-height:1.6}
+.fa-arca-logo{font-weight:900;letter-spacing:.5px}
+.fa-cae{font-weight:800}
+
+.loading,.err,.empty{padding:30px;text-align:center;color:#66566c}
+
+@media print{
+ body{background:#fff}
+ .toolbar{display:none}
+ .sheet{padding:0;gap:4mm}
+ .receipt,.factura{box-shadow:none;border-color:#999}
+ .no-print{display:none}
+ @page{margin:10mm}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+ <h1>🖨️ Comprobantes</h1>
+ <select id="sizeSelect">
+  <option value="a5" selected>Tamaño A5</option>
+  <option value="10x15">Tamaño 10×15 cm</option>
+ </select>
+ <button class="primary" id="printBtn">Imprimir</button>
+ <a href="admin.html">← Volver al panel</a>
+</div>
+
+<div class="sheet" id="sheet"><div class="loading">Cargando...</div></div>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const params=new URLSearchParams(location.search);
+const ids=(params.get("ids")||"").split(",").map(s=>s.trim()).filter(Boolean);
+
+function fmtFecha(iso){
+ const d=new Date(iso);
+ return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+function fmtFechaEntregaComp(fecha){
+ const [y,m,d]=fecha.split("-");
+ return d+"/"+m;
+}
+function fmtFechaCorta(iso){
+ if(!iso)return"-";
+ const [y,m,d]=String(iso).slice(0,10).split("-");
+ return d+"/"+m+"/"+y;
+}
+
+// Datos del emisor (vos), fijos: los pide ARCA en toda factura.
+const EMISOR={
+ razonSocial:"Tarifa Nadia Pamela",
+ nombreFantasia:"Distribuidora Petits Cadeaux",
+ cuit:"27311658714",
+ cuitFmt:"27-31165871-4",
+ ingresosBrutos:"27-31165871-4",
+ inicioActividades:"01/11/2020",
+ domicilio:"Calle 125 2349, Berazategui Oeste, Buenos Aires",
+ condicionIva:"Responsable Monotributo"
+};
+
+function qrArcaUrl(o){
+ const fecha=(o.facturado_en||o.created_at||"").slice(0,10);
+ const payload={
+  ver:1,
+  fecha:fecha,
+  cuit:Number(EMISOR.cuit),
+  ptoVta:Number(o.factura_pto_vta||0),
+  tipoCmp:Number(o.factura_tipo||11),
+  nroCmp:Number(o.factura_nro||0),
+  importe:Number(o.total||0),
+  moneda:"PES",
+  ctz:1,
+  tipoDocRec:o.factura_cuit_cliente?80:99,
+  nroDocRec:Number(o.factura_cuit_cliente||0),
+  tipoCodAut:"E",
+  codAut:Number(o.factura_cae)
+ };
+ const b64=btoa(JSON.stringify(payload));
+ const url="https://www.afip.gob.ar/fe/qr/?p="+b64;
+ return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(url);
+}
+
+function renderFactura(o){
+ const items=(o.productos||[]).map((it,i)=>{
+  const tieneDescuento=it.bonif_pct>0&&it.precio_lista!=null;
+  const precioBase=tieneDescuento?it.precio_lista:it.precio_unitario;
+  const impBonif=tieneDescuento?(it.precio_lista-it.precio_unitario)*it.cantidad:0;
+  const subtotal=it.cambio?0:(it.precio_unitario!=null?it.cantidad*it.precio_unitario:0);
+  return `<tr>
+   <td>${String(i+1).padStart(4,"0")}</td>
+   <td>${it.producto}${it.cambio?" (cambio)":""}</td>
+   <td class="fa-num">${it.cantidad}</td>
+   <td>unidades</td>
+   <td class="fa-num">${it.cambio?"$0":(precioBase!=null?money(precioBase):"-")}</td>
+   <td class="fa-num">${it.bonif_pct||0}%</td>
+   <td class="fa-num">${money(impBonif)}</td>
+   <td class="fa-num">${money(subtotal)}</td>
+  </tr>`;
+ }).join("");
+ const numero=String(o.id).padStart(4,"0");
+ const ptoVta=String(o.factura_pto_vta||0).padStart(4,"0");
+ const compNro=String(o.factura_nro||0).padStart(8,"0");
+ return `<div class="factura">
+  <div class="fa-top">
+   <div class="fa-logo"><img src="logo.png" alt="${EMISOR.nombreFantasia}" onerror="this.style.display='none'"></div>
+   <div class="fa-tipo"><div class="fa-letra">C</div><div class="fa-cod">COD. 011</div></div>
+   <div class="fa-meta">
+    <div class="fa-titulo">FACTURA</div>
+    <div>Punto de Venta: ${ptoVta} &nbsp; Comp. N°: ${compNro}</div>
+    <div>Fecha de Emisión: ${fmtFechaCorta(o.facturado_en||o.created_at)}</div>
+   </div>
+  </div>
+  <div class="fa-emisor">
+   <div class="fa-razon">${EMISOR.nombreFantasia}</div>
+   <div>${EMISOR.razonSocial} — CUIT: ${EMISOR.cuitFmt}</div>
+   <div>Ingresos Brutos: ${EMISOR.ingresosBrutos} — Inicio de actividades: ${EMISOR.inicioActividades}</div>
+   <div>Domicilio Comercial: ${EMISOR.domicilio}</div>
+   <div>Condición frente al IVA: ${EMISOR.condicionIva}</div>
+  </div>
+  <div class="fa-cliente">
+   <div><span>Apellido y Nombre / Razón Social</span><span>${o.comercio||"Consumidor Final"}</span></div>
+   <div><span>Domicilio</span><span>${o.domicilio||"-"}</span></div>
+   <div><span>CUIT</span><span>${o.factura_cuit_cliente||"-"}</span></div>
+   <div><span>Condición frente al IVA</span><span>${o.factura_cuit_cliente?"A verificar":"Consumidor Final"}</span></div>
+   <div><span>Condición de venta</span><span>Contado</span></div>
+  </div>
+  <table class="fa-table">
+   <thead><tr><th>Código</th><th>Producto / Servicio</th><th class="fa-num">Cant.</th><th>U. Medida</th><th class="fa-num">Precio Unit.</th><th class="fa-num">% Bonif</th><th class="fa-num">Imp. Bonif</th><th class="fa-num">Subtotal</th></tr></thead>
+   <tbody>${items||'<tr><td colspan="8">Sin productos</td></tr>'}</tbody>
+  </table>
+  <div class="fa-totales">
+   <div><span>Subtotal</span><span>${money(o.total)}</span></div>
+   <div class="fa-total-final"><span>Importe Total</span><span>${money(o.total)}</span></div>
+  </div>
+  <div class="fa-pie">
+   <img class="fa-qr" src="${qrArcaUrl(o)}" alt="QR ARCA">
+   <div class="fa-arca">
+    <div class="fa-arca-logo">ARCA — Comprobante Autorizado</div>
+    <div class="fa-cae">CAE N°: ${o.factura_cae}</div>
+    <div>Fecha de Vto. de CAE: ${fmtFechaCorta(o.factura_cae_vencimiento)}</div>
+   </div>
+  </div>
+ </div>`;
+}
+
+function renderReceipts(orders,size){
+ if(!orders.length){$("sheet").innerHTML='<div class="empty">No se encontraron pedidos para imprimir.</div>';return}
+ $("sheet").innerHTML=orders.map(o=>{
+  if(o.factura_cae)return renderFactura(o);
+  const items=(o.productos||[]).map(it=>{
+   const tieneDescuento=it.bonif_pct>0&&it.precio_lista!=null;
+   const detalle=it.cambio
+    ?`<div class="c-desc" style="color:#b8862e;font-weight:800">CAMBIO</div>`
+    :(tieneDescuento
+    ?`<div class="c-desc"><span class="c-tachado">${money(it.precio_lista)}</span> → ${money(it.precio_unitario)} <span class="c-pct">-${it.bonif_pct}%</span></div>`
+    :"");
+   return `<tr>
+    <td class="c-qty">${it.cantidad}</td>
+    <td>${it.producto}${detalle}</td>
+    <td class="c-imp">${it.cambio?"$0":(it.precio_unitario!=null?money(it.cantidad*it.precio_unitario):"a confirmar")}</td>
+   </tr>`;
+  }).join("");
+  const ahorro=(o.productos||[]).reduce((s,it)=>{
+   if(it.bonif_pct>0&&it.precio_lista!=null)return s+(it.precio_lista-it.precio_unitario)*it.cantidad;
+   return s;
+  },0);
+  const numero=String(o.id).padStart(4,"0");
+  return `<div class="receipt size-${size}">
+   <div class="r-head">
+    <div class="biz">Distribuidora Petits Cadeaux</div>
+    <div class="sub">Comprobante de pedido · ${fmtFecha(o.created_at)}</div>
+    <div class="num">Pedido N° ${numero}</div>
+   </div>
+   <div class="r-info">
+    <div class="destacado"><span>Comercio</span><span>${o.comercio||"-"}</span></div>
+    <div class="destacado"><span>Domicilio</span><span>${o.domicilio||"-"}</span></div>
+    <div><span>Día entrega</span><span>${o.dia_entrega||"-"}${o.fecha_entrega?" ("+fmtFechaEntregaComp(o.fecha_entrega)+")":""}</span></div>
+   </div>
+   <div class="r-items">
+    <h4>Productos</h4>
+    <table class="r-table">
+     <thead><tr><th>Cant.</th><th>Producto</th><th>Importe</th></tr></thead>
+     <tbody>${items||'<tr><td colspan="3">Sin productos</td></tr>'}</tbody>
+    </table>
+   </div>
+   ${o.observaciones?`<div class="r-notes">📝 ${o.observaciones}</div>`:""}
+   ${ahorro>0?`<div class="r-ahorro">🏷️ Descuento aplicado: ahorrás ${money(ahorro)}</div>`:""}
+   <div class="r-total"><span class="lbl">TOTAL</span><span class="val">${money(o.total)}</span></div>
+   <div class="r-cae-pend no-print"><button class="btn-facturar" data-id="${o.id}">🧾 Facturar (ARCA)</button></div>
+   <div class="r-sign">
+    Recibí conforme
+    <div class="line"></div>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+async function cargar(){
+ if(!session){$("sheet").innerHTML='<div class="err">Iniciá sesión en el panel primero.</div>';return}
+ if(!ids.length){$("sheet").innerHTML='<div class="empty">No se especificaron pedidos para imprimir.</div>';return}
+ try{
+  const filtro=encodeURIComponent("in.("+ids.join(",")+")");
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id="+filtro+"&select=*",{
+   headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}
+  });
+  const orders=await r.json();
+  if(!r.ok){
+   $("sheet").innerHTML='<div class="err">❌ Error de Supabase: '+(orders.message||JSON.stringify(orders))+'</div>';
+   return;
+  }
+  window._orders=orders;
+  renderReceipts(orders,$("sizeSelect").value);
+ }catch(e){
+  $("sheet").innerHTML='<div class="err">❌ Error al cargar los pedidos: '+(e.message||"desconocido")+'</div>';
+ }
+}
+
+$("sizeSelect").addEventListener("change",()=>{if(window._orders)renderReceipts(window._orders,$("sizeSelect").value)});
+$("printBtn").addEventListener("click",()=>window.print());
+
+$("sheet").addEventListener("click",async(e)=>{
+ const btn=e.target.closest(".btn-facturar");
+ if(!btn)return;
+ const id=btn.dataset.id;
+ const cuit=prompt("CUIT del comercio (11 dígitos, sin guiones). Dejá vacío para facturar a Consumidor Final:","");
+ if(cuit===null)return;
+ btn.disabled=true;
+ btn.textContent="Facturando...";
+ try{
+  const r=await fetch("/api/arca-facturar",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({pedido_id:id,cuit_cliente:cuit.trim()||null})
+  });
+  const data=await r.json();
+  if(!data.ok){
+   btn.disabled=false;
+   btn.textContent="🧾 Facturar (ARCA)";
+   btn.insertAdjacentHTML("afterend",'<div class="r-cae-err">❌ '+(data.error||"Error desconocido")+'</div>');
+   return;
+  }
+  const orden=window._orders.find(o=>String(o.id)===String(id));
+  if(orden){
+   orden.factura_cae=data.cae;
+   orden.factura_cae_vencimiento=data.cae_vencimiento;
+   orden.factura_pto_vta=data.pto_vta;
+   orden.factura_nro=data.nro;
+  }
+  renderReceipts(window._orders,$("sizeSelect").value);
+ }catch(err){
+  btn.disabled=false;
+  btn.textContent="🧾 Facturar (ARCA)";
+  btn.insertAdjacentHTML("afterend",'<div class="r-cae-err">❌ '+(err.message||"Error de conexión")+'</div>');
+ }
+});
+
+cargar();
+</script>
+</body>
+</html>
