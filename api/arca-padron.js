@@ -22,8 +22,7 @@ export default async function handler(req, res) {
       ok: true,
       razon_social: datos.razonSocial,
       domicilio_fiscal: datos.domicilioFiscal,
-      condicion_iva: datos.condicionIva,
-      debug: datos.debugPersona || null
+      condicion_iva: datos.condicionIva
     });
   } catch (e) {
     console.error("Error consultando Padrón de ARCA:", e);
