@@ -86,6 +86,7 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Cargar factura</h2>
 
   <label>Proveedor<input id="fProveedor" placeholder="Ej. Pazzi S.A."></label>
+  <label>CUIT del proveedor (opcional)<input id="fCuitProveedor" placeholder="Ej. 30716965690"></label>
   <div class="row2">
    <label>Tipo de comprobante
     <select id="fTipo">
@@ -131,6 +132,17 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
   </div>
 
   <div id="itemsWrap"></div>
+
+  <div class="item-form">
+   <strong style="color:var(--purple)">Impuestos y percepciones (opcional)</strong>
+   <div class="row3">
+    <label>Percepción IVA<input id="fPercepcionIva" type="number" min="0" step="0.01" placeholder="0"></label>
+    <label>Percepción IIBB<input id="fPercepcionIibb" type="number" min="0" step="0.01" placeholder="0"></label>
+    <label>Otros impuestos<input id="fOtrosImpuestos" type="number" min="0" step="0.01" placeholder="0"></label>
+   </div>
+   <label>Concepto de "otros impuestos" (opcional)<input id="fOtrosImpuestosConcepto" placeholder="Ej. Impuesto a los sellos"></label>
+   <div class="item-preview" id="impuestosPreview" style="display:none"></div>
+  </div>
 
   <button class="btn-main" id="guardarFacturaBtn">Guardar factura</button>
   <div id="facturaMsg"></div>
@@ -355,15 +367,20 @@ async function sumarStock(items,motivo){
 
 async function guardarFactura(){
  const proveedor=$("fProveedor").value.trim();
+ const cuit_proveedor=$("fCuitProveedor").value.trim()||null;
  const tipo_comprobante=$("fTipo").value;
  const descripcion=$("fDescripcion").value.trim();
  const fecha=$("fFecha").value;
+ const percepcion_iva=parseFloat($("fPercepcionIva").value)||0;
+ const percepcion_iibb=parseFloat($("fPercepcionIibb").value)||0;
+ const otros_impuestos=parseFloat($("fOtrosImpuestos").value)||0;
+ const otros_impuestos_concepto=$("fOtrosImpuestosConcepto").value.trim()||null;
  $("facturaMsg").innerHTML="";
  if(!proveedor)return $("facturaMsg").innerHTML='<div class="err">Ingresá el nombre del proveedor.</div>';
  if(!fecha)return $("facturaMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
  if(!currentItems.length)return $("facturaMsg").innerHTML='<div class="err">Agregá al menos un producto a la factura.</div>';
 
- const importe=currentItems.reduce((s,it)=>s+it.subtotal,0);
+ const importe=currentItems.reduce((s,it)=>s+it.subtotal,0)+percepcion_iva+percepcion_iibb+otros_impuestos;
 
  $("guardarFacturaBtn").disabled=true;$("guardarFacturaBtn").textContent="Guardando...";
  try{
@@ -377,7 +394,7 @@ async function guardarFactura(){
   await apiFetch("/rest/v1/facturas_proveedor",{
    method:"POST",
    headers:{"Prefer":"return=minimal"},
-   body:JSON.stringify({proveedor,tipo_comprobante,descripcion:descripcion||null,importe,fecha,pagada:false,archivo_url,items:currentItems})
+   body:JSON.stringify({proveedor,cuit_proveedor,tipo_comprobante,descripcion:descripcion||null,importe,fecha,pagada:false,archivo_url,items:currentItems,percepcion_iva,percepcion_iibb,otros_impuestos,otros_impuestos_concepto})
   });
   $("guardarFacturaBtn").textContent="Actualizando costos...";
   await actualizarCostos(currentItems);
@@ -385,7 +402,8 @@ async function guardarFactura(){
   await sumarStock(currentItems,"Factura "+proveedor+(descripcion?" · "+descripcion:""));
 
   $("facturaMsg").innerHTML='<div class="ok">✅ Factura registrada, costos y stock actualizados.</div>';
-  $("fDescripcion").value="";$("fArchivo").value="";
+  $("fDescripcion").value="";$("fArchivo").value="";$("fCuitProveedor").value="";
+  $("fPercepcionIva").value="";$("fPercepcionIibb").value="";$("fOtrosImpuestos").value="";$("fOtrosImpuestosConcepto").value="";
   currentItems=[];renderItemsWrap();
   await cargarFacturas();
  }catch(e){
@@ -412,7 +430,7 @@ function renderFacturas(){
    <div class="factura-top">
     <div>
      <div class="factura-prov">${f.proveedor||"Sin nombre"}</div>
-     <div class="factura-meta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}</div>
+     <div class="factura-meta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}${f.cuit_proveedor?" · CUIT "+f.cuit_proveedor:""}</div>
     </div>
     <div>
      <span class="badge ${f.pagada?"pagada":"pendiente"}">${f.pagada?"Pagada":"Pendiente"}</span>
