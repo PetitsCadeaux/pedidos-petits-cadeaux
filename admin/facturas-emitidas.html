@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Facturas Emitidas - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:980px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-main{padding:14px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-sec{padding:14px 18px;background:#fff;border:1px solid #ddcde4;color:#654273}
+.btns-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btns-row button{flex:1;min-width:140px}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.totales{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.tot-stat{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:14px 15px;box-shadow:0 8px 22px rgba(84,36,119,.07)}
+.tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;font-weight:700;color:var(--purple)}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:7px 5px}
+th.num,td.num{text-align:right}
+td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
+.empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>🧾 Facturas Emitidas</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="card">
+ <div class="row2">
+  <div>
+   <label>Desde</label>
+   <input type="date" id="desde">
+  </div>
+  <div>
+   <label>Hasta</label>
+   <input type="date" id="hasta">
+  </div>
+ </div>
+ <div class="btns-row">
+  <button class="btn-main" id="buscarBtn">🔍 Buscar</button>
+  <button class="btn-sec" id="excelBtn">⬇️ Descargar Excel</button>
+ </div>
+ <div id="err"></div>
+</div>
+
+<div class="totales">
+ <div class="tot-stat"><div class="tot-label">Facturas emitidas</div><div class="tot-value" id="totCant">-</div></div>
+ <div class="tot-stat"><div class="tot-label">Total facturado</div><div class="tot-value" id="totMonto">-</div></div>
+</div>
+
+<div class="card" id="tablaWrap">
+ <div class="loading">Elegí un rango de fechas y tocá Buscar.</div>
+</div>
+
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+function hoyISO(){return new Date().toISOString().slice(0,10)}
+function primerDiaMesISO(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10)}
+$("desde").value=primerDiaMesISO();
+$("hasta").value=hoyISO();
+
+function fmtFechaCorta(iso){
+ if(!iso)return"-";
+ const [y,m,d]=String(iso).slice(0,10).split("-");
+ return d+"/"+m+"/"+y;
+}
+
+let filas=[];
+
+async function buscar(){
+ $("err").innerHTML="";
+ $("tablaWrap").innerHTML='<div class="loading">Buscando...</div>';
+ const desde=$("desde").value;
+ const hasta=$("hasta").value;
+ if(!desde||!hasta){$("err").innerHTML='<div class="err">Elegí ambas fechas.</div>';return}
+ try{
+  const hastaFin=hasta+"T23:59:59";
+  const url=SUPABASE_URL+"/rest/v1/pedidos_distribuidora?factura_cae=not.is.null"
+   +"&facturado_en=gte."+encodeURIComponent(desde+"T00:00:00")
+   +"&facturado_en=lte."+encodeURIComponent(hastaFin)
+   +"&select=id,factura_pto_vta,factura_nro,factura_cae,factura_cae_vencimiento,factura_cuit_cliente,factura_cliente_razon_social,comercio,total,facturado_en"
+   +"&order=facturado_en.asc";
+  const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+  const data=await r.json();
+  if(!r.ok){$("err").innerHTML='<div class="err">❌ '+(data.message||JSON.stringify(data))+'</div>';return}
+  filas=data;
+  renderTabla();
+ }catch(e){
+  $("err").innerHTML='<div class="err">❌ '+(e.message||"Error desconocido")+'</div>';
+ }
+}
+
+function renderTabla(){
+ $("totCant").textContent=filas.length;
+ $("totMonto").textContent=money(filas.reduce((s,f)=>s+Number(f.total||0),0));
+ if(!filas.length){
+  $("tablaWrap").innerHTML='<div class="empty">No hay facturas emitidas en ese rango de fechas.</div>';
+  return;
+ }
+ const rows=filas.map(f=>{
+  const comp=String(f.factura_pto_vta||0).padStart(4,"0")+"-"+String(f.factura_nro||0).padStart(8,"0");
+  const cliente=f.factura_cliente_razon_social||f.comercio||"Consumidor Final";
+  return `<tr>
+   <td>${fmtFechaCorta(f.facturado_en)}</td>
+   <td>${comp}</td>
+   <td>${cliente}</td>
+   <td>${f.factura_cuit_cliente||"-"}</td>
+   <td class="num">${money(f.total)}</td>
+   <td>${f.factura_cae}</td>
+  </tr>`;
+ }).join("");
+ $("tablaWrap").innerHTML=`<table>
+  <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>CUIT</th><th class="num">Importe</th><th>CAE</th></tr></thead>
+  <tbody>${rows}</tbody>
+ </table>`;
+}
+
+function descargarExcel(){
+ if(!filas.length){$("err").innerHTML='<div class="err">Primero buscá las facturas del período.</div>';return}
+ const datos=filas.map(f=>({
+  "Fecha de Emisión":fmtFechaCorta(f.facturado_en),
+  "Punto de Venta":f.factura_pto_vta,
+  "N° Comprobante":f.factura_nro,
+  "Comprobante":String(f.factura_pto_vta||0).padStart(4,"0")+"-"+String(f.factura_nro||0).padStart(8,"0"),
+  "Cliente":f.factura_cliente_razon_social||f.comercio||"Consumidor Final",
+  "CUIT Cliente":f.factura_cuit_cliente||"",
+  "Importe Total":Number(f.total||0),
+  "CAE":f.factura_cae,
+  "Vto. CAE":fmtFechaCorta(f.factura_cae_vencimiento),
+  "N° de Pedido":f.id
+ }));
+ const ws=XLSX.utils.json_to_sheet(datos);
+ ws["!cols"]=[{wch:14},{wch:10},{wch:12},{wch:14},{wch:28},{wch:14},{wch:14},{wch:16},{wch:12},{wch:10}];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,"Facturas");
+ XLSX.writeFile(wb,"facturas-emitidas_"+$("desde").value+"_a_"+$("hasta").value+".xlsx");
+}
+
+$("buscarBtn").addEventListener("click",buscar);
+$("excelBtn").addEventListener("click",descargarExcel);
+if(session)buscar();
+</script>
+</body>
+</html>
