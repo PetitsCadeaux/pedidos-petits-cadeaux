@@ -473,7 +473,7 @@ async function buscarEnPadron(){
   if(data.condicion_iva)$("facCondicionIva").value=data.condicion_iva;
   if(!data.razon_social&&!data.domicilio_fiscal){
    msg.className="fac-padron-msg err";
-   msg.textContent="⚠️ ARCA respondió pero no pude leer los datos. Mandale esto a Claude para corregirlo: "+(data.debug||"(sin detalle)");
+   msg.textContent="⚠️ ARCA respondió pero no se encontraron datos para completar. Cargalos a mano.";
    return;
   }
   msg.className="fac-padron-msg ok";
