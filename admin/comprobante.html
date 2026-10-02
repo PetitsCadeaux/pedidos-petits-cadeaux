@@ -471,6 +471,11 @@ async function buscarEnPadron(){
   if(data.razon_social)$("facRazonSocial").value=data.razon_social;
   if(data.domicilio_fiscal)$("facDomicilio").value=data.domicilio_fiscal;
   if(data.condicion_iva)$("facCondicionIva").value=data.condicion_iva;
+  if(!data.razon_social&&!data.domicilio_fiscal){
+   msg.className="fac-padron-msg err";
+   msg.textContent="⚠️ ARCA respondió pero no pude leer los datos. Mandale esto a Claude para corregirlo: "+(data.debug||"(sin detalle)");
+   return;
+  }
   msg.className="fac-padron-msg ok";
   msg.textContent="✅ Datos encontrados en ARCA. Revisalos antes de facturar."+(data.condicion_iva?"":" (no se pudo determinar la condición frente al IVA, elegila manualmente)");
  }catch(err){
