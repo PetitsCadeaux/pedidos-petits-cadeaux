@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Productos · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,5.5vw,30px);font-weight:700}
+.header-top{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;position:relative}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.pill{padding:8px 13px;border-radius:999px;border:1px solid #ead9e8;background:#fff;color:var(--purple);font:700 12px Poppins,Arial,sans-serif;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.pill:hover{background:#f5e9f6}
+main{max-width:900px;margin:auto;padding:18px 14px 60px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:13px;font-weight:800}
+input,select,textarea{width:100%;padding:12px 13px;margin-top:6px;border:1px solid #ddcfe1;border-radius:14px;background:#fff;color:var(--ink);font:500 14.5px Poppins,Arial,sans-serif;outline:none;font-family:inherit}
+textarea{resize:vertical;min-height:70px}
+input:focus,select:focus,textarea:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{width:100%;margin-top:16px;padding:14px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6}
+.btn-sec{padding:10px 14px;background:#f3e8f5;color:var(--purple);font-size:12.5px}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:13.5px}
+.ok{background:#e6f7ee;color:#177a4d;border:1px solid #bfe9d2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:13.5px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;padding:11px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;font-size:13.5px}
+.tabs button.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
+.tiers-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prod-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.prod-row{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:10px;background:#fff}
+.prod-row.inactivo{opacity:.5}
+.prod-thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;background:#f3e8f5;flex:0 0 auto}
+.prod-info{flex:1;min-width:0}
+.prod-name{font-weight:700;font-size:14px}
+.prod-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.prod-actions{display:flex;gap:6px;flex-wrap:wrap}
+.prod-actions button{padding:7px 10px;font-size:11.5px}
+.cat-group{margin-top:16px}
+.cat-title{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.loading{text-align:center;padding:24px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="header-top"><h1>🛍️ Productos</h1></div>
+ <div class="header-actions">
+  <a class="pill" href="admin.html">← Volver a pedidos</a>
+  <a class="pill" href="../tienda.html" target="_blank" rel="noopener">🛒 Mi tienda</a>
+  <a class="pill" href="../regaleria.html" target="_blank" rel="noopener">🎁 Regaleria</a>
+ </div>
+</header>
+
+<main>
+
+<div id="loginView" class="card" style="max-width:420px;margin:40px auto 0">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Iniciar sesión</h2>
+  <label>Email<input id="email" type="email" autocomplete="username"></label>
+  <label>Contraseña<input id="password" type="password" autocomplete="current-password"></label>
+  <button class="btn-main" id="loginBtn">Ingresar</button>
+  <div id="loginError"></div>
+</div>
+
+<div id="panelView" style="display:none">
+
+ <div class="card">
+  <h2 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:24px" id="formTitle">Nuevo producto</h2>
+  <div class="tabs" id="negocioTabs">
+   <button type="button" data-n="tienda" class="active">🛒 Tienda</button>
+   <button type="button" data-n="regaleria">🎁 Regaleria</button>
+  </div>
+
+  <label>Nombre<input id="fNombre" placeholder="Ej. Llavero 3D Corazón"></label>
+  <label>Categoría
+   <input id="fCategoria" list="catList" placeholder="Ej. Impresos 3D">
+   <datalist id="catList"></datalist>
+  </label>
+
+  <div id="precioTienda">
+   <label>Precios por pack (igual que en la tienda: x1, x3 y x5 — x3 y x5 son opcionales)</label>
+   <div class="tiers-row">
+    <input id="fPrecioX1" type="number" step="0.01" placeholder="Precio x1">
+    <input id="fPrecioX3" type="number" step="0.01" placeholder="Precio x3">
+    <input id="fPrecioX5" type="number" step="0.01" placeholder="Precio x5">
+   </div>
+  </div>
+  <div id="precioRegaleria" style="display:none">
+   <label>Precio unitario<input id="fPrecioUnidad" type="number" step="0.01" placeholder="Precio"></label>
+  </div>
+
+  <label>Descripción
+   <textarea id="fDescripcion" placeholder="Se arma sola a partir del nombre y la categoría, y la podés editar"></textarea>
+  </label>
+  <button type="button" class="btn-sec" id="sugerirBtn" style="margin-top:8px">✨ Sugerir descripción</button>
+
+  <label>Foto <span style="font-weight:400;color:var(--muted)">(se sube directo a Supabase, sin pasar por mí)</span>
+   <input id="fFoto" type="file" accept="image/*">
+  </label>
+  <div id="fotoPreviewWrap" style="margin-top:8px;display:none">
+   <img id="fotoPreview" style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
+  </div>
+
+  <button class="btn-main" id="guardarBtn">Guardar producto</button>
+  <button type="button" class="btn-sec" id="cancelarEdicionBtn" style="margin-top:8px;display:none;width:100%">Cancelar edición</button>
+  <div id="formMsg"></div>
+ </div>
+
+ <div class="card">
+  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:22px">Catálogo actual</h2>
+  <div class="tabs" id="listTabs">
+   <button type="button" data-n="tienda" class="active">🛒 Tienda</button>
+   <button type="button" data-n="regaleria">🎁 Regaleria</button>
+  </div>
+  <div id="prodList"><div class="loading">Cargando productos...</div></div>
+ </div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const BUCKET_BASE="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
+const $=id=>document.getElementById(id);
+const money=n=>n==null?"-":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let productos=[];
+let negocioForm="tienda";
+let negocioList="tienda";
+let editandoId=null;
+let fotoFile=null;
+
+function showPanel(){$("loginView").style.display="none";$("panelView").style.display="block";cargarProductos();}
+function showLogin(){$("loginView").style.display="block";$("panelView").style.display="none";}
+
+async function login(){
+ const email=$("email").value.trim(),password=$("password").value;
+ $("loginError").innerHTML="";
+ if(!email||!password){$("loginError").innerHTML='<div class="err">Completá email y contraseña.</div>';return}
+ $("loginBtn").disabled=true;$("loginBtn").textContent="Ingresando...";
+ try{
+  const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+   method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+   body:JSON.stringify({email,password})
+  });
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error_description||data.msg||"Credenciales incorrectas");
+  session={access_token:data.access_token,refresh_token:data.refresh_token,email};
+  localStorage.setItem("admin_session",JSON.stringify(session));
+  showPanel();
+ }catch(e){
+  $("loginError").innerHTML='<div class="err">❌ '+(e.message||"No se pudo iniciar sesión")+'</div>';
+ }
+ $("loginBtn").disabled=false;$("loginBtn").textContent="Ingresar";
+}
+function logout(){localStorage.removeItem("admin_session");session=null;showLogin();}
+
+async function apiFetch(path,options={}){
+ const r=await fetch(SUPABASE_URL+path,{
+  ...options,
+  headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/json",...(options.headers||{})}
+ });
+ if(r.status===401){logout();throw new Error("Sesión vencida, ingresá de nuevo.")}
+ return r;
+}
+
+async function cargarProductos(){
+ $("prodList").innerHTML='<div class="loading">Cargando productos...</div>';
+ try{
+  const r=await apiFetch("/rest/v1/productos_catalogo?select=*&order=categoria.asc,nombre.asc");
+  productos=await r.json();
+  renderCategorias();
+  renderLista();
+ }catch(e){
+  $("prodList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar productos")+'</div>';
+ }
+}
+
+function renderCategorias(){
+ const cats=[...new Set(productos.filter(p=>p.negocio===negocioForm).map(p=>p.categoria))];
+ $("catList").innerHTML=cats.map(c=>`<option value="${c}">`).join("");
+}
+
+// Arma una descripción base a partir del nombre y la categoría (sin IA de
+// imagen, gratis). Nadia la puede editar antes de guardar.
+function plantillaDescripcion(nombre,categoria){
+ const base={
+  "Impresos 3D":`${nombre}, impreso en 3D con buena terminación.`,
+  "Artesanías":`${nombre}, pieza artesanal, ideal para regalar.`,
+  "Souvenirs/Candy Bar":`${nombre}, souvenir para tu evento, por unidad.`,
+  "Aromatizantes":`${nombre}, fragancia duradera para perfumar tus ambientes.`,
+  "Velas y Sahumerios":`${nombre}, para crear un ambiente cálido y relajado.`,
+  "Otros":`${nombre}, un lindo detalle para regalar.`,
+  "Hamburguesas":`${nombre}, de primera calidad.`,
+  "Panchos":`${nombre}, de primera calidad.`,
+  "Variedades":`${nombre}, de primera calidad.`
+ };
+ return base[categoria]||`${nombre}, disponible en Petits Cadeaux.`;
+}
+
+$("sugerirBtn").addEventListener("click",()=>{
+ const nombre=$("fNombre").value.trim();
+ const categoria=$("fCategoria").value.trim();
+ if(!nombre){alert("Escribí primero el nombre del producto.");return}
+ $("fDescripcion").value=plantillaDescripcion(nombre,categoria||"");
+});
+
+function setNegocioForm(n){
+ negocioForm=n;
+ document.querySelectorAll("#negocioTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
+ $("precioTienda").style.display=n==="tienda"?"block":"none";
+ $("precioRegaleria").style.display=n==="regaleria"?"block":"none";
+ renderCategorias();
+}
+document.querySelectorAll("#negocioTabs button").forEach(b=>b.addEventListener("click",()=>setNegocioForm(b.dataset.n)));
+
+function setNegocioList(n){
+ negocioList=n;
+ document.querySelectorAll("#listTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
+ renderLista();
+}
+document.querySelectorAll("#listTabs button").forEach(b=>b.addEventListener("click",()=>setNegocioList(b.dataset.n)));
+
+$("fFoto").addEventListener("change",()=>{
+ fotoFile=$("fFoto").files[0]||null;
+ if(fotoFile){
+  $("fotoPreview").src=URL.createObjectURL(fotoFile);
+  $("fotoPreviewWrap").style.display="block";
+ }else{
+  $("fotoPreviewWrap").style.display="none";
+ }
+});
+
+async function subirFoto(file,negocio){
+ const safe=file.name.toLowerCase().replace(/[^a-z0-9.]+/g,"-").replace(/-+/g,"-");
+ const filename=Date.now()+"-"+safe;
+ const folder=negocio==="regaleria"?"regaleria/":"";
+ const r=await fetch(SUPABASE_URL+"/storage/v1/object/productos-distribuidora/"+folder+filename,{
+  method:"POST",
+  headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":file.type||"application/octet-stream"},
+  body:file
+ });
+ if(!r.ok){const t=await r.text();throw new Error("No se pudo subir la foto: "+t.slice(0,200))}
+ return filename;
+}
+
+function limpiarForm(){
+ editandoId=null;
+ $("fNombre").value="";$("fCategoria").value="";
+ $("fPrecioX1").value="";$("fPrecioX3").value="";$("fPrecioX5").value="";
+ $("fPrecioUnidad").value="";$("fDescripcion").value="";
+ $("fFoto").value="";fotoFile=null;$("fotoPreviewWrap").style.display="none";
+ $("formTitle").textContent="Nuevo producto";
+ $("guardarBtn").textContent="Guardar producto";
+ $("cancelarEdicionBtn").style.display="none";
+}
+
+function editarProducto(id){
+ const p=productos.find(x=>x.id===id);
+ if(!p)return;
+ editandoId=id;
+ setNegocioForm(p.negocio);
+ $("fNombre").value=p.nombre;
+ $("fCategoria").value=p.categoria;
+ $("fDescripcion").value=p.descripcion||"";
+ if(p.negocio==="tienda"){
+  const t=p.tiers||[];
+  $("fPrecioX1").value=t[0]?t[0].precio:"";
+  $("fPrecioX3").value=t[1]?t[1].precio:"";
+  $("fPrecioX5").value=t[2]?t[2].precio:"";
+ }else{
+  $("fPrecioUnidad").value=p.precio!=null?p.precio:"";
+ }
+ fotoFile=null;$("fFoto").value="";
+ if(p.foto){
+  const folder=p.negocio==="regaleria"?"regaleria/":"";
+  $("fotoPreview").src=BUCKET_BASE+folder+p.foto;
+  $("fotoPreviewWrap").style.display="block";
+ }else{
+  $("fotoPreviewWrap").style.display="none";
+ }
+ $("formTitle").textContent="Editar producto";
+ $("guardarBtn").textContent="Guardar cambios";
+ $("cancelarEdicionBtn").style.display="block";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+$("cancelarEdicionBtn").addEventListener("click",limpiarForm);
+
+async function guardarProducto(){
+ const msg=$("formMsg");msg.innerHTML="";
+ const nombre=$("fNombre").value.trim();
+ const categoria=$("fCategoria").value.trim();
+ const descripcion=$("fDescripcion").value.trim();
+ if(!nombre||!categoria){msg.innerHTML='<div class="err">Completá nombre y categoría.</div>';return}
+
+ let body={negocio:negocioForm,nombre,categoria,descripcion:descripcion||null};
+
+ if(negocioForm==="tienda"){
+  const x1=parseFloat($("fPrecioX1").value);
+  if(isNaN(x1)){msg.innerHTML='<div class="err">Completá al menos el precio x1.</div>';return}
+  const x3=parseFloat($("fPrecioX3").value);
+  const x5=parseFloat($("fPrecioX5").value);
+  const tiers=[{qty:1,precio:x1}];
+  if(!isNaN(x3))tiers.push({qty:3,precio:x3});
+  if(!isNaN(x5))tiers.push({qty:5,precio:x5});
+  body.tiers=tiers;
+  body.precio=null;
+ }else{
+  const precio=parseFloat($("fPrecioUnidad").value);
+  if(isNaN(precio)){msg.innerHTML='<div class="err">Completá el precio.</div>';return}
+  body.precio=precio;
+  body.tiers=null;
+ }
+
+ const btn=$("guardarBtn");
+ btn.disabled=true;btn.textContent="Guardando...";
+ try{
+  if(fotoFile){
+   body.foto=await subirFoto(fotoFile,negocioForm);
+  }else if(editandoId){
+   const existente=productos.find(x=>x.id===editandoId);
+   body.foto=existente?existente.foto:null;
+  }else{
+   body.foto=null;
+  }
+
+  if(editandoId){
+   await apiFetch("/rest/v1/productos_catalogo?id=eq."+editandoId,{
+    method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(body)
+   });
+   msg.innerHTML='<div class="ok">✅ Producto actualizado.</div>';
+  }else{
+   body.activo=true;
+   await apiFetch("/rest/v1/productos_catalogo",{
+    method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(body)
+   });
+   msg.innerHTML='<div class="ok">✅ Producto agregado.</div>';
+  }
+  limpiarForm();
+  await cargarProductos();
+ }catch(e){
+  msg.innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
+ }
+ btn.disabled=false;
+ btn.textContent=editandoId?"Guardar cambios":"Guardar producto";
+}
+$("guardarBtn").addEventListener("click",guardarProducto);
+
+async function toggleActivo(id,activo){
+ try{
+  await apiFetch("/rest/v1/productos_catalogo?id=eq."+id,{
+   method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({activo:!activo})
+  });
+  const p=productos.find(x=>x.id===id);
+  if(p)p.activo=!activo;
+  renderLista();
+ }catch(e){alert("No se pudo actualizar: "+(e.message||"error desconocido"))}
+}
+
+async function borrarProducto(id){
+ if(!confirm("¿Seguro que querés borrar este producto del catálogo? No se puede deshacer."))return;
+ try{
+  await apiFetch("/rest/v1/productos_catalogo?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  productos=productos.filter(x=>x.id!==id);
+  renderLista();
+ }catch(e){alert("No se pudo borrar: "+(e.message||"error desconocido"))}
+}
+
+function renderLista(){
+ const lista=productos.filter(p=>p.negocio===negocioList);
+ if(!lista.length){$("prodList").innerHTML='<div class="loading">Todavía no hay productos cargados acá.</div>';return}
+ const porCategoria={};
+ lista.forEach(p=>{(porCategoria[p.categoria]=porCategoria[p.categoria]||[]).push(p)});
+ const folder=negocioList==="regaleria"?"regaleria/":"";
+ $("prodList").innerHTML=Object.keys(porCategoria).sort().map(cat=>{
+  const items=porCategoria[cat].map(p=>{
+   const precioTxt=p.negocio==="tienda"?(p.tiers&&p.tiers[0]?"Desde "+money(p.tiers[0].precio):"-"):money(p.precio);
+   const img=p.foto?`<img class="prod-thumb" src="${BUCKET_BASE+folder+p.foto}">`:`<div class="prod-thumb"></div>`;
+   return `<div class="prod-row ${p.activo?"":"inactivo"}">
+    ${img}
+    <div class="prod-info">
+     <div class="prod-name">${p.nombre}</div>
+     <div class="prod-meta">${precioTxt}${p.activo?"":" · oculto"}</div>
+    </div>
+    <div class="prod-actions">
+     <button type="button" class="btn-sec" onclick="editarProducto(${p.id})">✏️ Editar</button>
+     <button type="button" class="btn-sec" onclick="toggleActivo(${p.id},${p.activo})">${p.activo?"🙈 Ocultar":"👁️ Mostrar"}</button>
+     <button type="button" class="btn-sec" style="color:#9b3040" onclick="borrarProducto(${p.id})">🗑️ Borrar</button>
+    </div>
+   </div>`;
+  }).join("");
+  return `<div class="cat-group"><div class="cat-title">${cat}</div>${items}</div>`;
+ }).join("");
+}
+
+$("loginBtn").addEventListener("click",login);
+$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+
+if(session){showPanel()}else{showLogin()}
+</script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+</style>
+</body>
+</html>
