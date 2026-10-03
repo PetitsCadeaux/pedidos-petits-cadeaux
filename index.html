@@ -138,76 +138,35 @@ let codigoActivo=null;
 // lista de precios que habilitó la contraseña usada para entrar.
 const CANAL_POR_LISTA={1:"comercio",2:"mayorista",3:"mayorista"};
 
-// 👉 Cada lista de precios tiene su PROPIO catálogo: productos, precios y fotos totalmente independientes entre listas.
-// Formato de cada producto: ["Nombre",precio,"Categoría","URL de la foto (opcional)"]
-const CATALOGOS={
+// El catálogo de cada lista de precios ya no vive hardcodeado acá: se
+// carga desde la tabla productos_catalogo en Supabase (negocio="comercio"
+// para la Lista 1, negocio="mayorista" para la Lista 2), para que Nadia
+// pueda agregar, editar o sacar productos desde el panel admin sin tocar
+// código. CATALOGOS mantiene el mismo formato de siempre una vez cargado:
+// {1:[["Nombre",precio,"Categoría","URL foto"],...], 2:[...]}
+let CATALOGOS={1:[],2:[]};
 
- 1:[ // Lista 1 — minorista (catálogo de siempre)
-  ["Hamburguesa Clásica x4",2840,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/clasica-x4.jpg"],
-  ["Hamburguesa Mix x4",2950,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/semillas-x4.jpg"],
-  ["Hamburguesa Queso x4",3500,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/queso-x4.jpg"],
-  ["Hamburguesa Picante x2",1940,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/picante-x2.jpg"],
-  ["Hamburguesa Vegano x4",3290,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/vegano-x4.jpg"],
-  ["Hamburguesa Smash x4",2300,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/smash-x4.jpg"],
-  ["Hamburguesa Smash x8",4180,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/smash-x8.jpg"],
-  ["Hamburguesa Queso x2",1940,"Hamburguesa"],
-  ["Pancho Corto Clásico x6",2380,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/corto-clasico-x6.jpg"],
-  ["Pancho Corto Mix x6",2380,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/corto-semillas-x6.jpg"],
-  ["Pancho Corto Queso x6",3130,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/corto-queso-x6.jpg"],
-  ["Pancho XL Clásico x6",4040,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/xl-clasico-x6.jpg"],
-  ["Pancho XL Mix x6",4040,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/xl-mix-x6.jpg"],
-  ["Pancho XL Queso x6",5410,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/xl-queso-x6.jpg"],
-  ["Chips Comunes x6",1630,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/chips-comunes-x6.jpg"],
-  ["Chips con Queso x6",2190,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/chips-con-queso-x6.jpg"],
-  ["Pebete x2",1300,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/pebete-x2.jpg"],
-  ["Molde x1",2550,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/molde-x1.jpg"],
-  ["Árabe x4",1790,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/arabe-x4.jpg"],
-  ["Lomitero x2",1840,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/lomitero-x2.jpg"],
-  ["Pan Dulce",null,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/pan-dulce.jpg"], // 👉 falta el precio, decime cuál es y lo cargo
-  ["Hamburguesa Clásica x42",30350,"Gastronómicos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/clasica-x42.jpg"],
-  ["Hamburguesa Mix x42",30900,"Gastronómicos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/semillas-x42.jpg"],
-  ["Hamburguesa Queso x42",35200,"Gastronómicos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/queso-x42.jpg"],
-  ["Gastro BOOM x1 (Smash Especial)",620,"Gastronómicos"],
-  ["Gastro BOOM XL x1",660,"Gastronómicos"],
- ],
+// Los "cambios por verdes" siempre se piden por PAQUETE individual (no por
+// caja), igual que a un cliente normal — por eso siempre usan el catálogo
+// de la Lista 1 (comercio), sin importar qué lista de precios esté activa.
+let PRODUCTOS_CAMBIO=[];
 
- 2:[ // Lista 2 — mayorista Interior (cajas cerradas). Precios con 2 decimales, según tu planilla.
-  ["Caja Hamburguesa Clásica x4 (12 packs)",27275.54,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-clasica-x4.jpg"],
-  ["Caja Hamburguesa Semillas x4 (12 packs)",28065.52,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-semillas-x4.jpg"],
-  ["Caja Hamburguesa Queso x4 (12 packs)",34157.71,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-queso-x4.jpg"],
-  ["Caja Hamburguesa Picante x2 (12 packs)",19646.89,"Hamburguesa"],
-  ["Caja Hamburguesa Queso x2 (12 packs)",19646.89,"Hamburguesa"],
-  ["Caja Hamburguesa Vegana x4 (12 packs)",31748.37,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-vegano-x4.jpg"],
-  ["Caja Smash x4 (12 packs)",20685.33,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-smash-x4.jpg"],
-  ["Caja Smash x8 (6 packs)",19254.77,"Hamburguesa","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-smash-x8.jpg"],
-  ["Caja Hamburguesa XL Clásico x 24 u.",15733.09,"Hamburguesa"],
-  ["Caja Hamburguesa XL Mix Semillas x 24 u.",16088.56,"Hamburguesa"],
-  ["Caja Hamburguesa XL Queso x 24 u.",19113.81,"Hamburguesa"],
-  ["Caja Pancho Clásico x6 (12 packs)",22839.60,"Panchos"],
-  ["Caja Pancho Semillas x6 (12 packs)",22839.60,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-pancho-semillas-x6.jpg"],
-  ["Caja Pancho Queso x6 (12 packs)",30849.46,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-pancho-queso-x6.jpg"],
-  ["Caja Pancho XL Clásico x6 (8 packs)",25565.88,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-pancho-xl-clasico-x6.jpg"],
-  ["Caja Pancho XL Semillas x6 (8 packs)",25565.88,"Panchos","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-pancho-xl-semillas-x6.jpg"],
-  ["Caja Pancho XL Queso x6 (8 packs)",34684.83,"Panchos"],
-  ["Caja Chips Clásicos x6 (12 packs)",15864.02,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-chips-clasicos-x6.jpg"],
-  ["Caja Chips Queso x6 (12 packs)",21221.12,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-chips-queso-x6.jpg"],
-  ["Caja PBT x2 (12 packs)",12603.10,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-pbt-x2.jpg"],
-  ["Caja Pan de Molde Semillas x10 u.",20991.89,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-molde-x10.jpg"],
-  ["Caja Árabe x4 (18 packs)",25369.80,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/caja-arabe-x4.jpg"],
-  ["Caja Lomitero x2 (12 packs)",17592.60,"Variedades"],
-  ["Caja Pan Dulce x6 u.",72524.12,"Variedades","https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/pan-dulce.jpg"],
-  ["Caja Budín Clásico (Limón y Vainilla) x12 u.",28982.65,"Variedades"],
-  ["Caja Budín Premium (Chocolate y Banana) x12 u.",32130.95,"Variedades"],
-  ["Caja Gastro BOOM x48 u.",21762.15,"Gastronómicos"],
-  ["Caja Gastro BOOM XL x48 u.",24180.23,"Gastronómicos"],
- ],
+const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
 
-};
-
-// Los "cambios por verdes" siempre se piden por PAQUETE individual (no por caja),
-// igual que a un cliente normal — por eso siempre usan el catálogo de la Lista 1,
-// sin importar qué lista de precios esté activa.
-const PRODUCTOS_CAMBIO=CATALOGOS[1];
+async function cargarCatalogos(){
+  const toTupla=p=>[p.nombre,p.precio,p.categoria,p.foto?BUCKET+p.foto:undefined];
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq.comercio&activo=eq.true&select=*&order=categoria.asc,nombre.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}}),
+      fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq.mayorista&activo=eq.true&select=*&order=categoria.asc,nombre.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}})
+    ]);
+    const d1=await r1.json(),d2=await r2.json();
+    CATALOGOS={1:(Array.isArray(d1)?d1:[]).map(toTupla),2:(Array.isArray(d2)?d2:[]).map(toTupla)};
+  }catch(e){
+    CATALOGOS={1:[],2:[]};
+  }
+  PRODUCTOS_CAMBIO=CATALOGOS[1];
+}
 
 function cargarCatalogo(lista){
  PRODUCTS=CATALOGOS[lista]||CATALOGOS[1];
@@ -405,10 +364,10 @@ async function enviar(){
 
 $("send").addEventListener("click",enviar);
 $("search").addEventListener("input",render);
-renderOpcionesEntrega();renderFilters();render();
+renderOpcionesEntrega();
 
 // --- Acceso por contraseña (cada contraseña habilita su lista de precios) ---
-(function(){
+(async function(){
   const LOCK_KEY="pedidos_lista_activa";
   const CODE_KEY="pedidos_codigo_activo";
   const lockScreen=document.getElementById("lockScreen");
@@ -433,7 +392,7 @@ renderOpcionesEntrega();renderFilters();render();
     lockPass.focus();
   }
 
-  function intentar(){
+  async function intentar(){
     const code=lockPass.value.trim();
     if(Object.prototype.hasOwnProperty.call(CODIGOS_ACCESO,code)){
       listaActiva=CODIGOS_ACCESO[code];
@@ -441,9 +400,12 @@ renderOpcionesEntrega();renderFilters();render();
       localStorage.setItem(LOCK_KEY,String(listaActiva));
       localStorage.setItem(CODE_KEY,code);
       lockErr.style.display="none";
+      lockBtn.disabled=true;lockBtn.textContent="Cargando catálogo...";
+      await cargarCatalogos();
       cargarCatalogo(listaActiva);
       renderFilters();render();
       desbloquear();
+      lockBtn.disabled=false;lockBtn.textContent="Ingresar";
     }else{
       lockErr.style.display="block";
       lockPass.value="";
@@ -455,6 +417,7 @@ renderOpcionesEntrega();renderFilters();render();
   if(listaGuardada){
     listaActiva=parseInt(listaGuardada)||1;
     codigoActivo=localStorage.getItem(CODE_KEY)||null;
+    await cargarCatalogos();
     cargarCatalogo(listaActiva);
     renderFilters();render();
     desbloquear();
