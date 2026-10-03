@@ -73,6 +73,7 @@ export default async function handler(req, res) {
       carrierId,
       serviceType,
       logisticType,
+      declaredValue: pedido.total || 1,
       destino: {
         name: pedido.comercio || "Cliente",
         document: pedido.dni || undefined,
@@ -89,7 +90,8 @@ export default async function handler(req, res) {
         height: 15,
         width: 20,
         length: 20,
-        description_1: "Pedido Distribuidora Petits Cadeaux"
+        description_1: "Pedido Distribuidora Petits Cadeaux",
+        classification_id: 1
       }
     });
 

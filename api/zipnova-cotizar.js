@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const { nombre, telefono, calle, altura, pisoDepto, localidad, provincia, codigoPostal, dni } = req.body || {};
+    const { nombre, telefono, calle, altura, pisoDepto, localidad, provincia, codigoPostal, dni, valorDeclarado } = req.body || {};
     if (!calle || !altura || !localidad || !provincia || !codigoPostal) {
       return res.status(200).json({ ok: false, error: "Falta la dirección completa del destinatario" });
     }
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     const resultado = await cotizarEnvio({
       accountId: ACCOUNT_ID,
       originId: ORIGIN_ID,
+      declaredValue: valorDeclarado || 1,
       destino: {
         name: nombre || "Cliente",
         document: dni || undefined,
@@ -45,7 +46,8 @@ export default async function handler(req, res) {
         height: 15,
         width: 20,
         length: 20,
-        description_1: "Pedido Distribuidora Petits Cadeaux"
+        description_1: "Pedido Distribuidora Petits Cadeaux",
+        classification_id: 1
       }
     });
 
