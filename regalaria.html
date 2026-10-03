@@ -209,7 +209,10 @@ const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
 const DESTINO_WHATSAPP="5491123627052";
 
-const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-regalaria/";
+// Reutiliza el mismo bucket público que ya usa tienda.html (ya existe y
+// ya está configurado como público en Supabase), pero en su propia
+// subcarpeta "regalaria/" para no mezclar las fotos de los dos negocios.
+const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/regalaria/";
 
 // Catálogo de Regalaría: precio por unidad simple (sin packs/tiers como la
 // panadería). "foto" puede quedar en null hasta que Nadia la suba.
