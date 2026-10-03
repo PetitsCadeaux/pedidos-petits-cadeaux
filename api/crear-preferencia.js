@@ -37,6 +37,7 @@ export default async function handler(req, res) {
         })),
         payer: payer || {},
         external_reference: external_reference || null,
+        notification_url: SITE_URL + "/api/webhook-mercadopago",
         back_urls: {
           success: SITE_URL + "/tienda.html?pago=exito",
           failure: SITE_URL + "/tienda.html?pago=fallo",
