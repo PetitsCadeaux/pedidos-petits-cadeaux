@@ -327,6 +327,69 @@ async function guardarEnvio(id,btn){
  }
 }
 
+async function cotizarZipnova(id,btn){
+ const o=orders.find(x=>x.id===id);
+ if(!o)return;
+ const cont=$("zipnova-"+id);
+ btn.disabled=true;btn.textContent="Cotizando...";
+ cont.innerHTML="";
+ try{
+  const r=await fetch("/api/zipnova-cotizar",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({
+    nombre:o.comercio,
+    telefono:o.whatsapp,
+    dni:o.dni,
+    calle:o.direccion_calle,
+    altura:o.direccion_altura,
+    pisoDepto:o.direccion_piso_depto,
+    localidad:o.localidad,
+    provincia:o.provincia,
+    codigoPostal:o.codigo_postal
+   })
+  });
+  const data=await r.json();
+  if(!data.ok)throw new Error(data.error||"No se pudo cotizar");
+  const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||[]);
+  if(!opciones||opciones.length===0){
+   cont.innerHTML='<div style="font-size:12px;color:var(--muted)">Zipnova no devolvió opciones para esta dirección.</div>';
+   return;
+  }
+  cont.innerHTML=opciones.map((op,idx)=>`
+   <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid #ddcfe1;border-radius:12px;padding:10px;margin-top:6px">
+    <div>
+     <div style="font-weight:700;font-size:13px">${op.carrier_name||op.carrier||"Transportista"}</div>
+     <div style="font-size:12px;color:var(--muted)">${op.service_type||""} · ${money(op.price)}${op.estimated_days?` · ~${op.estimated_days} días`:""}</div>
+    </div>
+    <button class="btn-take" onclick='crearEnvioZipnova(${id},${JSON.stringify(op.carrier_id)},${JSON.stringify(op.service_type)},${JSON.stringify(op.logistic_type||null)},this)'>Elegir</button>
+   </div>`).join("");
+ }catch(e){
+  cont.innerHTML='<div class="err">❌ '+(e.message||"Error al cotizar")+'</div>';
+ }
+ btn.disabled=false;btn.textContent="📦 Cotizar envío";
+}
+
+async function crearEnvioZipnova(id,carrierId,serviceType,logisticType,btn){
+ btn.disabled=true;btn.textContent="Creando envío...";
+ try{
+  const r=await fetch("/api/zipnova-crear-envio",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({pedidoId:id,carrierId,serviceType,logisticType})
+  });
+  const data=await r.json();
+  if(!data.ok)throw new Error(data.error||"No se pudo crear el envío");
+  await cargarPedidos();
+  openEnvioId=id;
+  render();
+  alert("¡Envío creado con éxito!");
+ }catch(e){
+  alert("No se pudo crear el envío: "+(e.message||"error desconocido"));
+  btn.disabled=false;btn.textContent="Elegir";
+ }
+}
+
 async function reponerStock(items,motivo){
  for(const it of (items||[])){
   try{
@@ -518,6 +581,12 @@ function render(){
      </select>
     </label>
     <button class="btn-take" style="margin-top:10px" onclick="guardarEnvio(${o.id},this)">Guardar envío</button>
+    <hr style="margin:14px 0;border:none;border-top:1px solid #e5d7ea">
+    <strong style="color:var(--purple);font-size:13px">Cotizar y despachar con Zipnova</strong>
+    ${o.direccion_calle&&o.direccion_altura&&o.localidad&&o.codigo_postal?`
+    <button class="btn-take" style="margin-top:8px" onclick="cotizarZipnova(${o.id},this)">📦 Cotizar envío</button>
+    <div class="zipnova-opciones" id="zipnova-${o.id}" style="margin-top:8px"></div>
+    `:`<div style="font-size:12px;color:var(--muted);margin-top:6px">Este pedido no tiene dirección completa cargada por el cliente (es un pedido de mostrador o manual), así que no se puede cotizar automáticamente.</div>`}
    </div>`:""}
    <div class="actions">
     <select class="pay-select st-${estadoPedido.toLowerCase()}" onchange="cambiarEstadoPedido(${o.id},this)">
