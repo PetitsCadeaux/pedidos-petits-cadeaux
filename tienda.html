@@ -134,6 +134,10 @@
     <input type="text" id="fProvincia" placeholder="Ej. Buenos Aires">
     <label>Código postal</label>
     <input type="text" id="fCP" placeholder="Ej. 1884">
+
+    <button type="button" class="send-btn" id="cotizarEnvioBtn" style="background:#6b4b7a;margin:8px 0">📦 Calcular costo de envío</button>
+    <div id="envioOpciones"></div>
+
     <label>Forma de pago</label>
     <select id="fPago">
       <option value="Efectivo">Efectivo</option>
@@ -284,6 +288,75 @@ function totalCarrito(){
   return carrito().reduce((s,x)=>s+x.tier.precio,0);
 }
 
+let envioOpcionesDisponibles=[];
+let envioSeleccionado=null; // {carrier_id, service_type, logistic_type, carrier_name, price}
+
+function totalConEnvio(){
+  return totalCarrito()+(envioSeleccionado?envioSeleccionado.price:0);
+}
+
+async function cotizarEnvio(){
+  const nombre=$("fNombre").value.trim();
+  const telefono=$("fWhatsapp").value.trim();
+  const calle=$("fCalle").value.trim();
+  const altura=$("fAltura").value.trim();
+  const pisoDepto=$("fPisoDepto").value.trim();
+  const localidad=$("fLocalidad").value.trim();
+  const provincia=$("fProvincia").value.trim();
+  const cp=$("fCP").value.trim();
+  const cont=$("envioOpciones");
+  const btn=$("cotizarEnvioBtn");
+
+  if(!calle||!altura||!localidad||!provincia||!cp){
+    cont.innerHTML='<div class="cart-item" style="color:#b3261e">Completá calle, altura, localidad, provincia y código postal para calcular el envío.</div>';
+    return;
+  }
+
+  btn.disabled=true;btn.textContent="Calculando...";
+  cont.innerHTML='<div class="cart-item">Calculando opciones de envío...</div>';
+  envioSeleccionado=null;
+
+  try{
+    const r=await fetch("/api/zipnova-cotizar",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre,telefono,calle,altura,pisoDepto,localidad,provincia,codigoPostal:cp})
+    });
+    const data=await r.json();
+    if(!data.ok)throw new Error(data.error||"No se pudo cotizar el envío");
+    const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||[]);
+    envioOpcionesDisponibles=opciones||[];
+    if(!envioOpcionesDisponibles.length){
+      cont.innerHTML='<div class="cart-item">No hay opciones de envío disponibles para esa dirección. Coordinamos el envío por WhatsApp.</div>';
+      return;
+    }
+    cont.innerHTML=envioOpcionesDisponibles.map((op,idx)=>`
+      <label class="cart-item" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+       <input type="radio" name="envioOpcion" value="${idx}" onchange="elegirEnvio(${idx})">
+       <span style="flex:1">${op.carrier_name||op.carrier||"Transportista"} ${op.estimated_days?`· ~${op.estimated_days} días`:""}</span>
+       <span>${money(op.price)}</span>
+      </label>`).join("");
+  }catch(e){
+    cont.innerHTML='<div class="cart-item" style="color:#b3261e">No se pudo calcular el envío: '+(e.message||"error desconocido")+'. Coordinamos por WhatsApp.</div>';
+  }
+  btn.disabled=false;btn.textContent="📦 Calcular costo de envío";
+}
+
+function elegirEnvio(idx){
+  const op=envioOpcionesDisponibles[idx];
+  if(!op)return;
+  envioSeleccionado={
+    carrier_id:op.carrier_id,
+    service_type:op.service_type,
+    logistic_type:op.logistic_type||null,
+    carrier_name:op.carrier_name||op.carrier||"Transportista",
+    price:op.price
+  };
+  renderModalCart();
+}
+
+$("cotizarEnvioBtn").addEventListener("click",cotizarEnvio);
+
 function updateCartBar(){
   const items=carrito();
   const bar=$("cartBar");
@@ -295,10 +368,14 @@ function updateCartBar(){
 
 function renderModalCart(){
   const items=carrito();
-  $("cartItems").innerHTML=items.map(x=>
+  let html=items.map(x=>
     `<div class="cart-item"><span>${x.p.nombre} · ${x.tier.qty} pack${x.tier.qty>1?"s":""}</span><span>${money(x.tier.precio)}</span></div>`
   ).join("")||`<div class="cart-item"><span>Sin productos todavía</span></div>`;
-  $("modalTotal").textContent=money(totalCarrito());
+  if(envioSeleccionado){
+    html+=`<div class="cart-item"><span>🚚 Envío · ${envioSeleccionado.carrier_name}</span><span>${money(envioSeleccionado.price)}</span></div>`;
+  }
+  $("cartItems").innerHTML=html;
+  $("modalTotal").textContent=money(totalConEnvio());
 }
 
 $("openCheckout").addEventListener("click",()=>{
@@ -344,7 +421,14 @@ async function enviarPedido(){
     cantidad:1,
     precio_unitario:x.tier.precio
   }));
-  const total=totalCarrito();
+  if(envioSeleccionado){
+    productos.push({
+      producto:`Envío · ${envioSeleccionado.carrier_name}`,
+      cantidad:1,
+      precio_unitario:envioSeleccionado.price
+    });
+  }
+  const total=totalConEnvio();
 
   // Generamos nosotros mismos un código único para este pedido. Así no
   // necesitamos que Supabase nos devuelva el registro recién creado
@@ -378,7 +462,12 @@ async function enviarPedido(){
         estado:"Pendiente",
         estado_pago:pago,
         canal:"minorista",
-        referencia_pago:pago==="Mercado Pago"?referencia:null
+        referencia_pago:pago==="Mercado Pago"?referencia:null,
+        envio_elegido_transportista:envioSeleccionado?envioSeleccionado.carrier_name:null,
+        envio_elegido_costo:envioSeleccionado?envioSeleccionado.price:null,
+        zipnova_carrier_id:envioSeleccionado?String(envioSeleccionado.carrier_id):null,
+        zipnova_service_type:envioSeleccionado?envioSeleccionado.service_type:null,
+        zipnova_logistic_type:envioSeleccionado?envioSeleccionado.logistic_type:null
       })
     });
     if(!resp.ok){
@@ -407,6 +496,7 @@ async function enviarPedido(){
       msg.className="ok";
       msg.textContent="¡Pedido guardado! Tocá el botón de abajo para pagar.";
       selected=Array(PRODUCTOS.length).fill(null);
+      envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
       renderCatalog();updateCartBar();
       return;
     }
@@ -422,6 +512,7 @@ async function enviarPedido(){
     msg.className="ok";
     msg.textContent="¡Pedido enviado! Te abrimos WhatsApp para confirmar.";
     selected=Array(PRODUCTOS.length).fill(null);
+    envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
     renderCatalog();updateCartBar();
     $("fNombre").value="";$("fWhatsapp").value="";$("fCalle").value="";$("fAltura").value="";$("fPisoDepto").value="";$("fLocalidad").value="";$("fProvincia").value="";$("fCP").value="";$("fObs").value="";
   }catch(e){
