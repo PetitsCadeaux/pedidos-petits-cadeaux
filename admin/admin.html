@@ -571,6 +571,7 @@ function render(){
   const TRACK_URLS={"Correo Argentino":"https://www.correoargentino.com.ar/seguimiento?numeroGuia="};
   const trackUrl=o.numero_seguimiento&&TRACK_URLS[o.transportista]?TRACK_URLS[o.transportista]+encodeURIComponent(o.numero_seguimiento):null;
   const envioBadge=o.numero_seguimiento?`<span class="badge" style="background:#e8f0fe;color:#1a56b0">🚚 ${o.transportista||"Envío"} · ${estadoEnvio}${trackUrl?` · <a href="${trackUrl}" target="_blank" style="color:#1a56b0">seguir</a>`:` · ${o.numero_seguimiento}`}</span>`:"";
+  const envioElegidoBadge=(!o.numero_seguimiento&&o.envio_elegido_transportista)?`<span class="badge" style="background:#f3e8ff;color:#6b21a8">📦 El cliente eligió: ${o.envio_elegido_transportista} · ${money(o.envio_elegido_costo)} (ya pagado/incluido en el pedido)</span>`:"";
   const filasDescuento=(o.productos||[]).map((it,idx)=>`
     <div class="descuento-row">
      <span>${it.producto}</span>
@@ -588,7 +589,7 @@ function render(){
     </div>
     <span class="badge ${estadoClase}">${estadoPedido}</span>
    </div>
-   ${envioBadge||mpBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${envioBadge}${mpBadge}</div>`:""}
+   ${envioBadge||envioElegidoBadge||mpBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${envioBadge}${envioElegidoBadge}${mpBadge}</div>`:""}
    <div class="items">${items||"<div>Sin productos</div>"}</div>
    <div class="order-total">Total: ${money(o.total)}</div>
    ${o.observaciones?`<div class="order-notes">📝 ${o.observaciones}</div>`:""}
