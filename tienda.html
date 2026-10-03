@@ -222,45 +222,32 @@ const DESTINO_WHATSAPP="5491123627052";
 
 const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
 
-// Cada producto tiene sus 3 niveles: x1 (precio normal), x3 y x5 (con descuento).
-// precio = total de esa cantidad de packs, ya con el descuento aplicado (tal cual la tabla que pasaste).
-const PRODUCTOS=[
- {nombre:"Hamburguesa Clásica x4",categoria:"Hamburguesas",foto:"clasica-x4.jpg",
-  tiers:[{qty:1,precio:4200},{qty:3,precio:11970},{qty:5,precio:18480}]},
- {nombre:"Hamburguesa Semillas x4",categoria:"Hamburguesas",foto:"semillas-x4.jpg",
-  tiers:[{qty:1,precio:4500},{qty:3,precio:12825},{qty:5,precio:19800}]},
- {nombre:"Hamburguesa Queso x4",categoria:"Hamburguesas",foto:"queso-x4.jpg",
-  tiers:[{qty:1,precio:4900},{qty:3,precio:13965},{qty:5,precio:21560}]},
- {nombre:"Hamburguesa Vegana x4",categoria:"Hamburguesas",foto:"vegano-x4.jpg",
-  tiers:[{qty:1,precio:4600},{qty:3,precio:13110},{qty:5,precio:20240}]},
- {nombre:"Hamburguesa Smash x4",categoria:"Hamburguesas",foto:"smash-x4.jpg",
-  tiers:[{qty:1,precio:3300},{qty:3,precio:9405},{qty:5,precio:14520}]},
- {nombre:"Pancho Corto Clásico x6",categoria:"Panchos",foto:"corto-clasico-x6.jpg",
-  tiers:[{qty:1,precio:3400},{qty:3,precio:9690},{qty:5,precio:14960}]},
- {nombre:"Pancho Corto Semillas x6",categoria:"Panchos",foto:"corto-semillas-x6.jpg",
-  tiers:[{qty:1,precio:3400},{qty:3,precio:9690},{qty:5,precio:14960}]},
- {nombre:"Pancho Corto Queso x6",categoria:"Panchos",foto:"corto-queso-x6.jpg",
-  tiers:[{qty:1,precio:4400},{qty:3,precio:12540},{qty:5,precio:19360}]},
- {nombre:"Pebete x2",categoria:"Variedades",foto:"pebete-x2.jpg",
-  tiers:[{qty:1,precio:1820},{qty:3,precio:5187},{qty:5,precio:8008}]},
- {nombre:"Pan de Molde x1",categoria:"Variedades",foto:"molde-x1.jpg",
-  tiers:[{qty:1,precio:3500},{qty:3,precio:9975},{qty:5,precio:15400}]},
- {nombre:"Árabe x4",categoria:"Variedades",foto:"arabe-x4.jpg",
-  tiers:[{qty:1,precio:2500},{qty:3,precio:7125},{qty:5,precio:11000}]},
- {nombre:"Lomitero x2",categoria:"Variedades",foto:null,
-  tiers:[{qty:1,precio:2600},{qty:3,precio:7410},{qty:5,precio:11440}]},
- {nombre:"Chips x6",categoria:"Variedades",foto:"chips-comunes-x6.jpg",
-  tiers:[{qty:1,precio:2250},{qty:3,precio:6412.50},{qty:5,precio:9900}]},
- {nombre:"Chips Queso x6",categoria:"Variedades",foto:"chips-con-queso-x6.jpg",
-  tiers:[{qty:1,precio:3100},{qty:3,precio:8835},{qty:5,precio:13640}]},
-];
+// El catálogo ya no vive hardcodeado acá: se carga desde la tabla
+// productos_catalogo en Supabase (negocio="tienda"), para que Nadia pueda
+// agregar o editar productos desde el panel admin sin tocar código.
+let PRODUCTOS=[];
 
 const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
 const $=id=>document.getElementById(id);
 
 // selected[i] = índice del tier elegido (0,1,2) o null si no se agregó
-let selected=Array(PRODUCTOS.length).fill(null);
+let selected=[];
 let activeFilter="Todos";
+
+async function cargarProductos(){
+  $("catalog").innerHTML='<div style="padding:30px;text-align:center;color:var(--muted)">Cargando catálogo...</div>';
+  try{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq.tienda&activo=eq.true&select=*&order=categoria.asc,nombre.asc",{
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+    });
+    PRODUCTOS=await r.json();
+  }catch(e){
+    PRODUCTOS=[];
+  }
+  selected=Array(PRODUCTOS.length).fill(null);
+  renderFilters();
+  renderCatalog();
+}
 
 function categorias(){
   return ["Todos",...new Set(PRODUCTOS.map(p=>p.categoria))];
@@ -675,8 +662,7 @@ async function enviarPedido(){
 $("sendOrder").addEventListener("click",enviarPedido);
 actualizarTextoBoton();
 
-renderFilters();
-renderCatalog();
+cargarProductos();
 </script>
 <footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
 <style>

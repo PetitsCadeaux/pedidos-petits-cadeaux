@@ -214,41 +214,32 @@ const DESTINO_WHATSAPP="5491123627052";
 // subcarpeta "regaleria/" para no mezclar las fotos de los dos negocios.
 const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/regaleria/";
 
-// Catálogo de Regaleria: precio por unidad simple (sin packs/tiers como la
-// panadería). "foto" puede quedar en null hasta que Nadia la suba.
-const PRODUCTOS=[
- {nombre:"Llavero en 3D Boca",categoria:"Impresos 3D",foto:"llavero-3d-boca.jpg",
-  descripcion:"Llavero impreso en 3D con el escudo de Boca Juniors, con brillo glitter.",precio:2500},
- {nombre:"Llavero 3D Feliz Día · Margarita",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-margarita.jpg",
-  descripcion:"Llavero impreso en 3D con dije de margarita y cartel \"Feliz Día\".",precio:2500},
- {nombre:"Llavero 3D Feliz Día · Girasol",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-girasol.jpg",
-  descripcion:"Llavero impreso en 3D con dije de girasol y cartel \"Feliz Día\".",precio:2500},
- {nombre:"Llavero 3D Feliz Día · Corazón",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-corazon.jpg",
-  descripcion:"Llavero impreso en 3D con dije de corazón y cartel \"Feliz Día\".",precio:2500},
- {nombre:"Aerosol Saphirus Cony",categoria:"Aromatizantes",foto:"saphirus-cony.jpg",
-  descripcion:"Aromatizante de ambientes Saphirus, fragancia Cony. 185 g / 280 cc.",precio:6800},
- {nombre:"Textil Saphirus",categoria:"Aromatizantes",foto:"textil-saphirus.jpg",
-  descripcion:"Aromatizador textil Saphirus, 250 ml. Fragancias: Adventure, Pétalos de Orquídeas, Good Woman, Limón.",precio:4000},
- {nombre:"Velas de Noche Iluminarte x12 u.",categoria:"Velas y Sahumerios",foto:"velas-noche-iluminarte-x12.jpg",
-  descripcion:"Pack de 12 velas de noche Iluminarte Prestige, con vaso contenedor.",precio:2600},
- {nombre:"Sahumerios Alaukik Medianos",categoria:"Velas y Sahumerios",foto:"sahumerios-alaukik-medianos.jpg",
-  descripcion:"Sahumerios Alaukik Solitaire, varios aromas (Contra la Envidia, Archangels, Yoga Mantra, Orquídea, Kiwi, entre otros).",precio:3200},
- {nombre:"Souvenir Bautismo x1",categoria:"Souvenirs/Candy Bar",foto:"souvenir-bautismo.jpg",
-  descripcion:"Souvenir de bautismo impreso en 3D, ángel de la guarda con base, por unidad.",precio:2000},
- {nombre:"Souvenir Bautismo Personalizado x1",categoria:"Souvenirs/Candy Bar",foto:"souvenir-bautismo-personalizado.jpg",
-  descripcion:"Souvenir de bautismo impreso en 3D, angelito con base, personalizado con el nombre que elijas. Indicá el nombre en observaciones al hacer el pedido.",precio:3500},
- {nombre:"Taza Día de la Madre x1",categoria:"Otros",foto:"tazas-dia-madre.jpg",
-  descripcion:"Taza de vidrio con asa, diseño estampado alusivo al Día de la Madre. Varios diseños disponibles, por unidad.",precio:4500},
- {nombre:"Lapicero Personalizado",categoria:"Artesanías",foto:"lapicero-personalizado.jpg",
-  descripcion:"Lapicero de madera pintado, con espacio para lápices y block de notas, personalizado con el nombre que elijas. Indicá el nombre en observaciones al hacer el pedido.",precio:8500},
-];
+// El catálogo ya no vive hardcodeado acá: se carga desde la tabla
+// productos_catalogo en Supabase (negocio="regaleria"), para que Nadia
+// pueda agregar o editar productos desde el panel admin sin tocar código.
+let PRODUCTOS=[];
 
 const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
 const $=id=>document.getElementById(id);
 
 // carritoQty[i] = cantidad elegida de ese producto, o 0/undefined si no está en el carrito
-let carritoQty=Array(PRODUCTOS.length).fill(0);
+let carritoQty=[];
 let activeFilter="Todos";
+
+async function cargarProductos(){
+  $("catalog").innerHTML='<div style="padding:30px;text-align:center;color:var(--muted)">Cargando catálogo...</div>';
+  try{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq.regaleria&activo=eq.true&select=*&order=categoria.asc,nombre.asc",{
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+    });
+    PRODUCTOS=await r.json();
+  }catch(e){
+    PRODUCTOS=[];
+  }
+  carritoQty=Array(PRODUCTOS.length).fill(0);
+  renderFilters();
+  renderCatalog();
+}
 
 function categorias(){
   return ["Todos",...new Set(PRODUCTOS.map(p=>p.categoria))];
@@ -617,8 +608,7 @@ async function enviarPedido(){
 $("sendOrder").addEventListener("click",enviarPedido);
 actualizarTextoBoton();
 
-renderFilters();
-renderCatalog();
+cargarProductos();
 </script>
 <footer class="app-copyright">© 2026 Petits Cadeaux Regaleria. Todos los derechos reservados.</footer>
 <style>
