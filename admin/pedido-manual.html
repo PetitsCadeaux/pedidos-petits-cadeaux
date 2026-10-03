@@ -71,6 +71,12 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 
  <div class="card">
   <p style="margin:0 0 4px;color:var(--muted);font-size:13px">Para cargar el pedido de un cliente que te avisó por otro medio (teléfono, en persona, etc.) — incluso para entregar hoy mismo.</p>
+  <label>Canal
+   <select id="canal">
+    <option value="comercio">🏪 Comercio</option>
+    <option value="mayorista">🏭 Mayorista</option>
+   </select>
+  </label>
   <label>Nombre del comercio<input id="shop" placeholder="Ej. Almacén Don Pedro"></label>
   <label>WhatsApp del comercio (opcional)<input id="phone" placeholder="Ej. 11 1234 5678" inputmode="tel"></label>
   <label>Domicilio de entrega<input id="address" placeholder="Calle, número, localidad"></label>
@@ -235,7 +241,7 @@ async function restarStock(items,motivo){
 }
 
 async function guardar(){
- const comercio=$("shop").value.trim(),wa=$("phone").value.trim(),direccion=$("address").value.trim(),
+ const canal=$("canal").value,comercio=$("shop").value.trim(),wa=$("phone").value.trim(),direccion=$("address").value.trim(),
        fechaStr=$("deliveryDate").value,obs=$("notes").value.trim();
  if(!comercio)return show("Ingresá el nombre del comercio.",false);
  if(!direccion)return show("Ingresá el domicilio de entrega.",false);
@@ -255,7 +261,7 @@ async function guardar(){
    headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/json","Prefer":"return=minimal"},
    body:JSON.stringify({
     comercio,whatsapp:wa||null,dia_entrega:diaNombre,fecha_entrega:fechaStr,domicilio:direccion,productos:lista,
-    total:calc.total,observaciones:obs||null,estado:"Pendiente",manual:true
+    total:calc.total,observaciones:obs||null,estado:"Pendiente",manual:true,canal
    })
   });
   if(!r.ok)throw new Error(await r.text());

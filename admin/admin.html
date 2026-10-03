@@ -110,14 +110,15 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
   <h1>📋 Panel de Pedidos</h1>
   <div class="header-actions" id="headerActions" style="display:none">
    <a class="pill" href="https://app.zipnova.com.ar" target="_blank" rel="noopener">🔗 Zipnova</a>
+   <a class="pill" href="https://cabifylogistics.com/ar" target="_blank" rel="noopener">🏍️ Cabify Logistics</a>
    <a class="pill" href="../tienda.html" target="_blank" rel="noopener">🛒 Mi tienda</a>
    <button type="button" class="pill danger" id="logoutBtnHeader">🚪 Cerrar sesión</button>
   </div>
  </div>
  <div class="integrations" id="integrationsRow" style="display:none">
   <span class="integrations-label">Integraciones:</span>
-  <span class="integration-badge">🔗 Zipnova</span>
-  <span class="integration-badge">🏍️ Cabify Logistics</span>
+  <a class="integration-badge" href="https://app.zipnova.com.ar" target="_blank" rel="noopener" style="text-decoration:none">🔗 Zipnova</a>
+  <a class="integration-badge" href="https://cabifylogistics.com/ar" target="_blank" rel="noopener" style="text-decoration:none">🏍️ Cabify Logistics</a>
   <span class="integration-badge">🚚 OCA</span>
   <span class="integration-badge">💳 Mercado Pago</span>
  </div>
@@ -187,6 +188,12 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
       <button type="button" class="chip" data-f="Tomado">Tomados</button>
       <button type="button" class="chip" data-f="Entregado">Entregados</button>
     </div>
+    <div class="filters" id="canalFilters" style="margin-top:8px">
+      <button type="button" class="chip active" data-c="Todos">Todos los canales</button>
+      <button type="button" class="chip" data-c="mayorista">🏭 Mayorista</button>
+      <button type="button" class="chip" data-c="comercio">🏪 Comercio</button>
+      <button type="button" class="chip" data-c="tienda">🛒 Tienda online</button>
+    </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
      <label style="font-size:12px;color:var(--muted);font-weight:700">Desde
       <input type="date" id="filtroDesde" style="display:block;margin-top:4px;padding:8px;border:1px solid #ddcfe1;border-radius:10px">
@@ -212,6 +219,26 @@ const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"curre
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let orders=[];
 let statusFilter="Todos";
+let canalFilter="Todos";
+
+// Clasifica el canal de un pedido. Los pedidos nuevos ya traen o.canal
+// ("mayorista","comercio","tienda"); para pedidos viejos que se cargaron
+// antes de tener este campo, se infiere a partir de si fue cargado a mano
+// en el panel (manual=true → comercio) o vino solo desde la tienda online.
+function canalDe(o){
+  if(o.canal==="mayorista"||o.canal==="comercio"||o.canal==="tienda")return o.canal;
+  return o.manual?"comercio":"tienda";
+}
+
+function canalBadge(canal){
+  const info={
+    mayorista:["🏭 Mayorista","#fff1de","#a15b00"],
+    comercio:["🏪 Comercio","#e8f0fe","#1a56b0"],
+    tienda:["🛒 Tienda","#f3e8ff","#6b21a8"]
+  }[canal];
+  if(!info)return "";
+  return `<span class="badge" style="font-size:9px;vertical-align:middle;background:${info[1]};color:${info[2]}">${info[0]}</span>`;
+}
 let openDescuentoId=null;
 let openEnvioId=null;
 
@@ -550,6 +577,7 @@ function render(){
    const est=o.estado_entrega==="Entregado"?"Entregado":(o.estado==="Tomado"?"Tomado":"Pendiente");
    return est===statusFilter;
   })
+  .filter(o=>canalFilter==="Todos"||canalDe(o)===canalFilter)
   .filter(o=>!term||(o.comercio||"").toLowerCase().includes(term))
   .filter(o=>{
    if(!desde&&!hasta)return true;
@@ -604,7 +632,7 @@ function render(){
     <div style="display:flex;gap:10px;align-items:flex-start">
      <input type="checkbox" class="order-check" data-id="${o.id}" style="margin-top:4px;width:18px;height:18px">
      <div>
-      <div class="order-shop">${o.comercio||"Sin nombre"}${o.manual?' <span class="badge tipo" style="font-size:9px;vertical-align:middle">✍️ Manual</span>':""}</div>
+      <div class="order-shop">${o.comercio||"Sin nombre"}${o.manual?' <span class="badge tipo" style="font-size:9px;vertical-align:middle">✍️ Manual</span>':""} ${canalBadge(canalDe(o))}</div>
       <div class="order-meta">📅 ${o.dia_entrega||"-"}${o.fecha_entrega?" "+fmtFechaEntrega(o.fecha_entrega):""} · 🕒 pedido el ${fmtFecha(o.created_at)}${o.domicilio?" · 📍 "+o.domicilio:""}${o.whatsapp?" · 📞 "+o.whatsapp:""}</div>
      </div>
     </div>
@@ -680,6 +708,16 @@ document.querySelectorAll("#statusFilters .chip").forEach(btn=>{
  btn.addEventListener("click",()=>{
   statusFilter=btn.dataset.f;
   document.querySelectorAll("#statusFilters .chip").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  paginaActual=1;
+  render();
+ });
+});
+
+document.querySelectorAll("#canalFilters .chip").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  canalFilter=btn.dataset.c;
+  document.querySelectorAll("#canalFilters .chip").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   paginaActual=1;
   render();
