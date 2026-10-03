@@ -5,9 +5,9 @@
 import { cotizarEnvio } from "../lib/zipnova.js";
 
 const ACCOUNT_ID = process.env.ZIPNOVA_ACCOUNT_ID;
-// El origen es opcional: si no se configura ZIPNOVA_ORIGIN_ID, se usa "auto"
-// y Zipnova elige el depósito configurado por defecto en la cuenta.
-const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID || "auto";
+// El origen es opcional: si no se configura ZIPNOVA_ORIGIN_ID, Zipnova usa
+// el depósito configurado por defecto en la cuenta.
+const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID || undefined;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
