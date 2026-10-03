@@ -134,6 +134,10 @@ const CODIGOS_ACCESO={
 let listaActiva=1;
 let codigoActivo=null;
 
+// Con qué canal queda etiquetado el pedido en el panel admin, según la
+// lista de precios que habilitó la contraseña usada para entrar.
+const CANAL_POR_LISTA={1:"comercio",2:"mayorista",3:"mayorista"};
+
 // 👉 Cada lista de precios tiene su PROPIO catálogo: productos, precios y fotos totalmente independientes entre listas.
 // Formato de cada producto: ["Nombre",precio,"Categoría","URL de la foto (opcional)"]
 const CATALOGOS={
@@ -378,7 +382,7 @@ async function enviar(){
    body:JSON.stringify({
     comercio,whatsapp:wa,dia_entrega:dia,fecha_entrega:fechaEntrega,domicilio:direccion,productos:lista,
     total:calc.confirmar?null:calc.total,observaciones:obs||null,estado:"Pendiente",estado_pago:formaPago,
-    lista_precio:listaActiva
+    lista_precio:listaActiva,canal:CANAL_POR_LISTA[listaActiva]||"comercio"
    })
   });
   const text=await r.text();
