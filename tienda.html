@@ -105,6 +105,19 @@
   .cart-items{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);margin:14px 0;padding:10px 0;}
   .cart-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
   .cart-item-remove{border:none;background:#fbe7ea;color:#a3273f;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;cursor:pointer;line-height:1;}
+  #envioOpciones{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px;}
+  .ship-opt{
+    display:flex;align-items:center;gap:10px;cursor:pointer;
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+  }
+  .ship-opt:has(input:checked){border-color:var(--purple);background:#f7f1fa;}
+  .ship-opt input[type="radio"]{flex-shrink:0;width:17px;height:17px;margin:0;accent-color:var(--purple);}
+  .ship-opt-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .ship-opt-name{font-size:13.5px;font-weight:600;color:#2a2a2a;}
+  .ship-opt-meta{font-size:12px;color:var(--muted);}
+  .ship-opt-price{flex-shrink:0;font-size:13.5px;font-weight:700;color:var(--purple);white-space:nowrap;}
+  .ship-opt-price.muted{color:var(--muted);font-weight:600;}
+  .ship-empty{font-size:13px;color:var(--muted);padding:6px 2px;}
   .cart-total{display:flex;justify-content:space-between;font-weight:800;font-size:17px;color:var(--purple);margin-top:8px;}
   .modal .send-btn{
     width:100%;margin-top:16px;background:linear-gradient(135deg,var(--purple),#7d45a9);
@@ -439,19 +452,25 @@ async function cotizarEnvio(){
 function renderOpcionesEnvio(){
   const cont=$("envioOpciones");
   const sinAutomaticas=!envioOpcionesDisponibles.length
-    ?'<div class="cart-item" style="color:#888">No hay transportistas automáticos disponibles para esa dirección.</div>'
+    ?'<div class="ship-empty">No hay transportistas automáticos disponibles para esa dirección.</div>'
     :"";
   const listaAutomaticas=envioOpcionesDisponibles.map((op,idx)=>`
-    <label class="cart-item" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+    <label class="ship-opt">
      <input type="radio" name="envioOpcion" value="${idx}" onchange="elegirEnvio(${idx})">
-     <span style="flex:1">${op.carrier_name||op.carrier||"Transportista"} ${op.estimated_days?`· ~${op.estimated_days} días`:""}</span>
-     <span>${money(op.price)}</span>
+     <span class="ship-opt-info">
+      <span class="ship-opt-name">${op.carrier_name||op.carrier||"Transportista"}</span>
+      ${op.estimated_days?`<span class="ship-opt-meta">~${op.estimated_days} días</span>`:""}
+     </span>
+     <span class="ship-opt-price">${money(op.price)}</span>
     </label>`).join("");
   const opcionCoordinar=`
-    <label class="cart-item" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+    <label class="ship-opt">
      <input type="radio" name="envioOpcion" value="coordinar" onchange="elegirEnvioCoordinar()">
-     <span style="flex:1">🏍️ Moto mensajería (a coordinar por WhatsApp)</span>
-     <span style="color:#888">A coordinar</span>
+     <span class="ship-opt-info">
+      <span class="ship-opt-name">🏍️ Moto mensajería</span>
+      <span class="ship-opt-meta">A coordinar por WhatsApp</span>
+     </span>
+     <span class="ship-opt-price muted">A coordinar</span>
     </label>`;
   cont.innerHTML=sinAutomaticas+listaAutomaticas+opcionCoordinar;
 }
