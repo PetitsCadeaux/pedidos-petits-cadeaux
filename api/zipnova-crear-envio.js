@@ -6,7 +6,9 @@ import { crearEnvio } from "../lib/zipnova.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 const ACCOUNT_ID = process.env.ZIPNOVA_ACCOUNT_ID;
-const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID;
+// El origen es opcional: si no se configura ZIPNOVA_ORIGIN_ID, se usa "auto"
+// y Zipnova elige el depósito configurado por defecto en la cuenta.
+const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID || "auto";
 
 async function traerPedido(pedidoId) {
   const r = await fetch(
@@ -44,10 +46,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
   try {
-    if (!ACCOUNT_ID || !ORIGIN_ID) {
+    if (!ACCOUNT_ID) {
       return res.status(200).json({
         ok: false,
-        error: "Faltan configurar ZIPNOVA_ACCOUNT_ID / ZIPNOVA_ORIGIN_ID en Vercel"
+        error: "Falta configurar ZIPNOVA_ACCOUNT_ID en Vercel"
       });
     }
 
