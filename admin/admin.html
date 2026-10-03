@@ -112,7 +112,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
    <a class="pill" href="https://app.zipnova.com.ar" target="_blank" rel="noopener">🔗 Zipnova</a>
    <a class="pill" href="https://cabifylogistics.com/ar" target="_blank" rel="noopener">🏍️ Cabify Logistics</a>
    <a class="pill" href="../tienda.html" target="_blank" rel="noopener">🛒 Mi tienda</a>
-   <a class="pill" href="../regalaria.html" target="_blank" rel="noopener">🎁 Regalaría</a>
+   <a class="pill" href="../regaleria.html" target="_blank" rel="noopener">🎁 Regaleria</a>
    <button type="button" class="pill danger" id="logoutBtnHeader">🚪 Cerrar sesión</button>
   </div>
  </div>
@@ -194,7 +194,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
       <button type="button" class="chip" data-c="mayorista">🏭 Mayorista</button>
       <button type="button" class="chip" data-c="comercio">🏪 Comercio</button>
       <button type="button" class="chip" data-c="tienda">🛒 Tienda online</button>
-      <button type="button" class="chip" data-c="regalaria">🎁 Regalaría</button>
+      <button type="button" class="chip" data-c="regaleria">🎁 Regaleria</button>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
      <label style="font-size:12px;color:var(--muted);font-weight:700">Desde
@@ -228,7 +228,7 @@ let canalFilter="Todos";
 // antes de tener este campo, se infiere a partir de si fue cargado a mano
 // en el panel (manual=true → comercio) o vino solo desde la tienda online.
 function canalDe(o){
-  if(o.canal==="mayorista"||o.canal==="comercio"||o.canal==="tienda"||o.canal==="regalaria")return o.canal;
+  if(o.canal==="mayorista"||o.canal==="comercio"||o.canal==="tienda"||o.canal==="regaleria")return o.canal;
   return o.manual?"comercio":"tienda";
 }
 
@@ -237,7 +237,7 @@ function canalBadge(canal){
     mayorista:["🏭 Mayorista","#fff1de","#a15b00"],
     comercio:["🏪 Comercio","#e8f0fe","#1a56b0"],
     tienda:["🛒 Tienda","#f3e8ff","#6b21a8"],
-    regalaria:["🎁 Regalaría","#ffe4ef","#b43869"]
+    regaleria:["🎁 Regaleria","#ffe4ef","#b43869"]
   }[canal];
   if(!info)return "";
   return `<span class="badge" style="font-size:9px;vertical-align:middle;background:${info[1]};color:${info[2]}">${info[0]}</span>`;
