@@ -363,7 +363,7 @@ async function cotizarZipnova(id,btn){
   });
   const data=await r.json();
   if(!data.ok)throw new Error(data.error||"No se pudo cotizar");
-  const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||[]);
+  const opciones=Array.isArray(data.opciones)?data.opciones:[];
   if(!opciones||opciones.length===0){
    cont.innerHTML='<div style="font-size:12px;color:var(--muted)">Zipnova no devolvió opciones para esta dirección.</div>';
    return;
