@@ -109,6 +109,7 @@
     width:100%;margin-top:16px;background:linear-gradient(135deg,var(--purple),#7d45a9);
     color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;
   }
+  .modal .send-btn:disabled{background:#e4d7e8;color:#a894ae;cursor:not-allowed;}
   .modal .close-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;float:right;}
   #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
   #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;}
@@ -185,6 +186,7 @@
     <div class="pm-photo" id="pmPhoto"></div>
     <h2 id="pmName"></h2>
     <div class="tiers" id="pmTiers"></div>
+    <button type="button" class="send-btn" id="pmAddBtn" disabled>Elegí un pack arriba</button>
   </div>
 </div>
 
@@ -344,6 +346,15 @@ function renderTiersModal(){
       updateCartBar();
     });
   });
+  const sel=selected[productoAbierto];
+  const btn=$("pmAddBtn");
+  if(sel!=null){
+    btn.disabled=false;
+    btn.textContent="Agregar al carrito · "+money(PRODUCTOS[productoAbierto].tiers[sel].precio);
+  }else{
+    btn.disabled=true;
+    btn.textContent="Elegí un pack arriba";
+  }
 }
 
 function cerrarProducto(){
@@ -352,6 +363,12 @@ function cerrarProducto(){
 }
 $("closeProductModal").addEventListener("click",cerrarProducto);
 $("productModalBg").addEventListener("click",e=>{if(e.target.id==="productModalBg")cerrarProducto();});
+$("pmAddBtn").addEventListener("click",()=>{
+  if(productoAbierto==null||selected[productoAbierto]==null)return;
+  cerrarProducto();
+  updateCartBar();
+  $("cartBar").scrollIntoView({behavior:"smooth",block:"end"});
+});
 
 function carrito(){
   return PRODUCTOS.map((p,i)=>({p,tier:selected[i]!=null?p.tiers[selected[i]]:null}))
