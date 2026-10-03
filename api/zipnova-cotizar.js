@@ -51,9 +51,34 @@ export default async function handler(req, res) {
       }
     });
 
-    return res.status(200).json({ ok: true, opciones: resultado });
+    return res.status(200).json({ ok: true, opciones: normalizarOpciones(resultado) });
   } catch (e) {
     console.error("Error cotizando envío en Zipnova:", e);
     return res.status(200).json({ ok: false, error: e.message || "Error desconocido", detalle: e.data || null });
   }
+}
+
+// La API de Zipnova devuelve las opciones en resultado.results, como un
+// objeto (no una lista) con una clave por tipo de servicio, por ejemplo:
+// { standard_delivery: { selectable, carrier:{id,name}, service_type:{code},
+//   logistic_type, amounts:{price, price_incl_tax} }, ... }
+// Acá se convierte a una lista simple [{carrier_id, carrier_name,
+// service_type, logistic_type, price, estimated_days}] para que tienda.html
+// y admin.html la puedan recorrer directamente.
+function normalizarOpciones(resultado) {
+  if (Array.isArray(resultado)) return resultado;
+  const results = resultado && typeof resultado === "object" ? resultado.results : null;
+  if (!results || typeof results !== "object") return [];
+  return Object.values(results)
+    .filter((op) => op && op.selectable !== false && op.amounts)
+    .map((op) => ({
+      carrier_id: op.carrier?.id,
+      carrier_name: op.carrier?.name,
+      service_type: op.service_type?.code,
+      logistic_type: op.logistic_type,
+      price: op.amounts?.price_incl_tax ?? op.amounts?.price,
+      estimated_days: op.delivery_time?.max
+    }))
+    .filter((op) => op.carrier_id && op.price != null)
+    .sort((a, b) => a.price - b.price);
 }
