@@ -511,6 +511,24 @@ async function cambiarPago(id,select){
  }
 }
 
+async function marcarPagadoMP(id,btn){
+ if(!confirm("¿Confirmás que este pago ya está acreditado en tu cuenta de Mercado Pago?"))return;
+ btn.disabled=true;btn.textContent="Guardando...";
+ try{
+  await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+id,{
+   method:"PATCH",
+   headers:{"Prefer":"return=minimal"},
+   body:JSON.stringify({pagado:true})
+  });
+  const o=orders.find(x=>x.id===id);
+  if(o)o.pagado=true;
+  render();
+ }catch(e){
+  alert("No se pudo marcar como pagado: "+(e.message||"error desconocido"));
+  btn.disabled=false;btn.textContent="Ya lo vi acreditado · Marcar pagado";
+ }
+}
+
 function fmtFecha(iso){
  const d=new Date(iso);
  return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
@@ -612,7 +630,7 @@ function render(){
   const estadoClase=entregado?"entregado":(tomado?"tomado":"pendiente");
   const pago=o.estado_pago||"Pendiente";
   const pagoClase=pago==="Efectivo"?"efectivo":pago==="Transferencia"?"transferencia":pago==="Demorado"?"demorado":pago==="Mercado Pago"?"mercado-pago":"pendiente";
-  const mpBadge=pago==="Mercado Pago"?(o.pagado?`<span class="badge" style="background:#e6f7ee;color:#177a4d">✅ Pagado con Mercado Pago</span>`:`<span class="badge" style="background:#fff1de;color:#a15b00">⏳ Esperando pago (Mercado Pago)</span>`):"";
+  const mpBadge=pago==="Mercado Pago"?(o.pagado?`<span class="badge" style="background:#e6f7ee;color:#177a4d">✅ Pagado con Mercado Pago</span>`:`<span class="badge" style="background:#fff1de;color:#a15b00">⏳ Esperando pago (Mercado Pago)</span> <button type="button" class="chip" style="padding:3px 10px;font-size:11px" onclick="marcarPagadoMP(${o.id},this)">Ya lo vi acreditado · Marcar pagado</button>`):"";
   const waNum=(o.whatsapp||"").replace(/\D/g,"");
   const descuentoAbierto=openDescuentoId===o.id;
   const envioAbierto=openEnvioId===o.id;
