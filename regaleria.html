@@ -119,7 +119,7 @@
 
 <header>
   <h1>Petits Cadeaux Regaleria</h1>
-  <p>Impresos 3D · Artesanías · Souvenirs · Aromatizantes · Velas y sahumerios</p>
+  <p>Impresos 3D · Artesanías · Souvenirs/Candy Bar · Aromatizantes · Velas y sahumerios · Otros</p>
 </header>
 
 <main>
@@ -217,8 +217,18 @@ const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/
 // Catálogo de Regaleria: precio por unidad simple (sin packs/tiers como la
 // panadería). "foto" puede quedar en null hasta que Nadia la suba.
 const PRODUCTOS=[
+ {nombre:"Llavero en 3D Boca",categoria:"Impresos 3D",foto:"llavero-3d-boca.jpg",
+  descripcion:"Llavero impreso en 3D con el escudo de Boca Juniors, con brillo glitter.",precio:2500},
+ {nombre:"Llavero 3D Feliz Día · Margarita",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-margarita.jpg",
+  descripcion:"Llavero impreso en 3D con dije de margarita y cartel \"Feliz Día\".",precio:2500},
+ {nombre:"Llavero 3D Feliz Día · Girasol",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-girasol.jpg",
+  descripcion:"Llavero impreso en 3D con dije de girasol y cartel \"Feliz Día\".",precio:2500},
+ {nombre:"Llavero 3D Feliz Día · Corazón",categoria:"Impresos 3D",foto:"llavero-3d-feliz-dia-corazon.jpg",
+  descripcion:"Llavero impreso en 3D con dije de corazón y cartel \"Feliz Día\".",precio:2500},
  {nombre:"Aerosol Saphirus Cony",categoria:"Aromatizantes",foto:"saphirus-cony.jpg",
   descripcion:"Aromatizante de ambientes Saphirus, fragancia Cony. 185 g / 280 cc.",precio:6800},
+ {nombre:"Textil Saphirus",categoria:"Aromatizantes",foto:"textil-saphirus.jpg",
+  descripcion:"Aromatizador textil Saphirus, 250 ml. Fragancias: Adventure, Pétalos de Orquídeas, Good Woman, Limón.",precio:4000},
  {nombre:"Velas de Noche Iluminarte x12 u.",categoria:"Velas y Sahumerios",foto:"velas-noche-iluminarte-x12.jpg",
   descripcion:"Pack de 12 velas de noche Iluminarte Prestige, con vaso contenedor.",precio:2600},
 ];
