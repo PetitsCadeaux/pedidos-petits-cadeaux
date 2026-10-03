@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regalaría · Petits Cadeaux</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose:#e85d97;--rose-dark:#c9437c;--purple:#6b3f96;--lilac:#b67fd1;
+    --ink:#4a2f55;--muted:#8d7a94;--line:#f1dde6;--bg:#fdf4f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Poppins',Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--rose),var(--purple));padding:22px 16px;text-align:center;color:#fff;}
+  header h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:27px;margin:0;}
+  header p{margin:6px 0 0;font-size:13px;color:#fbe3ee;}
+
+  main{max-width:1180px;margin:0 auto;padding:18px 14px 120px;}
+
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:4px 0 16px;}
+  .filters button{
+    flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .filters button.active{background:var(--rose);color:#fff;border-color:var(--rose);}
+
+  #catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+  @media(min-width:900px){#catalog{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}}
+
+  .product-card{
+    background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;
+    box-shadow:0 4px 14px rgba(201,67,124,.08);display:flex;flex-direction:column;
+    transition:transform .12s,box-shadow .12s;
+  }
+  .product-card:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(201,67,124,.14);}
+  .product-card .ph-photo{width:100%;aspect-ratio:1/1;background:#fbe9f0;position:relative;}
+  .product-card .ph-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .product-card .ph-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#d9a8bf;text-align:center;}
+  .product-card .in-cart-tag{position:absolute;top:8px;right:8px;background:var(--rose);color:#fff;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+  .product-card .pc-body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:4px;flex:1;}
+  .product-card .name{font-weight:700;font-size:14px;line-height:1.25;}
+  .product-card .from-price strong{color:var(--rose-dark);font-size:15px;font-weight:800;}
+  .product-card .pc-btn{
+    margin-top:6px;border:1px solid var(--rose);color:var(--rose-dark);background:#fff;
+    border-radius:10px;padding:8px;font-size:12.5px;font-weight:700;text-align:center;
+  }
+  .product-card.in-cart .pc-btn{background:var(--rose);color:#fff;border-color:var(--rose);}
+
+  .product-modal .modal{max-width:460px;}
+  .product-modal .pm-photo{width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#fbe9f0;margin-bottom:14px;}
+  .product-modal .pm-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .product-modal .pm-photo .ph-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#d9a8bf;}
+  .product-modal h2{margin-bottom:4px;}
+  .pm-desc{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0 0 14px;}
+  .pm-price{font-size:19px;font-weight:800;color:var(--rose-dark);margin:0 0 16px;}
+
+  .qty-row{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 18px;}
+  .qty-btn{
+    width:40px;height:40px;border-radius:50%;border:2px solid var(--rose);background:#fff;color:var(--rose-dark);
+    font-size:19px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .qty-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .qty-num{font-size:20px;font-weight:800;min-width:30px;text-align:center;}
+
+  .no-precio{color:var(--muted);font-size:13px;padding:6px 0;}
+
+  #cartBar{
+    position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+    box-shadow:0 -6px 18px rgba(201,67,124,.12);padding:12px 16px;display:none;
+    align-items:center;justify-content:space-between;gap:12px;z-index:50;
+  }
+  #cartBar .info{font-size:13px;color:var(--muted);}
+  #cartBar .total{font-weight:800;font-size:17px;color:var(--rose-dark);}
+  #cartBar button{
+    background:linear-gradient(135deg,var(--rose),var(--purple));color:#fff;border:none;
+    border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(74,47,85,.45);z-index:100;align-items:flex-end;justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:20px 20px 0 0;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px 26px;}
+  .modal h2{font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);margin:0 0 14px;font-size:22px;}
+  .modal label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 5px;}
+  .modal input,.modal textarea,.modal select{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;
+  }
+  .modal textarea{resize:vertical;min-height:60px;}
+  .cart-items{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);margin:14px 0;padding:10px 0;}
+  .cart-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+  .cart-item-remove{border:none;background:#fbe3ea;color:#a3273f;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;cursor:pointer;line-height:1;}
+  #envioOpciones{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px;}
+  .ship-opt{
+    display:flex;align-items:center;gap:10px;cursor:pointer;
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+  }
+  .ship-opt:has(input:checked){border-color:var(--rose);background:#fdf0f5;}
+  .ship-opt input[type="radio"]{flex-shrink:0;width:17px;height:17px;margin:0;accent-color:var(--rose);}
+  .ship-opt-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .ship-opt-name{font-size:13.5px;font-weight:600;color:#2a2a2a;}
+  .ship-opt-meta{font-size:12px;color:var(--muted);}
+  .ship-opt-price{flex-shrink:0;font-size:13.5px;font-weight:700;color:var(--rose-dark);white-space:nowrap;}
+  .ship-opt-price.muted{color:var(--muted);font-weight:600;}
+  .ship-empty{font-size:13px;color:var(--muted);padding:6px 2px;}
+  .cart-total{display:flex;justify-content:space-between;font-weight:800;font-size:17px;color:var(--rose-dark);margin-top:8px;}
+  .modal .send-btn{
+    width:100%;margin-top:16px;background:linear-gradient(135deg,var(--rose),var(--purple));
+    color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;
+  }
+  .modal .send-btn:disabled{background:#f3d9e4;color:#c79bb0;cursor:not-allowed;}
+  .modal .close-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;float:right;}
+  #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
+  #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;}
+  #modalMsg.err{display:block;background:#fbe7ea;color:#a3273f;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Petits Cadeaux Regalaría</h1>
+  <p>Impresos 3D · Artesanías · Souvenirs · Aromatizantes · Velas y sahumerios</p>
+</header>
+
+<main>
+  <div class="filters" id="filters"></div>
+  <div id="catalog"></div>
+</main>
+
+<div id="cartBar">
+  <div class="info">
+    <div id="cartCount">0 productos</div>
+    <div class="total" id="cartTotal">$0</div>
+  </div>
+  <button id="openCheckout">Ver pedido</button>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="close-btn" id="closeModal">Cerrar ✕</button>
+    <h2>Tu pedido</h2>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-total"><span>Total</span><span id="modalTotal">$0</span></div>
+
+    <label>Nombre</label>
+    <input type="text" id="fNombre" placeholder="Tu nombre">
+    <label>WhatsApp</label>
+    <input type="tel" id="fWhatsapp" placeholder="11 1234-5678">
+    <label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>
+    <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com">
+    <label>Calle</label>
+    <input type="text" id="fCalle" placeholder="Ej. Av. Mitre">
+    <label>Altura</label>
+    <input type="text" id="fAltura" placeholder="Ej. 1234">
+    <label>Piso / depto <span style="font-weight:400">(si corresponde)</span></label>
+    <input type="text" id="fPisoDepto" placeholder="Ej. 2° A">
+    <label>Localidad</label>
+    <input type="text" id="fLocalidad" placeholder="Ej. Berazategui">
+    <label>Provincia</label>
+    <input type="text" id="fProvincia" placeholder="Ej. Buenos Aires">
+    <label>Código postal</label>
+    <input type="text" id="fCP" placeholder="Ej. 1884">
+
+    <button type="button" class="send-btn" id="cotizarEnvioBtn" style="background:#8a5a89;margin:8px 0">📦 Calcular costo de envío</button>
+    <div id="envioOpciones"></div>
+
+    <label>Forma de pago</label>
+    <select id="fPago">
+      <option value="Efectivo">Efectivo</option>
+      <option value="Transferencia">Transferencia</option>
+      <option value="Mercado Pago">Mercado Pago</option>
+    </select>
+    <label>Observaciones</label>
+    <textarea id="fObs" placeholder="Horario, indicaciones, etc."></textarea>
+
+    <button class="send-btn" id="sendOrder">Enviar pedido por WhatsApp</button>
+    <a class="send-btn" id="payLink" href="#" target="_blank" rel="noopener" style="display:none;text-align:center;text-decoration:none">Tocá para pagar con Mercado Pago</a>
+    <div id="modalMsg"></div>
+  </div>
+</div>
+
+<div class="modal-bg product-modal" id="productModalBg">
+  <div class="modal">
+    <button class="close-btn" id="closeProductModal">Cerrar ✕</button>
+    <div class="pm-photo" id="pmPhoto"></div>
+    <h2 id="pmName"></h2>
+    <p class="pm-desc" id="pmDesc"></p>
+    <div class="pm-price" id="pmPrice"></div>
+    <div class="qty-row">
+      <button type="button" class="qty-btn" id="qtyMinus">−</button>
+      <span class="qty-num" id="qtyNum">1</span>
+      <button type="button" class="qty-btn" id="qtyPlus">+</button>
+    </div>
+    <button type="button" class="send-btn" id="pmAddBtn">Agregar al carrito</button>
+  </div>
+</div>
+
+<script>
+window.addEventListener("error", function(e){
+  const m=document.getElementById("modalMsg");
+  if(m){m.className="err";m.style.display="block";m.textContent="Error técnico: "+(e.message||"desconocido")+" (línea "+(e.lineno||"?")+")";}
+});
+window.addEventListener("unhandledrejection", function(e){
+  const m=document.getElementById("modalMsg");
+  if(m){m.className="err";m.style.display="block";m.textContent="Error técnico (promesa): "+(e.reason&&e.reason.message||e.reason||"desconocido");}
+});
+
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const DESTINO_WHATSAPP="5491123627052";
+
+const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-regalaria/";
+
+// Catálogo de Regalaría: precio por unidad simple (sin packs/tiers como la
+// panadería). "foto" puede quedar en null hasta que Nadia la suba.
+const PRODUCTOS=[
+ {nombre:"Aerosol Saphirus Cony",categoria:"Aromatizantes",foto:"saphirus-cony.jpg",
+  descripcion:"Aromatizante de ambientes Saphirus, fragancia Cony. 185 g / 280 cc.",precio:6800},
+ {nombre:"Velas de Noche Iluminarte x12 u.",categoria:"Velas y Sahumerios",foto:"velas-noche-iluminarte-x12.jpg",
+  descripcion:"Pack de 12 velas de noche Iluminarte Prestige, con vaso contenedor.",precio:2600},
+];
+
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
+const $=id=>document.getElementById(id);
+
+// carritoQty[i] = cantidad elegida de ese producto, o 0/undefined si no está en el carrito
+let carritoQty=Array(PRODUCTOS.length).fill(0);
+let activeFilter="Todos";
+
+function categorias(){
+  return ["Todos",...new Set(PRODUCTOS.map(p=>p.categoria))];
+}
+
+function renderFilters(){
+  $("filters").innerHTML=categorias().map(c=>
+    `<button class="${c===activeFilter?"active":""}" data-c="${c}">${c}</button>`
+  ).join("");
+  $("filters").querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click",()=>{activeFilter=b.dataset.c;renderFilters();renderCatalog();});
+  });
+}
+
+function renderCatalog(){
+  const lista=PRODUCTOS.filter(p=>activeFilter==="Todos"||p.categoria===activeFilter);
+  $("catalog").innerHTML=lista.map((p)=>{
+    const i=PRODUCTOS.indexOf(p);
+    const enCarrito=carritoQty[i]>0;
+    const imgTag=p.foto?`<img src="${BUCKET}${p.foto}" alt="">`:`<div class="ph-noimg">Sin foto</div>`;
+    return `
+      <div class="product-card ${enCarrito?"in-cart":""}" data-i="${i}">
+        <div class="ph-photo">
+          ${imgTag}
+          ${enCarrito?`<span class="in-cart-tag">✓ ${carritoQty[i]} en tu pedido</span>`:""}
+        </div>
+        <div class="pc-body">
+          <div class="name">${p.nombre}</div>
+          <div class="from-price"><strong>${money(p.precio)}</strong></div>
+          <div class="pc-btn">${enCarrito?"Ver / cambiar":"Ver producto"}</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  $("catalog").querySelectorAll(".product-card").forEach(el=>{
+    el.addEventListener("click",()=>abrirProducto(parseInt(el.dataset.i)));
+  });
+}
+
+let productoAbierto=null;
+let qtyEnModal=1;
+
+function abrirProducto(i){
+  productoAbierto=i;
+  const p=PRODUCTOS[i];
+  qtyEnModal=carritoQty[i]>0?carritoQty[i]:1;
+  $("pmPhoto").innerHTML=p.foto?`<img src="${BUCKET}${p.foto}" alt="">`:`<div class="ph-noimg">Sin foto</div>`;
+  $("pmName").textContent=p.nombre;
+  $("pmDesc").textContent=p.descripcion||"";
+  $("pmPrice").textContent=money(p.precio);
+  renderQty();
+  $("productModalBg").classList.add("open");
+}
+
+function renderQty(){
+  $("qtyNum").textContent=qtyEnModal;
+  $("qtyMinus").disabled=qtyEnModal<=1;
+  const enCarrito=productoAbierto!=null&&carritoQty[productoAbierto]>0;
+  $("pmAddBtn").textContent=enCarrito?"Actualizar en el carrito":"Agregar al carrito";
+}
+
+$("qtyMinus").addEventListener("click",()=>{if(qtyEnModal>1){qtyEnModal--;renderQty();}});
+$("qtyPlus").addEventListener("click",()=>{qtyEnModal++;renderQty();});
+
+function cerrarProducto(){
+  $("productModalBg").classList.remove("open");
+  productoAbierto=null;
+}
+$("closeProductModal").addEventListener("click",cerrarProducto);
+$("productModalBg").addEventListener("click",e=>{if(e.target.id==="productModalBg")cerrarProducto();});
+$("pmAddBtn").addEventListener("click",()=>{
+  if(productoAbierto==null)return;
+  carritoQty[productoAbierto]=qtyEnModal;
+  cerrarProducto();
+  renderCatalog();
+  updateCartBar();
+  $("cartBar").scrollIntoView({behavior:"smooth",block:"end"});
+});
+
+function carrito(){
+  return PRODUCTOS.map((p,i)=>({p,i,qty:carritoQty[i]}))
+    .filter(x=>x.qty>0);
+}
+
+function quitarDelCarrito(i){
+  carritoQty[i]=0;
+  renderModalCart();
+  renderCatalog();
+  updateCartBar();
+}
+
+function totalCarrito(){
+  return carrito().reduce((s,x)=>s+x.p.precio*x.qty,0);
+}
+
+let envioOpcionesDisponibles=[];
+let envioSeleccionado=null;
+
+function totalConEnvio(){
+  return totalCarrito()+(envioSeleccionado?envioSeleccionado.price:0);
+}
+
+async function cotizarEnvio(){
+  const nombre=$("fNombre").value.trim();
+  const telefono=$("fWhatsapp").value.trim();
+  const calle=$("fCalle").value.trim();
+  const altura=$("fAltura").value.trim();
+  const pisoDepto=$("fPisoDepto").value.trim();
+  const localidad=$("fLocalidad").value.trim();
+  const provincia=$("fProvincia").value.trim();
+  const cp=$("fCP").value.trim();
+  const cont=$("envioOpciones");
+  const btn=$("cotizarEnvioBtn");
+
+  if(!calle||!altura||!localidad||!provincia||!cp){
+    cont.innerHTML='<div class="cart-item" style="color:#b3261e">Completá calle, altura, localidad, provincia y código postal para calcular el envío.</div>';
+    return;
+  }
+
+  btn.disabled=true;btn.textContent="Calculando...";
+  cont.innerHTML='<div class="cart-item">Calculando opciones de envío...</div>';
+  envioSeleccionado=null;
+
+  try{
+    const r=await fetch("/api/zipnova-cotizar",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre,telefono,calle,altura,pisoDepto,localidad,provincia,codigoPostal:cp,valorDeclarado:totalCarrito()})
+    });
+    const data=await r.json();
+    if(!data.ok){
+      const detalleTxt=data.detalle?" — "+JSON.stringify(data.detalle).slice(0,300):"";
+      throw new Error((data.error||"No se pudo cotizar el envío")+detalleTxt);
+    }
+    const opciones=Array.isArray(data.opciones)?data.opciones:[];
+    envioOpcionesDisponibles=opciones;
+  }catch(e){
+    envioOpcionesDisponibles=[];
+    cont.innerHTML='<div class="cart-item" style="color:#b3261e">No se pudo calcular el envío automático: '+(e.message||"error desconocido")+'</div>';
+  }
+  renderOpcionesEnvio();
+  btn.disabled=false;btn.textContent="📦 Calcular costo de envío";
+}
+
+function renderOpcionesEnvio(){
+  const cont=$("envioOpciones");
+  const sinAutomaticas=!envioOpcionesDisponibles.length
+    ?'<div class="ship-empty">No hay transportistas automáticos disponibles para esa dirección.</div>'
+    :"";
+  const listaAutomaticas=envioOpcionesDisponibles.map((op,idx)=>`
+    <label class="ship-opt">
+     <input type="radio" name="envioOpcion" value="${idx}" onchange="elegirEnvio(${idx})">
+     <span class="ship-opt-info">
+      <span class="ship-opt-name">${op.carrier_name||op.carrier||"Transportista"}</span>
+      ${op.estimated_days?`<span class="ship-opt-meta">~${op.estimated_days} días</span>`:""}
+     </span>
+     <span class="ship-opt-price">${money(op.price)}</span>
+    </label>`).join("");
+  const opcionCoordinar=`
+    <label class="ship-opt">
+     <input type="radio" name="envioOpcion" value="coordinar" onchange="elegirEnvioCoordinar()">
+     <span class="ship-opt-info">
+      <span class="ship-opt-name">🏍️ Moto mensajería</span>
+      <span class="ship-opt-meta">A coordinar por WhatsApp</span>
+     </span>
+     <span class="ship-opt-price muted">A coordinar</span>
+    </label>`;
+  cont.innerHTML=sinAutomaticas+listaAutomaticas+opcionCoordinar;
+}
+
+function elegirEnvio(idx){
+  const op=envioOpcionesDisponibles[idx];
+  if(!op)return;
+  envioSeleccionado={
+    carrier_id:op.carrier_id,
+    service_type:op.service_type,
+    logistic_type:op.logistic_type||null,
+    carrier_name:op.carrier_name||op.carrier||"Transportista",
+    price:op.price
+  };
+  renderModalCart();
+}
+
+function elegirEnvioCoordinar(){
+  envioSeleccionado={
+    carrier_id:null,
+    service_type:null,
+    logistic_type:null,
+    carrier_name:"Moto mensajería (a coordinar)",
+    price:0,
+    aCoordinar:true
+  };
+  renderModalCart();
+}
+
+$("cotizarEnvioBtn").addEventListener("click",cotizarEnvio);
+
+function updateCartBar(){
+  const items=carrito();
+  const bar=$("cartBar");
+  if(items.length===0){bar.style.display="none";return;}
+  bar.style.display="flex";
+  const totalUnidades=items.reduce((s,x)=>s+x.qty,0);
+  $("cartCount").textContent=totalUnidades+(totalUnidades===1?" producto":" productos");
+  $("cartTotal").textContent=money(totalCarrito());
+}
+
+function renderModalCart(){
+  const items=carrito();
+  let html=items.map(x=>
+    `<div class="cart-item"><span>${x.p.nombre} × ${x.qty}</span><span style="display:flex;align-items:center;gap:8px">${money(x.p.precio*x.qty)}<button type="button" class="cart-item-remove" data-i="${x.i}" title="Quitar">✕</button></span></div>`
+  ).join("")||`<div class="cart-item"><span>Sin productos todavía</span></div>`;
+  if(envioSeleccionado){
+    html+=`<div class="cart-item"><span>🚚 Envío · ${envioSeleccionado.carrier_name}</span><span>${envioSeleccionado.aCoordinar?"A coordinar":money(envioSeleccionado.price)}</span></div>`;
+  }
+  $("cartItems").innerHTML=html;
+  $("cartItems").querySelectorAll(".cart-item-remove").forEach(btn=>{
+    btn.addEventListener("click",()=>quitarDelCarrito(parseInt(btn.dataset.i)));
+  });
+  $("modalTotal").textContent=money(totalConEnvio());
+}
+
+$("openCheckout").addEventListener("click",()=>{
+  renderModalCart();
+  $("modalBg").classList.add("open");
+});
+$("closeModal").addEventListener("click",()=>$("modalBg").classList.remove("open"));
+$("modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")$("modalBg").classList.remove("open");});
+
+function actualizarTextoBoton(){
+  const pago=$("fPago").value;
+  $("sendOrder").textContent=pago==="Mercado Pago"?"Continuar y pagar":"Enviar pedido por WhatsApp";
+}
+$("fPago").addEventListener("change",actualizarTextoBoton);
+
+async function enviarPedido(){
+  const items=carrito();
+  const nombre=$("fNombre").value.trim();
+  const wa=$("fWhatsapp").value.trim();
+  const email=$("fEmail").value.trim();
+  const calle=$("fCalle").value.trim();
+  const altura=$("fAltura").value.trim();
+  const pisoDepto=$("fPisoDepto").value.trim();
+  const localidad=$("fLocalidad").value.trim();
+  const provincia=$("fProvincia").value.trim();
+  const cp=$("fCP").value.trim();
+  const direccion=[`${calle} ${altura}`.trim(),pisoDepto,localidad,provincia].filter(Boolean).join(", ");
+  const pago=$("fPago").value;
+  const obs=$("fObs").value.trim();
+  const msg=$("modalMsg");
+  const btn=$("sendOrder");
+  const payLink=$("payLink");
+  msg.className="";msg.style.display="none";
+  payLink.style.display="none";
+  btn.style.display="inline-block";
+
+  if(items.length===0){msg.className="err";msg.textContent="Agregá al menos un producto.";return;}
+  if(!nombre||!wa||!calle||!altura||!localidad||!provincia||!cp){msg.className="err";msg.textContent="Completá nombre, WhatsApp y la dirección completa.";return;}
+  if(pago==="Mercado Pago"&&!email){msg.className="err";msg.textContent="Para pagar con Mercado Pago necesitamos tu email.";return;}
+
+  const productos=items.map(x=>({
+    producto:x.p.nombre,
+    cantidad:x.qty,
+    precio_unitario:x.p.precio
+  }));
+  if(envioSeleccionado){
+    productos.push({
+      producto:`Envío · ${envioSeleccionado.carrier_name}`,
+      cantidad:1,
+      precio_unitario:envioSeleccionado.price
+    });
+  }
+  const total=totalConEnvio();
+
+  const referencia="MP-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+
+  btn.disabled=true;btn.textContent="Enviando...";
+
+  try{
+    const resp=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora",{
+      method:"POST",
+      headers:{
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+SUPABASE_KEY,
+        "Content-Type":"application/json",
+        "Prefer":"return=minimal"
+      },
+      body:JSON.stringify({
+        comercio:nombre,
+        whatsapp:wa,
+        domicilio:direccion,
+        direccion_calle:calle,
+        direccion_altura:altura,
+        direccion_piso_depto:pisoDepto||null,
+        localidad:localidad,
+        provincia:provincia,
+        codigo_postal:cp,
+        productos:productos,
+        total:total,
+        observaciones:obs||null,
+        estado:"Pendiente",
+        estado_pago:pago,
+        canal:"regalaria",
+        referencia_pago:pago==="Mercado Pago"?referencia:null,
+        envio_elegido_transportista:envioSeleccionado?envioSeleccionado.carrier_name:null,
+        envio_elegido_costo:envioSeleccionado?envioSeleccionado.price:null,
+        zipnova_carrier_id:envioSeleccionado?String(envioSeleccionado.carrier_id):null,
+        zipnova_service_type:envioSeleccionado?envioSeleccionado.service_type:null,
+        zipnova_logistic_type:envioSeleccionado?envioSeleccionado.logistic_type:null
+      })
+    });
+    if(!resp.ok){
+      const t=await resp.text();
+      throw new Error(t);
+    }
+
+    if(pago==="Mercado Pago"){
+      btn.textContent="Generando link de pago...";
+      const mpResp=await fetch("/api/crear-preferencia",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          items:productos.map(p=>({title:p.producto,quantity:p.cantidad,unit_price:p.precio_unitario})),
+          payer:{name:nombre,email:email},
+          external_reference:referencia
+        })
+      });
+      const mpData=await mpResp.json();
+      if(!mpResp.ok||!mpData.init_point){
+        throw new Error(mpData.error||"No se pudo generar el link de pago");
+      }
+      btn.style.display="none";
+      payLink.href=mpData.init_point;
+      payLink.style.display="block";
+      msg.className="ok";
+      msg.textContent="¡Pedido guardado! Tocá el botón de abajo para pagar.";
+      carritoQty=Array(PRODUCTOS.length).fill(0);
+      envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
+      renderCatalog();updateCartBar();
+      return;
+    }
+
+    let texto=`🎁 *Pedido Regalaría*\n\n`;
+    texto+=`👤 ${nombre}\n📱 ${wa}\n📍 ${direccion}\n💳 ${pago}\n\n`;
+    productos.forEach(p=>{texto+=`• ${p.cantidad} × ${p.producto} — ${money(p.precio_unitario*p.cantidad)}\n`;});
+    texto+=`\n*Total: ${money(total)}*`;
+    if(obs)texto+=`\n\n📝 ${obs}`;
+
+    window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(texto),"_blank");
+
+    msg.className="ok";
+    msg.textContent="¡Pedido enviado! Te abrimos WhatsApp para confirmar.";
+    carritoQty=Array(PRODUCTOS.length).fill(0);
+    envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
+    renderCatalog();updateCartBar();
+    $("fNombre").value="";$("fWhatsapp").value="";$("fCalle").value="";$("fAltura").value="";$("fPisoDepto").value="";$("fLocalidad").value="";$("fProvincia").value="";$("fCP").value="";$("fObs").value="";
+  }catch(e){
+    msg.className="err";
+    msg.textContent="No se pudo registrar el pedido. "+(e.message||"Error desconocido");
+  }finally{
+    btn.disabled=false;
+    actualizarTextoBoton();
+  }
+}
+
+$("sendOrder").addEventListener("click",enviarPedido);
+actualizarTextoBoton();
+
+renderFilters();
+renderCatalog();
+</script>
+<footer class="app-copyright">© 2026 Petits Cadeaux Regalaría. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+@media print{.app-copyright{display:none}}
+</style>
+</body>
+</html>
