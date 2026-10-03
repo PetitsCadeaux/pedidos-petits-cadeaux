@@ -122,8 +122,18 @@
     <input type="tel" id="fWhatsapp" placeholder="11 1234-5678">
     <label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>
     <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com">
-    <label>Dirección de entrega o retiro</label>
-    <input type="text" id="fDireccion" placeholder="Calle, número, localidad">
+    <label>Calle</label>
+    <input type="text" id="fCalle" placeholder="Ej. Av. Mitre">
+    <label>Altura</label>
+    <input type="text" id="fAltura" placeholder="Ej. 1234">
+    <label>Piso / depto <span style="font-weight:400">(si corresponde)</span></label>
+    <input type="text" id="fPisoDepto" placeholder="Ej. 2° A">
+    <label>Localidad</label>
+    <input type="text" id="fLocalidad" placeholder="Ej. Berazategui">
+    <label>Provincia</label>
+    <input type="text" id="fProvincia" placeholder="Ej. Buenos Aires">
+    <label>Código postal</label>
+    <input type="text" id="fCP" placeholder="Ej. 1884">
     <label>Forma de pago</label>
     <select id="fPago">
       <option value="Efectivo">Efectivo</option>
@@ -309,7 +319,13 @@ async function enviarPedido(){
   const nombre=$("fNombre").value.trim();
   const wa=$("fWhatsapp").value.trim();
   const email=$("fEmail").value.trim();
-  const direccion=$("fDireccion").value.trim();
+  const calle=$("fCalle").value.trim();
+  const altura=$("fAltura").value.trim();
+  const pisoDepto=$("fPisoDepto").value.trim();
+  const localidad=$("fLocalidad").value.trim();
+  const provincia=$("fProvincia").value.trim();
+  const cp=$("fCP").value.trim();
+  const direccion=[`${calle} ${altura}`.trim(),pisoDepto,localidad,provincia].filter(Boolean).join(", ");
   const pago=$("fPago").value;
   const obs=$("fObs").value.trim();
   const msg=$("modalMsg");
@@ -320,7 +336,7 @@ async function enviarPedido(){
   btn.style.display="inline-block";
 
   if(items.length===0){msg.className="err";msg.textContent="Agregá al menos un producto.";return;}
-  if(!nombre||!wa||!direccion){msg.className="err";msg.textContent="Completá nombre, WhatsApp y dirección.";return;}
+  if(!nombre||!wa||!calle||!altura||!localidad||!provincia||!cp){msg.className="err";msg.textContent="Completá nombre, WhatsApp y la dirección completa.";return;}
   if(pago==="Mercado Pago"&&!email){msg.className="err";msg.textContent="Para pagar con Mercado Pago necesitamos tu email.";return;}
 
   const productos=items.map(x=>({
@@ -350,6 +366,12 @@ async function enviarPedido(){
         comercio:nombre,
         whatsapp:wa,
         domicilio:direccion,
+        direccion_calle:calle,
+        direccion_altura:altura,
+        direccion_piso_depto:pisoDepto||null,
+        localidad:localidad,
+        provincia:provincia,
+        codigo_postal:cp,
         productos:productos,
         total:total,
         observaciones:obs||null,
@@ -401,7 +423,7 @@ async function enviarPedido(){
     msg.textContent="¡Pedido enviado! Te abrimos WhatsApp para confirmar.";
     selected=Array(PRODUCTOS.length).fill(null);
     renderCatalog();updateCartBar();
-    $("fNombre").value="";$("fWhatsapp").value="";$("fDireccion").value="";$("fObs").value="";
+    $("fNombre").value="";$("fWhatsapp").value="";$("fCalle").value="";$("fAltura").value="";$("fPisoDepto").value="";$("fLocalidad").value="";$("fProvincia").value="";$("fCP").value="";$("fObs").value="";
   }catch(e){
     msg.className="err";
     msg.textContent="No se pudo registrar el pedido. "+(e.message||"Error desconocido");
