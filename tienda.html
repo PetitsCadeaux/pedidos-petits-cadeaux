@@ -327,11 +327,12 @@ async function cotizarEnvio(){
       const detalleTxt=data.detalle?" — "+JSON.stringify(data.detalle).slice(0,300):"";
       throw new Error((data.error||"No se pudo cotizar el envío")+detalleTxt);
     }
-    const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||[]);
+    const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||data.opciones?.data||data.opciones?.results||data.opciones?.rates||[]);
     envioOpcionesDisponibles=opciones||[];
     if(!envioOpcionesDisponibles.length){
-      const crudo=JSON.stringify(data.opciones).slice(0,400);
-      cont.innerHTML='<div class="cart-item">No hay opciones de envío disponibles para esa dirección. Coordinamos el envío por WhatsApp.<br><small style="color:#888">Debug: '+crudo+'</small></div>';
+      const claves=data.opciones&&typeof data.opciones==="object"?Object.keys(data.opciones).join(", "):"(no es un objeto)";
+      const crudo=JSON.stringify(data.opciones,null,1).slice(0,1800);
+      cont.innerHTML='<div class="cart-item">No hay opciones de envío disponibles para esa dirección. Coordinamos el envío por WhatsApp.<br><small style="color:#888">Claves: '+claves+'</small><br><textarea readonly style="width:100%;height:160px;font-size:10px">'+crudo+'</textarea></div>';
       return;
     }
     cont.innerHTML=envioOpcionesDisponibles.map((op,idx)=>`
