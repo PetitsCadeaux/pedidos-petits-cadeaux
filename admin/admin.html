@@ -152,7 +152,9 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
   <div class="card">
     <div class="topbar">
       <div><strong id="countLabel">0 pedidos</strong></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+       <a class="logout" href="https://app.zipnova.com.ar" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">🔗 Zipnova</a>
+       <a class="logout" href="../tienda.html" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">🛒 Mi tienda</a>
        <button class="logout" id="printSelectedBtn">🖨️ Imprimir seleccionados</button>
        <button class="logout" id="logoutBtn">Cerrar sesión</button>
       </div>
@@ -164,8 +166,18 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
       <button type="button" class="chip" data-f="Tomado">Tomados</button>
       <button type="button" class="chip" data-f="Entregado">Entregados</button>
     </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+     <label style="font-size:12px;color:var(--muted);font-weight:700">Desde
+      <input type="date" id="filtroDesde" style="display:block;margin-top:4px;padding:8px;border:1px solid #ddcfe1;border-radius:10px">
+     </label>
+     <label style="font-size:12px;color:var(--muted);font-weight:700">Hasta
+      <input type="date" id="filtroHasta" style="display:block;margin-top:4px;padding:8px;border:1px solid #ddcfe1;border-radius:10px">
+     </label>
+     <button type="button" class="chip" id="limpiarFechas" style="margin-top:18px">✕ Limpiar fechas</button>
+    </div>
   </div>
   <div id="ordersList"></div>
+  <div id="paginacion" style="display:flex;justify-content:center;align-items:center;gap:14px;padding:16px 0"></div>
 </div>
 
 </main>
@@ -503,20 +515,45 @@ function renderStats(){
  `;
 }
 
+const POR_PAGINA=20;
+let paginaActual=1;
+
 function render(){
  renderStats();
  const term=($("searchOrders").value||"").toLowerCase().trim();
- const visible=orders
+ const desde=$("filtroDesde").value;
+ const hasta=$("filtroHasta").value;
+ const todos=orders
   .filter(o=>{
    if(statusFilter==="Todos")return true;
    const est=o.estado_entrega==="Entregado"?"Entregado":(o.estado==="Tomado"?"Tomado":"Pendiente");
    return est===statusFilter;
   })
-  .filter(o=>!term||(o.comercio||"").toLowerCase().includes(term));
+  .filter(o=>!term||(o.comercio||"").toLowerCase().includes(term))
+  .filter(o=>{
+   if(!desde&&!hasta)return true;
+   const f=o.created_at?o.created_at.slice(0,10):null;
+   if(!f)return false;
+   if(desde&&f<desde)return false;
+   if(hasta&&f>hasta)return false;
+   return true;
+  });
 
- $("countLabel").textContent=visible.length+" "+(visible.length===1?"pedido":"pedidos");
+ $("countLabel").textContent=todos.length+" "+(todos.length===1?"pedido":"pedidos");
 
- if(!visible.length){$("ordersList").innerHTML='<div class="empty">No hay pedidos para mostrar.</div>';return}
+ if(!todos.length){$("ordersList").innerHTML='<div class="empty">No hay pedidos para mostrar.</div>';$("paginacion").innerHTML="";return}
+
+ const totalPaginas=Math.max(1,Math.ceil(todos.length/POR_PAGINA));
+ if(paginaActual>totalPaginas)paginaActual=totalPaginas;
+ if(paginaActual<1)paginaActual=1;
+ const inicio=(paginaActual-1)*POR_PAGINA;
+ const visible=todos.slice(inicio,inicio+POR_PAGINA);
+
+ $("paginacion").innerHTML=totalPaginas<=1?"":`
+  <button type="button" class="chip" ${paginaActual<=1?"disabled":""} onclick="irPagina(${paginaActual-1})">‹ Anterior</button>
+  <span style="font-size:13px;color:var(--muted)">Página ${paginaActual} de ${totalPaginas}</span>
+  <button type="button" class="chip" ${paginaActual>=totalPaginas?"disabled":""} onclick="irPagina(${paginaActual+1})">Siguiente ›</button>
+ `;
 
  $("ordersList").innerHTML=visible.map(o=>{
   const items=(o.productos||[]).map(it=>`<div>• ${it.cantidad} × ${it.producto}${it.cambio?' <span style="color:#b8862e;font-weight:800">(CAMBIO)</span>':(it.precio_unitario!=null?" — "+money(it.cantidad*it.precio_unitario):" — a confirmar")}${it.bonif_pct?` <span style="color:#177a4d;font-weight:800">(-${it.bonif_pct}%)</span>`:""}</div>`).join("");
@@ -611,19 +648,35 @@ function render(){
  }).join("");
 }
 
+function irPagina(n){
+ paginaActual=n;
+ render();
+ $("ordersList").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
 document.querySelectorAll("#statusFilters .chip").forEach(btn=>{
  btn.addEventListener("click",()=>{
   statusFilter=btn.dataset.f;
   document.querySelectorAll("#statusFilters .chip").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
+  paginaActual=1;
   render();
  });
+});
+
+$("filtroDesde").addEventListener("change",()=>{paginaActual=1;render();});
+$("filtroHasta").addEventListener("change",()=>{paginaActual=1;render();});
+$("limpiarFechas").addEventListener("click",()=>{
+ $("filtroDesde").value="";
+ $("filtroHasta").value="";
+ paginaActual=1;
+ render();
 });
 
 $("loginBtn").addEventListener("click",login);
 $("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
 $("logoutBtn").addEventListener("click",logout);
-$("searchOrders").addEventListener("input",render);
+$("searchOrders").addEventListener("input",()=>{paginaActual=1;render();});
 $("printSelectedBtn").addEventListener("click",()=>{
  const ids=[...document.querySelectorAll(".order-check:checked")].map(c=>c.dataset.id);
  if(!ids.length){alert("Tildá al menos un pedido para imprimir.");return}
