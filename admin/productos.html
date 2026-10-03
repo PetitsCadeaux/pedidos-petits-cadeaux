@@ -28,8 +28,8 @@ button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor
 .btn-sec{padding:10px 14px;background:#f3e8f5;color:var(--purple);font-size:12.5px}
 .err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:13.5px}
 .ok{background:#e6f7ee;color:#177a4d;border:1px solid #bfe9d2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:13.5px}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-.tabs button{flex:1;padding:11px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;font-size:13.5px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tabs button{flex:1 1 45%;padding:11px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;font-size:13.5px}
 .tabs button.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
 .tiers-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prod-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
@@ -74,6 +74,8 @@ button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor
   <div class="tabs" id="negocioTabs">
    <button type="button" data-n="tienda" class="active">🛒 Tienda</button>
    <button type="button" data-n="regaleria">🎁 Regaleria</button>
+   <button type="button" data-n="comercio">🏪 Comercio (Lista 1)</button>
+   <button type="button" data-n="mayorista">🏭 Mayorista (Lista 2)</button>
   </div>
 
   <label>Nombre<input id="fNombre" placeholder="Ej. Llavero 3D Corazón"></label>
@@ -91,7 +93,9 @@ button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor
    </div>
   </div>
   <div id="precioRegaleria" style="display:none">
-   <label>Precio unitario<input id="fPrecioUnidad" type="number" step="0.01" placeholder="Precio"></label>
+   <label>Precio unitario <span id="precioOpcionalNota" style="font-weight:400;color:var(--muted)"></span>
+    <input id="fPrecioUnidad" type="number" step="0.01" placeholder="Precio">
+   </label>
   </div>
 
   <label>Descripción
@@ -126,7 +130,7 @@ const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
 const BUCKET_BASE="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
 const $=id=>document.getElementById(id);
-const money=n=>n==null?"-":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
 
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let productos=[];
@@ -211,12 +215,15 @@ $("sugerirBtn").addEventListener("click",()=>{
 
 // Un solo selector de negocio controla el formulario de arriba Y la
 // lista del catálogo de abajo, para que no queden desincronizados.
+const NOMBRES_NEGOCIO={tienda:"Tienda",regaleria:"Regaleria",comercio:"Comercio (Lista 1)",mayorista:"Mayorista (Lista 2)"};
+
 function setNegocioForm(n){
  negocioForm=n;
  document.querySelectorAll("#negocioTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
  $("precioTienda").style.display=n==="tienda"?"block":"none";
- $("precioRegaleria").style.display=n==="regaleria"?"block":"none";
- $("listNegocioLabel").textContent=n==="regaleria"?"Regaleria":"Tienda";
+ $("precioRegaleria").style.display=n==="tienda"?"none":"block";
+ $("precioOpcionalNota").textContent=(n==="comercio"||n==="mayorista")?"(dejalo vacío si el precio todavía está a confirmar)":"";
+ $("listNegocioLabel").textContent=NOMBRES_NEGOCIO[n]||n;
  renderCategorias();
  renderLista();
 }
@@ -307,8 +314,10 @@ async function guardarProducto(){
   body.tiers=tiers;
   body.precio=null;
  }else{
-  const precio=parseFloat($("fPrecioUnidad").value);
-  if(isNaN(precio)){msg.innerHTML='<div class="err">Completá el precio.</div>';return}
+  const precioVal=$("fPrecioUnidad").value.trim();
+  const precio=precioVal===""?null:parseFloat(precioVal);
+  if(precioVal!==""&&isNaN(precio)){msg.innerHTML='<div class="err">El precio no es válido.</div>';return}
+  if(precio===null&&negocioForm==="regaleria"){msg.innerHTML='<div class="err">Completá el precio.</div>';return}
   body.precio=precio;
   body.tiers=null;
  }
