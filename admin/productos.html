@@ -112,11 +112,8 @@ button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor
  </div>
 
  <div class="card">
-  <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:22px">Catálogo actual</h2>
-  <div class="tabs" id="listTabs">
-   <button type="button" data-n="tienda" class="active">🛒 Tienda</button>
-   <button type="button" data-n="regaleria">🎁 Regaleria</button>
-  </div>
+  <h2 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:22px">Catálogo actual</h2>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">Mostrando: <strong id="listNegocioLabel">Tienda</strong> — cambia junto con la pestaña de arriba</div>
   <div id="prodList"><div class="loading">Cargando productos...</div></div>
  </div>
 
@@ -134,7 +131,6 @@ const money=n=>n==null?"-":new Intl.NumberFormat("es-AR",{style:"currency",curre
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let productos=[];
 let negocioForm="tienda";
-let negocioList="tienda";
 let editandoId=null;
 let fotoFile=null;
 
@@ -213,21 +209,18 @@ $("sugerirBtn").addEventListener("click",()=>{
  $("fDescripcion").value=plantillaDescripcion(nombre,categoria||"");
 });
 
+// Un solo selector de negocio controla el formulario de arriba Y la
+// lista del catálogo de abajo, para que no queden desincronizados.
 function setNegocioForm(n){
  negocioForm=n;
  document.querySelectorAll("#negocioTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
  $("precioTienda").style.display=n==="tienda"?"block":"none";
  $("precioRegaleria").style.display=n==="regaleria"?"block":"none";
+ $("listNegocioLabel").textContent=n==="regaleria"?"Regaleria":"Tienda";
  renderCategorias();
-}
-document.querySelectorAll("#negocioTabs button").forEach(b=>b.addEventListener("click",()=>setNegocioForm(b.dataset.n)));
-
-function setNegocioList(n){
- negocioList=n;
- document.querySelectorAll("#listTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
  renderLista();
 }
-document.querySelectorAll("#listTabs button").forEach(b=>b.addEventListener("click",()=>setNegocioList(b.dataset.n)));
+document.querySelectorAll("#negocioTabs button").forEach(b=>b.addEventListener("click",()=>setNegocioForm(b.dataset.n)));
 
 $("fFoto").addEventListener("change",()=>{
  fotoFile=$("fFoto").files[0]||null;
@@ -375,11 +368,11 @@ async function borrarProducto(id){
 }
 
 function renderLista(){
- const lista=productos.filter(p=>p.negocio===negocioList);
+ const lista=productos.filter(p=>p.negocio===negocioForm);
  if(!lista.length){$("prodList").innerHTML='<div class="loading">Todavía no hay productos cargados acá.</div>';return}
  const porCategoria={};
  lista.forEach(p=>{(porCategoria[p.categoria]=porCategoria[p.categoria]||[]).push(p)});
- const folder=negocioList==="regaleria"?"regaleria/":"";
+ const folder=negocioForm==="regaleria"?"regaleria/":"";
  $("prodList").innerHTML=Object.keys(porCategoria).sort().map(cat=>{
   const items=porCategoria[cat].map(p=>{
    const precioTxt=p.negocio==="tienda"?(p.tiers&&p.tiers[0]?"Desde "+money(p.tiers[0].precio):"-"):money(p.precio);
