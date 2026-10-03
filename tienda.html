@@ -320,14 +320,18 @@ async function cotizarEnvio(){
     const r=await fetch("/api/zipnova-cotizar",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({nombre,telefono,calle,altura,pisoDepto,localidad,provincia,codigoPostal:cp})
+      body:JSON.stringify({nombre,telefono,calle,altura,pisoDepto,localidad,provincia,codigoPostal:cp,valorDeclarado:totalCarrito()})
     });
     const data=await r.json();
-    if(!data.ok)throw new Error(data.error||"No se pudo cotizar el envío");
+    if(!data.ok){
+      const detalleTxt=data.detalle?" — "+JSON.stringify(data.detalle).slice(0,300):"";
+      throw new Error((data.error||"No se pudo cotizar el envío")+detalleTxt);
+    }
     const opciones=Array.isArray(data.opciones)?data.opciones:(data.opciones?.options||data.opciones?.quotes||[]);
     envioOpcionesDisponibles=opciones||[];
     if(!envioOpcionesDisponibles.length){
-      cont.innerHTML='<div class="cart-item">No hay opciones de envío disponibles para esa dirección. Coordinamos el envío por WhatsApp.</div>';
+      const crudo=JSON.stringify(data.opciones).slice(0,400);
+      cont.innerHTML='<div class="cart-item">No hay opciones de envío disponibles para esa dirección. Coordinamos el envío por WhatsApp.<br><small style="color:#888">Debug: '+crudo+'</small></div>';
       return;
     }
     cont.innerHTML=envioOpcionesDisponibles.map((op,idx)=>`
