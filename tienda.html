@@ -488,7 +488,7 @@ async function enviarPedido(){
         observaciones:obs||null,
         estado:"Pendiente",
         estado_pago:pago,
-        canal:"minorista",
+        canal:"tienda",
         referencia_pago:pago==="Mercado Pago"?referencia:null,
         envio_elegido_transportista:envioSeleccionado?envioSeleccionado.carrier_name:null,
         envio_elegido_costo:envioSeleccionado?envioSeleccionado.price:null,
