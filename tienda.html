@@ -16,7 +16,7 @@
   header h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;margin:0;}
   header p{margin:6px 0 0;font-size:13px;color:#e9d9ee;}
 
-  main{max-width:640px;margin:0 auto;padding:18px 14px 120px;}
+  main{max-width:1180px;margin:0 auto;padding:18px 14px 120px;}
 
   .filters{display:flex;gap:8px;overflow-x:auto;padding:4px 0 16px;}
   .filters button{
@@ -25,13 +25,39 @@
   }
   .filters button.active{background:var(--purple);color:#fff;border-color:var(--purple);}
 
-  .product-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(84,36,119,.06);margin-bottom:16px;}
-  .product-head{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
-  .product-head img{width:58px;height:58px;border-radius:12px;object-fit:cover;background:#f3e8f5;flex:0 0 auto;}
-  .product-head .ph-noimg{width:58px;height:58px;border-radius:12px;background:#f3e8f5;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;color:#b79fbd;text-align:center;}
-  .product-head .name{font-weight:700;font-size:15px;}
+  /* Grilla de productos: apaisada en pantallas anchas (web), se achica sola
+     en mobile. Cada tarjeta es compacta — el detalle con los packs y
+     precios se abre al hacer clic, en vez de mostrarse todo de entrada. */
+  #catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+  @media(min-width:900px){#catalog{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}}
 
-  .tiers{display:flex;flex-direction:column;gap:8px;}
+  .product-card{
+    background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;
+    box-shadow:0 4px 14px rgba(84,36,119,.06);display:flex;flex-direction:column;
+    transition:transform .12s,box-shadow .12s;
+  }
+  .product-card:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(84,36,119,.12);}
+  .product-card .ph-photo{width:100%;aspect-ratio:1/1;background:#f3e8f5;position:relative;}
+  .product-card .ph-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .product-card .ph-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#b79fbd;text-align:center;}
+  .product-card .in-cart-tag{position:absolute;top:8px;right:8px;background:var(--purple);color:#fff;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+  .product-card .pc-body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:4px;flex:1;}
+  .product-card .name{font-weight:700;font-size:14px;line-height:1.25;}
+  .product-card .from-price{font-size:12px;color:var(--muted);}
+  .product-card .from-price strong{color:var(--purple);font-size:15px;font-weight:800;}
+  .product-card .pc-btn{
+    margin-top:6px;border:1px solid var(--purple);color:var(--purple);background:#fff;
+    border-radius:10px;padding:8px;font-size:12.5px;font-weight:700;text-align:center;
+  }
+  .product-card.in-cart .pc-btn{background:var(--purple);color:#fff;}
+
+  .product-modal .modal{max-width:460px;}
+  .product-modal .pm-photo{width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#f3e8f5;margin-bottom:14px;}
+  .product-modal .pm-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .product-modal .pm-photo .ph-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b79fbd;}
+  .product-modal h2{margin-bottom:4px;}
+
+  .tiers{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
   .tier{
     position:relative;border:2px solid var(--line);border-radius:13px;padding:11px 14px;
     display:flex;align-items:center;justify-content:space-between;cursor:pointer;
@@ -153,6 +179,15 @@
   </div>
 </div>
 
+<div class="modal-bg product-modal" id="productModalBg">
+  <div class="modal">
+    <button class="close-btn" id="closeProductModal">Cerrar ✕</button>
+    <div class="pm-photo" id="pmPhoto"></div>
+    <h2 id="pmName"></h2>
+    <div class="tiers" id="pmTiers"></div>
+  </div>
+</div>
+
 <script>
 // Captura cualquier error inesperado y lo muestra en pantalla (para poder
 // diagnosticar problemas sin acceso a la consola del navegador).
@@ -230,54 +265,93 @@ function tierBadge(p,tierIdx){
   return null;
 }
 
+// Arma el HTML de las opciones de pack (1 pack / 3 packs / 5 packs, etc.)
+// de un producto. Se usa dentro del modal de detalle.
+function tiersHtml(p,i){
+  const sel=selected[i];
+  return p.tiers.map((t,ti)=>{
+    const isSel=sel===ti;
+    const base=p.tiers[0].precio*t.qty;
+    const ahorro=t.qty>1?Math.round((1-t.precio/base)*100):null;
+    const badge=tierBadge(p,ti);
+    const unitLabel=t.qty===1?"1 pack":`${t.qty} packs`;
+    return `
+      <div class="tier ${isSel?"selected":""}" data-i="${i}" data-ti="${ti}">
+        ${badge?`<span class="badge">${badge}</span>`:""}
+        <div class="tier-left">
+          <span class="radio"></span>
+          <div>
+            <div class="tier-qty">${unitLabel}</div>
+            ${ahorro?`<span class="save-tag">Ahorrás ${ahorro}%</span>`:""}
+          </div>
+        </div>
+        <div class="tier-right">
+          ${t.qty>1?`<span class="tier-old">${money(base)}</span>`:""}
+          <span class="tier-price">${money(t.precio)}</span>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// Catálogo compacto: una tarjeta por producto con foto, nombre y precio
+// "desde". El detalle completo (los packs) se abre al hacer clic.
 function renderCatalog(){
   const lista=PRODUCTOS.filter(p=>activeFilter==="Todos"||p.categoria===activeFilter);
   $("catalog").innerHTML=lista.map((p)=>{
     const i=PRODUCTOS.indexOf(p);
-    const sel=selected[i];
+    const enCarrito=selected[i]!=null;
     const imgTag=p.foto?`<img src="${BUCKET}${p.foto}" alt="">`:`<div class="ph-noimg">Sin foto</div>`;
-    const tiersHtml=p.tiers.map((t,ti)=>{
-      const isSel=sel===ti;
-      const base=p.tiers[0].precio*t.qty;
-      const ahorro=t.qty>1?Math.round((1-t.precio/base)*100):null;
-      const badge=tierBadge(p,ti);
-      const unitLabel=t.qty===1?"1 pack":`${t.qty} packs`;
-      return `
-        <div class="tier ${isSel?"selected":""}" data-i="${i}" data-ti="${ti}">
-          ${badge?`<span class="badge">${badge}</span>`:""}
-          <div class="tier-left">
-            <span class="radio"></span>
-            <div>
-              <div class="tier-qty">${unitLabel}</div>
-              ${ahorro?`<span class="save-tag">Ahorrás ${ahorro}%</span>`:""}
-            </div>
-          </div>
-          <div class="tier-right">
-            ${t.qty>1?`<span class="tier-old">${money(base)}</span>`:""}
-            <span class="tier-price">${money(t.precio)}</span>
-          </div>
-        </div>`;
-    }).join("");
     return `
-      <div class="product-card">
-        <div class="product-head">
+      <div class="product-card ${enCarrito?"in-cart":""}" data-i="${i}">
+        <div class="ph-photo">
           ${imgTag}
-          <div class="name">${p.nombre}</div>
+          ${enCarrito?`<span class="in-cart-tag">✓ En tu pedido</span>`:""}
         </div>
-        <div class="tiers">${tiersHtml}</div>
+        <div class="pc-body">
+          <div class="name">${p.nombre}</div>
+          <div class="from-price">Desde <strong>${money(p.tiers[0].precio)}</strong></div>
+          <div class="pc-btn">${enCarrito?"Ver / cambiar":"Ver opciones"}</div>
+        </div>
       </div>`;
   }).join("");
 
-  $("catalog").querySelectorAll(".tier").forEach(el=>{
+  $("catalog").querySelectorAll(".product-card").forEach(el=>{
+    el.addEventListener("click",()=>abrirProducto(parseInt(el.dataset.i)));
+  });
+}
+
+let productoAbierto=null;
+
+function abrirProducto(i){
+  productoAbierto=i;
+  const p=PRODUCTOS[i];
+  $("pmPhoto").innerHTML=p.foto?`<img src="${BUCKET}${p.foto}" alt="">`:`<div class="ph-noimg">Sin foto</div>`;
+  $("pmName").textContent=p.nombre;
+  renderTiersModal();
+  $("productModalBg").classList.add("open");
+}
+
+function renderTiersModal(){
+  if(productoAbierto==null)return;
+  $("pmTiers").innerHTML=tiersHtml(PRODUCTOS[productoAbierto],productoAbierto);
+  $("pmTiers").querySelectorAll(".tier").forEach(el=>{
     el.addEventListener("click",()=>{
       const i=parseInt(el.dataset.i);
       const ti=parseInt(el.dataset.ti);
       selected[i]=selected[i]===ti?null:ti; // click de nuevo lo deselecciona
+      renderTiersModal();
       renderCatalog();
       updateCartBar();
     });
   });
 }
+
+function cerrarProducto(){
+  $("productModalBg").classList.remove("open");
+  productoAbierto=null;
+}
+$("closeProductModal").addEventListener("click",cerrarProducto);
+$("productModalBg").addEventListener("click",e=>{if(e.target.id==="productModalBg")cerrarProducto();});
 
 function carrito(){
   return PRODUCTOS.map((p,i)=>({p,tier:selected[i]!=null?p.tiers[selected[i]]:null}))
