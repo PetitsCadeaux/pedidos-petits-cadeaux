@@ -6,9 +6,11 @@ import { crearEnvio } from "../lib/zipnova.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 const ACCOUNT_ID = process.env.ZIPNOVA_ACCOUNT_ID;
-// El origen es opcional: si no se configura ZIPNOVA_ORIGIN_ID, se usa "auto"
-// y Zipnova elige el depósito configurado por defecto en la cuenta.
-const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID || "auto";
+// El origen es opcional: si no se configura ZIPNOVA_ORIGIN_ID, no se manda
+// el campo y Zipnova usa el depósito configurado por defecto en la cuenta
+// (mandar la palabra "auto" como si fuera un id hace que Zipnova la rechace
+// con "The selected origin id is invalid").
+const ORIGIN_ID = process.env.ZIPNOVA_ORIGIN_ID || undefined;
 
 async function traerPedido(pedidoId) {
   const r = await fetch(
