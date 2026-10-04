@@ -1,0 +1,47 @@
+{
+  "routes": [
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?petitscadeaux\\.com\\.ar$"
+        }
+      ],
+      "dest": "/tienda.html"
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "host",
+          "value": "^regaleria\\.petitscadeaux\\.com\\.ar$"
+        }
+      ],
+      "dest": "/regaleria.html"
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "host",
+          "value": "^admin\\.petitscadeaux\\.com\\.ar$"
+        }
+      ],
+      "dest": "/admin/admin.html"
+    },
+    {
+      "src": "^/(?!api/|tienda\\.html|regaleria\\.html|index\\.html)(.+)$",
+      "has": [
+        {
+          "type": "host",
+          "value": "^admin\\.petitscadeaux\\.com\\.ar$"
+        }
+      ],
+      "dest": "/admin/$1"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}
