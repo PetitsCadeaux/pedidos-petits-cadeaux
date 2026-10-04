@@ -218,6 +218,19 @@ window.addEventListener("unhandledrejection", function(e){
 
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+
+// Cuenta una visita por navegador cada 30 min (no en cada recarga), para
+// medir el tráfico real en admin/visitas.html. Si falla, no afecta la página.
+(function(){
+ try{
+  const k="visita_tienda";
+  const last=Number(localStorage.getItem(k)||0);
+  if(Date.now()-last>30*60*1000){
+   localStorage.setItem(k,String(Date.now()));
+   fetch(SUPABASE_URL+"/rest/v1/visitas",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({pagina:"tienda"})}).catch(()=>{});
+  }
+ }catch(e){}
+})();
 const DESTINO_WHATSAPP="5491123627052";
 
 const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";

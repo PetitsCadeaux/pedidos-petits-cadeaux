@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Visitas · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,5.5vw,30px);font-weight:700}
+.header-top{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.pill{padding:8px 13px;border-radius:999px;border:1px solid #ead9e8;background:#fff;color:var(--purple);font:700 12px Poppins,Arial,sans-serif;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.pill:hover{background:#f5e9f6}
+main{max-width:900px;margin:auto;padding:18px 14px 60px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:13px;font-weight:800}
+input{width:100%;padding:12px 13px;margin-top:6px;border:1px solid #ddcfe1;border-radius:14px;background:#fff;color:var(--ink);font:500 14.5px Poppins,Arial,sans-serif;outline:none;font-family:inherit}
+input:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:13px;font:800 14px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{width:100%;margin-top:16px;padding:14px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:13.5px}
+.loading{text-align:center;padding:24px;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tabs button{flex:1 1 22%;padding:11px 6px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;font-size:13px}
+.tabs button.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
+@media(min-width:520px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}
+.stat-num{font:800 26px Poppins,Arial,sans-serif;color:var(--purple)}
+.stat-label{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:700}
+.cat-title{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 8px}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:grid;grid-template-columns:72px 1fr 44px;align-items:center;gap:8px;font-size:12px}
+.bar-date{color:var(--muted);font-weight:700}
+.bar-track{background:#f3e8f5;border-radius:8px;height:16px;overflow:hidden}
+.bar-fill{background:linear-gradient(135deg,#995ac2,#71369e);height:100%;border-radius:8px;min-width:3px}
+.bar-val{text-align:right;font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="header-top"><h1>📊 Visitas</h1></div>
+ <div class="header-actions">
+  <a class="pill" href="admin.html">← Volver a pedidos</a>
+  <a class="pill" href="../tienda.html" target="_blank" rel="noopener">🛒 Mi tienda</a>
+ </div>
+</header>
+
+<main>
+
+<div id="loginView" class="card" style="display:none">
+ <h2 style="margin-top:0">Ingresar</h2>
+ <label>Email</label>
+ <input id="email" type="email" autocomplete="username">
+ <label>Contraseña</label>
+ <input id="password" type="password" autocomplete="current-password">
+ <button id="loginBtn" class="btn-main">Ingresar</button>
+ <div id="loginError"></div>
+</div>
+
+<div id="panelView" style="display:none">
+
+ <div class="card">
+  <div class="tabs" id="paginaTabs">
+   <button type="button" class="active" data-p="">Todas</button>
+   <button type="button" data-p="tienda">Tienda</button>
+   <button type="button" data-p="regaleria">Regaleria</button>
+   <button type="button" data-p="index">Listas</button>
+  </div>
+  <div id="statsBody"><div class="loading">Cargando visitas...</div></div>
+ </div>
+
+</div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+let visitas=[];
+let paginaFiltro="";
+
+function showPanel(){$("loginView").style.display="none";$("panelView").style.display="block";cargarVisitas();}
+function showLogin(){$("loginView").style.display="block";$("panelView").style.display="none";}
+
+async function login(){
+ const email=$("email").value.trim(),password=$("password").value;
+ $("loginError").innerHTML="";
+ if(!email||!password){$("loginError").innerHTML='<div class="err">Completá email y contraseña.</div>';return}
+ $("loginBtn").disabled=true;$("loginBtn").textContent="Ingresando...";
+ try{
+  const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+   method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+   body:JSON.stringify({email,password})
+  });
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error_description||data.msg||"Credenciales incorrectas");
+  session={access_token:data.access_token,refresh_token:data.refresh_token,email};
+  localStorage.setItem("admin_session",JSON.stringify(session));
+  showPanel();
+ }catch(e){
+  $("loginError").innerHTML='<div class="err">❌ '+(e.message||"No se pudo iniciar sesión")+'</div>';
+ }
+ $("loginBtn").disabled=false;$("loginBtn").textContent="Ingresar";
+}
+function logout(){localStorage.removeItem("admin_session");session=null;showLogin();}
+
+async function cargarVisitas(){
+ $("statsBody").innerHTML='<div class="loading">Cargando visitas...</div>';
+ try{
+  // Trae solo lo de los últimos 90 días (alcanza para el resumen de abajo)
+  const desde=new Date(Date.now()-90*24*60*60*1000).toISOString();
+  const r=await fetch(SUPABASE_URL+"/rest/v1/visitas?select=pagina,creado_en&creado_en=gte."+desde+"&order=creado_en.asc",{
+   headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}
+  });
+  if(r.status===401){logout();throw new Error("Sesión vencida, ingresá de nuevo.")}
+  visitas=await r.json();
+  if(!Array.isArray(visitas))throw new Error("Respuesta inesperada de Supabase");
+  render();
+ }catch(e){
+  $("statsBody").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar visitas")+'</div>';
+ }
+}
+
+function render(){
+ const datos=paginaFiltro?visitas.filter(v=>v.pagina===paginaFiltro):visitas;
+ const hoy=new Date();hoy.setHours(0,0,0,0);
+ const haceNDias=n=>{const d=new Date(hoy);d.setDate(d.getDate()-n);return d;};
+ const contarDesde=d=>datos.filter(v=>new Date(v.creado_en)>=d).length;
+
+ const totalHoy=contarDesde(hoy);
+ const total7=contarDesde(haceNDias(6));
+ const total30=contarDesde(haceNDias(29));
+ const totalGeneral=datos.length;
+
+ // Últimos 14 días, agrupados por fecha (zona horaria del navegador)
+ const porDia={};
+ for(let i=13;i>=0;i--){
+  const d=haceNDias(i);
+  const key=d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"});
+  porDia[key]=0;
+ }
+ datos.forEach(v=>{
+  const d=new Date(v.creado_en);
+  const desde14=haceNDias(13);
+  if(d>=desde14){
+   const key=d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"});
+   if(key in porDia)porDia[key]++;
+  }
+ });
+ const max=Math.max(1,...Object.values(porDia));
+
+ $("statsBody").innerHTML=`
+  <div class="stats-grid">
+   <div class="stat"><div class="stat-num">${totalHoy}</div><div class="stat-label">Hoy</div></div>
+   <div class="stat"><div class="stat-num">${total7}</div><div class="stat-label">Últimos 7 días</div></div>
+   <div class="stat"><div class="stat-num">${total30}</div><div class="stat-label">Últimos 30 días</div></div>
+   <div class="stat"><div class="stat-num">${totalGeneral}</div><div class="stat-label">Últimos 90 días</div></div>
+  </div>
+  <div class="cat-title">Visitas por día (últimos 14 días)</div>
+  <div class="bars">
+   ${Object.entries(porDia).map(([fecha,n])=>`
+    <div class="bar-row">
+     <div class="bar-date">${fecha}</div>
+     <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,n/max*100)}%"></div></div>
+     <div class="bar-val">${n}</div>
+    </div>`).join("")}
+  </div>
+ `;
+}
+
+document.querySelectorAll("#paginaTabs button").forEach(b=>{
+ b.addEventListener("click",()=>{
+  paginaFiltro=b.dataset.p;
+  document.querySelectorAll("#paginaTabs button").forEach(x=>x.classList.toggle("active",x===b));
+  render();
+ });
+});
+
+$("loginBtn").addEventListener("click",login);
+$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+
+if(session){showPanel()}else{showLogin()}
+</script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+</style>
+</body>
+</html>
