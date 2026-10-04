@@ -448,13 +448,22 @@ async function crearEnvioZipnova(id,carrierId,serviceType,logisticType,btn){
    body:JSON.stringify({pedidoId:id,carrierId,serviceType,logisticType})
   });
   const data=await r.json();
-  if(!data.ok)throw new Error(data.error||"No se pudo crear el envío");
+  if(!data.ok){
+   const err=new Error(data.error||"No se pudo crear el envío");
+   err.detalle=data.detalle;
+   throw err;
+  }
   await cargarPedidos();
   openEnvioId=id;
   render();
   alert("¡Envío creado con éxito!");
  }catch(e){
-  alert("No se pudo crear el envío: "+(e.message||"error desconocido"));
+  let msg=e.message||"error desconocido";
+  if(e.detalle){
+   try{msg+="\n\nDetalle:\n"+JSON.stringify(e.detalle,null,2);}catch{}
+  }
+  alert("No se pudo crear el envío: "+msg);
+  console.error("Error creando envío:",e,e.detalle);
   btn.disabled=false;btn.textContent="Elegir";
  }
 }
