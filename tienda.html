@@ -126,7 +126,7 @@
   .modal .send-btn:disabled{background:#e4d7e8;color:#a894ae;cursor:not-allowed;}
   .modal .close-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;float:right;}
   #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
-  #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;}
+  #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;font-size:15px;font-weight:700;text-align:center;padding:18px 14px;}
   #modalMsg.err{display:block;background:#fbe7ea;color:#a3273f;}
 </style>
 </head>
@@ -526,6 +526,15 @@ function actualizarTextoBoton(){
 }
 $("fPago").addEventListener("change",actualizarTextoBoton);
 
+// Avisa por mail que entró un pedido nuevo. No espera la respuesta ni
+// bloquea el flujo de pago/WhatsApp: si el mail falla, el pedido ya está
+// guardado en Supabase de todas formas.
+function notificarPedido(datos){
+  fetch("/api/notificar-pedido",{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)
+  }).catch(()=>{});
+}
+
 async function enviarPedido(){
   const items=carrito();
   const nombre=$("fNombre").value.trim();
@@ -610,6 +619,12 @@ async function enviarPedido(){
       throw new Error(t);
     }
 
+    notificarPedido({
+      tienda:"Tienda · Distribuidora Petits Cadeaux",
+      comercio:nombre,whatsapp:wa,domicilio:direccion,productos,total,
+      canal:"tienda",observaciones:obs||null
+    });
+
     if(pago==="Mercado Pago"){
       btn.textContent="Generando link de pago...";
       const mpResp=await fetch("/api/crear-preferencia",{
@@ -629,7 +644,8 @@ async function enviarPedido(){
       payLink.href=mpData.init_point;
       payLink.style.display="block";
       msg.className="ok";
-      msg.textContent="¡Pedido guardado! Tocá el botón de abajo para pagar.";
+      msg.textContent="✅ ¡Pedido guardado! Tocá el botón de abajo para pagar.";
+      msg.scrollIntoView({behavior:"smooth",block:"center"});
       selected=Array(PRODUCTOS.length).fill(null);
       envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
       renderCatalog();updateCartBar();
@@ -645,7 +661,8 @@ async function enviarPedido(){
     window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(texto),"_blank");
 
     msg.className="ok";
-    msg.textContent="¡Pedido enviado! Te abrimos WhatsApp para confirmar.";
+    msg.textContent="✅ ¡Pedido enviado correctamente! Te abrimos WhatsApp para confirmar.";
+    msg.scrollIntoView({behavior:"smooth",block:"center"});
     selected=Array(PRODUCTOS.length).fill(null);
     envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
     renderCatalog();updateCartBar();

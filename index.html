@@ -47,7 +47,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--lilac);box-shadow:0 0
 .cambio-row span{font-size:13.5px;font-weight:700;color:var(--ink)}
 .cambio-row input{width:70px;padding:9px 10px;margin:0;border-radius:10px;text-align:center;border:1px solid #ddcfe1}
 button.send{width:100%;margin-top:12px;padding:16px;border:0;border-radius:17px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;font:800 16px Poppins,Arial,sans-serif;box-shadow:0 8px 20px rgba(113,54,158,.22)}button.send:disabled{opacity:.65}
-.ok,.err{padding:13px 14px;border-radius:14px;margin-top:12px;font-weight:650}.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0}.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2}.note{font-size:12px;color:#7b6d80;margin-top:8px}
+.ok,.err{padding:13px 14px;border-radius:14px;margin-top:12px;font-weight:650}.ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;font-size:16px;text-align:center;padding:18px 14px}.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2}.note{font-size:12px;color:#7b6d80;margin-top:8px}
 @media(min-width:760px){main{padding-top:25px}.products{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.category{grid-column:1/-1}}
 @media(max-width:560px){.logo{width:58vw}.product{grid-template-columns:1fr}.product-right{justify-content:space-between}.line-total{min-width:auto}.category{font-size:25px}.product-photo{width:76px;height:76px;flex-basis:76px}}
 .lock-screen{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa)}
@@ -319,6 +319,15 @@ async function restarStock(lista,motivo){
  }
 }
 
+// Avisa por mail que entró un pedido nuevo. No espera la respuesta ni
+// bloquea el flujo de WhatsApp: si el mail falla, el pedido ya está
+// guardado en Supabase de todas formas.
+function notificarPedido(datos){
+  fetch("/api/notificar-pedido",{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)
+  }).catch(()=>{});
+}
+
 async function enviar(){
  const comercio=$("shop").value.trim(),dia=$("delivery").value,wa=$("phone").value.trim(),obs=$("notes").value.trim(),direccion=$("address").value.trim(),formaPago=$("paymentMethod").value;
  if(!comercio)return show("Ingresá el nombre del comercio.",false);
@@ -348,7 +357,15 @@ async function enviar(){
   if(!r.ok)throw new Error(text);
   await restarStock(lista,"Pedido — "+comercio);
 
-  show("✅ Pedido registrado correctamente.",true);
+  notificarPedido({
+    tienda:"Lista "+listaActiva+" · Distribuidora Petits Cadeaux",
+    comercio,whatsapp:wa,domicilio:direccion,productos:lista,
+    total:calc.confirmar?null:calc.total,
+    canal:CANAL_POR_LISTA[listaActiva]||"comercio",observaciones:obs||null
+  });
+
+  show("✅ ¡Pedido registrado correctamente! Te abrimos WhatsApp para confirmar.",true);
+  $("status").scrollIntoView({behavior:"smooth",block:"center"});
   const lines=lista.map(x=>`• ${x.cantidad} × ${x.producto}${x.cambio?" (CAMBIO)":""} — ${x.cambio?"$0":(x.precio_unitario==null?"Precio a confirmar":money(x.cantidad*x.precio_unitario))}`).join("\n");
   const hayCambios=lista.some(x=>x.cambio);
   const notaCambios=hayCambios?"\n\n📸 CAMBIOS: recordá enviar foto de la zona afectada y de la fecha de vencimiento de los productos en cambio para validarlo.":"";
