@@ -135,12 +135,18 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 
   <div class="item-form">
    <strong style="color:var(--purple)">Impuestos y percepciones (opcional)</strong>
-   <div class="row3">
-    <label>Percepción IVA<input id="fPercepcionIva" type="number" min="0" step="0.01" placeholder="0"></label>
-    <label>Percepción IIBB<input id="fPercepcionIibb" type="number" min="0" step="0.01" placeholder="0"></label>
-    <label>Otros impuestos<input id="fOtrosImpuestos" type="number" min="0" step="0.01" placeholder="0"></label>
+   <div style="font-size:12px;color:var(--muted);margin:6px 0 2px">Poné el % que dice la factura y el monto se calcula solo sobre el neto. Si el proveedor ya te cargó una antes, el % se completa solo.</div>
+   <div class="row2">
+    <label>Percepción IVA %<input id="fPercepcionIvaPct" type="number" min="0" step="0.01" placeholder="Ej. 3"></label>
+    <label>Percepción IVA $<input id="fPercepcionIva" type="number" min="0" step="0.01" placeholder="0"></label>
    </div>
+   <div class="row2">
+    <label>Percepción IIBB %<input id="fPercepcionIibbPct" type="number" min="0" step="0.01" placeholder="Ej. 3"></label>
+    <label>Percepción IIBB $<input id="fPercepcionIibb" type="number" min="0" step="0.01" placeholder="0"></label>
+   </div>
+   <label>Otros impuestos $<input id="fOtrosImpuestos" type="number" min="0" step="0.01" placeholder="0"></label>
    <label>Concepto de "otros impuestos" (opcional)<input id="fOtrosImpuestosConcepto" placeholder="Ej. Impuesto a los sellos"></label>
+   <label>Total que dice la factura (opcional, para chequear)<input id="fTotalFactura" type="number" min="0" step="0.01" placeholder="Ej. 125430.50"></label>
    <div class="item-preview" id="impuestosPreview" style="display:none"></div>
   </div>
 
@@ -291,7 +297,7 @@ function agregarItem(){
 }
 
 function renderItemsWrap(){
- if(!currentItems.length){$("itemsWrap").innerHTML="";return}
+ if(!currentItems.length){$("itemsWrap").innerHTML="";actualizarImpuestos();return}
  const total=currentItems.reduce((s,it)=>s+it.subtotal,0);
  $("itemsWrap").innerHTML=`<table>
   <thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th><th></th></tr></thead>
@@ -306,6 +312,62 @@ function renderItemsWrap(){
   <tfoot><tr><td colspan="3" style="font-weight:800;color:var(--purple)">Total factura</td><td class="num" style="font-weight:800;color:var(--purple)">${money(total)}</td><td></td></tr></tfoot>
  </table>`;
 }
+
+// ---- Cálculo automático de impuestos de la factura ----
+function netoItems(items){
+ return (items||[]).reduce((s,it)=>s+(it.subtotal||0)-(Number(it.ivaMonto)||0)*(Number(it.cantidad)||0),0);
+}
+function ivaItems(items){
+ return (items||[]).reduce((s,it)=>s+(Number(it.ivaMonto)||0)*(Number(it.cantidad)||0),0);
+}
+const r2=n=>Math.round(n*100)/100;
+
+function actualizarImpuestos(origen){
+ const neto=netoItems(currentItems),iva=ivaItems(currentItems);
+ const pctIva=parseFloat($("fPercepcionIvaPct").value),pctIibb=parseFloat($("fPercepcionIibbPct").value);
+ if(origen!=="montoIva"&&!isNaN(pctIva))$("fPercepcionIva").value=r2(neto*pctIva/100)||"";
+ if(origen!=="montoIibb"&&!isNaN(pctIibb))$("fPercepcionIibb").value=r2(neto*pctIibb/100)||"";
+ const pIva=parseFloat($("fPercepcionIva").value)||0,pIibb=parseFloat($("fPercepcionIibb").value)||0,otros=parseFloat($("fOtrosImpuestos").value)||0;
+ const totalCalc=currentItems.reduce((s,it)=>s+it.subtotal,0)+pIva+pIibb+otros;
+ const box=$("impuestosPreview");
+ if(!currentItems.length){box.style.display="none";return}
+ const totalFactura=parseFloat($("fTotalFactura").value);
+ let chequeo="";
+ if(!isNaN(totalFactura)){
+  const dif=r2(totalFactura-totalCalc);
+  chequeo=Math.abs(dif)<=1
+   ?'<div style="color:#177a4d;font-weight:700;margin-top:6px">✅ Coincide con el total de la factura.</div>'
+   :'<div style="color:#9b3040;font-weight:700;margin-top:6px">⚠️ Diferencia de '+money(Math.abs(dif))+' con el total de la factura ('+(dif>0?"falta cargar algún importe":"te pasaste en algún importe")+').</div>';
+ }
+ box.style.display="block";
+ box.innerHTML='Neto gravado: <strong>'+money(neto)+'</strong> · IVA: <strong>'+money(iva)+'</strong> · Percepciones y otros: <strong>'+money(pIva+pIibb+otros)+'</strong><br>Total calculado: <strong>'+money(totalCalc)+'</strong>'+chequeo;
+}
+
+// Al elegir proveedor: trae CUIT y % de percepciones de su última factura cargada
+function autocompletarProveedor(){
+ const nombre=$("fProveedor").value.trim().toLowerCase();
+ if(!nombre)return;
+ const previas=facturas.filter(f=>(f.proveedor||"").trim().toLowerCase()===nombre);
+ if(!previas.length)return;
+ if(!$("fCuitProveedor").value){
+  const conCuit=previas.find(f=>f.cuit_proveedor);
+  if(conCuit)$("fCuitProveedor").value=conCuit.cuit_proveedor;
+ }
+ const ult=previas.find(f=>netoItems(f.items)>0&&((Number(f.percepcion_iva)||0)>0||(Number(f.percepcion_iibb)||0)>0))||previas[0];
+ const neto=netoItems(ult.items);
+ if(neto>0){
+  if(!$("fPercepcionIvaPct").value&&Number(ult.percepcion_iva)>0)$("fPercepcionIvaPct").value=r2(ult.percepcion_iva/neto*100);
+  if(!$("fPercepcionIibbPct").value&&Number(ult.percepcion_iibb)>0)$("fPercepcionIibbPct").value=r2(ult.percepcion_iibb/neto*100);
+ }
+ actualizarImpuestos();
+}
+$("fProveedor").addEventListener("change",autocompletarProveedor);
+$("fPercepcionIvaPct").addEventListener("input",()=>actualizarImpuestos());
+$("fPercepcionIibbPct").addEventListener("input",()=>actualizarImpuestos());
+$("fPercepcionIva").addEventListener("input",()=>{$("fPercepcionIvaPct").value="";actualizarImpuestos("montoIva")});
+$("fPercepcionIibb").addEventListener("input",()=>{$("fPercepcionIibbPct").value="";actualizarImpuestos("montoIibb")});
+$("fOtrosImpuestos").addEventListener("input",()=>actualizarImpuestos());
+$("fTotalFactura").addEventListener("input",()=>actualizarImpuestos());
 
 function quitarItem(i){currentItems.splice(i,1);renderItemsWrap()}
 
@@ -404,6 +466,7 @@ async function guardarFactura(){
   $("facturaMsg").innerHTML='<div class="ok">✅ Factura registrada, costos y stock actualizados.</div>';
   $("fDescripcion").value="";$("fArchivo").value="";$("fCuitProveedor").value="";
   $("fPercepcionIva").value="";$("fPercepcionIibb").value="";$("fOtrosImpuestos").value="";$("fOtrosImpuestosConcepto").value="";
+  $("fPercepcionIvaPct").value="";$("fPercepcionIibbPct").value="";$("fTotalFactura").value="";
   currentItems=[];renderItemsWrap();
   await cargarFacturas();
  }catch(e){
