@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Control Monotributo - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea;--ok:#177a4d;--warn:#b7791f;--bad:#9b3040}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
+input,select{width:100%;padding:12px 14px;margin-top:7px;border:1px solid #ddcfe1;border-radius:14px;background:#fff;color:var(--ink);font:500 15px Poppins,Arial,sans-serif;outline:none}
+input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:14px;font:800 14px Poppins,Arial,sans-serif;cursor:pointer}
+.btn-main{padding:13px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12px;color:var(--muted);margin-top:5px;font-weight:500}
+.err{background:#fff0f1;color:var(--bad);border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.big{font-family:"Cormorant Garamond",Georgia,serif;font-size:34px;font-weight:700;color:var(--purple);line-height:1.1}
+.sub{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.meter{height:20px;border-radius:12px;background:#f3e8f5;overflow:hidden;margin:12px 0 6px}
+.meter>div{height:100%;border-radius:12px;background:linear-gradient(135deg,#995ac2,#71369e);transition:width .4s}
+.meter.warn>div{background:linear-gradient(135deg,#e0a93b,#b7791f)}
+.meter.bad>div{background:linear-gradient(135deg,#d6566b,#9b3040)}
+.alert{padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:700;font-size:14px}
+.alert.ok{background:#e6f7ee;color:var(--ok);border:1px solid #bfe9d2}
+.alert.warn{background:#fff6e0;color:var(--warn);border:1px solid #f1deaa}
+.alert.bad{background:#fff0f1;color:var(--bad);border:1px solid #f2ccd2}
+.bars{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.bar-row{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;gap:8px;font-size:12px}
+.bar-date{color:var(--muted);font-weight:700}
+.bar-track{background:#f3e8f5;border-radius:8px;height:14px;overflow:hidden}
+.bar-fill{background:linear-gradient(135deg,#995ac2,#71369e);height:100%;border-radius:8px;min-width:2px}
+.bar-val{text-align:right;font-weight:700}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:6px 4px}
+th.num,td.num{text-align:right}
+td{padding:7px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
+tr.actual td{background:#f8edf9;font-weight:800;color:var(--purple)}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>📏 Control Monotributo</h1>
+ <a class="navlink" href="admin.html">← Volver al panel de pedidos</a>
+</header>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="card">
+ <div class="row2">
+  <div>
+   <label for="categoria">Tu categoría actual</label>
+   <select id="categoria"></select>
+  </div>
+  <div>
+   <label for="otros">Facturado fuera del sistema (12 meses)</label>
+   <input id="otros" type="number" min="0" step="1" placeholder="0">
+  </div>
+ </div>
+ <div class="hint">"Fuera del sistema" = lo que facturaste a mano desde el portal de ARCA (por ejemplo el punto de venta 1). Cuenta igual para el tope. Se guarda en este dispositivo.</div>
+</div>
+
+<div id="resumen"><div class="loading">Calculando...</div></div>
+
+<div class="card">
+ <div class="sub">Facturado por mes (últimos 12 meses)</div>
+ <div id="meses"></div>
+</div>
+
+<div class="card">
+ <div class="sub">Topes por categoría</div>
+ <div class="hint" style="margin-bottom:6px">Valores vigentes desde agosto 2026 (ARCA los actualiza cada seis meses; podés corregirlos tocando el monto).</div>
+ <div id="escala"></div>
+</div>
+
+<div id="err"></div>
+</div>
+</main>
+
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+// Topes de ingresos brutos anuales (escala vigente desde agosto 2026)
+const ESCALA_DEFECTO={A:12009410.45,B:17595182.74,C:24670494.31,D:30628651.43,E:36028231.33,F:45151659.41,G:53995798.87,H:81924660.37,I:91699761.90,J:105012519.20,K:126610838.75};
+const CATS=Object.keys(ESCALA_DEFECTO);
+function leerLS(k,def){try{const v=localStorage.getItem(k);return v==null?def:JSON.parse(v)}catch(e){return def}}
+function guardarLS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+let escala=Object.assign({},ESCALA_DEFECTO,leerLS("mono_escala",{}));
+let categoria=leerLS("mono_categoria","");
+let otros=Number(leerLS("mono_otros",0))||0;
+let facturado=0; let porMes={}; let mesesKeys=[];
+
+function claveMes(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function nombreMes(k){const [y,m]=k.split("-");return ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][Number(m)-1]+" "+y.slice(2)}
+
+function categoriaPara(total){
+ for(const c of CATS){if(total<=escala[c])return c}
+ return null; // se pasa de la K
+}
+
+async function cargar(){
+ // ventana: los últimos 12 meses (mes actual + 11 anteriores)
+ const hoy=new Date();
+ const inicio=new Date(hoy.getFullYear(),hoy.getMonth()-11,1);
+ mesesKeys=[];porMes={};
+ for(let i=0;i<12;i++){const k=claveMes(new Date(inicio.getFullYear(),inicio.getMonth()+i,1));mesesKeys.push(k);porMes[k]=0}
+ try{
+  const url=SUPABASE_URL+"/rest/v1/pedidos_distribuidora?factura_cae=not.is.null"
+   +"&facturado_en=gte."+encodeURIComponent(inicio.toISOString())
+   +"&select=total,facturado_en,nc_cae&order=facturado_en.asc&limit=5000";
+  const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.message||JSON.stringify(data));
+  data.forEach(f=>{
+   if(f.nc_cae)return; // factura anulada con nota de crédito: no cuenta
+   const k=claveMes(new Date(f.facturado_en));
+   if(k in porMes)porMes[k]+=Number(f.total||0);
+  });
+  facturado=mesesKeys.reduce((s,k)=>s+porMes[k],0);
+  render();
+ }catch(e){
+  $("resumen").innerHTML="";
+  $("err").innerHTML='<div class="err">❌ '+(e.message||"No se pudieron cargar las facturas")+'</div>';
+ }
+}
+
+function render(){
+ const total=facturado+otros;
+ const catSugerida=categoriaPara(total);
+ const tope=categoria?escala[categoria]:null;
+ let html='<div class="card"><div class="sub">Facturado en los últimos 12 meses</div><div class="big">'+money(total)+'</div>'
+  +'<div class="hint">Sistema: '+money(facturado)+(otros?' · Fuera del sistema: '+money(otros):'')+' · Las facturas anuladas con nota de crédito no suman.</div>';
+ if(tope){
+  const pct=total/tope*100, resta=tope-total;
+  const clase=pct>=100?"bad":pct>=80?"warn":"";
+  html+='<div class="meter '+clase+'"><div style="width:'+Math.min(100,pct).toFixed(1)+'%"></div></div>'
+   +'<div style="font-weight:700">'+pct.toFixed(1)+'% del tope de la categoría '+categoria+' ('+money(tope)+')</div>';
+  if(pct>=100)html+='<div class="alert bad">⚠️ Superaste el tope de tu categoría por '+money(-resta)+'. Corresponde recategorizarte'+(catSugerida?' (por lo facturado, serías categoría '+catSugerida+')':' y superás el tope de la K: pasarías al régimen general')+'. Consultalo con tu contador.</div>';
+  else if(pct>=80)html+='<div class="alert warn">Te quedan '+money(resta)+' hasta el tope. Estás cerca: cuidá lo que facturás en los próximos meses.</div>';
+  else html+='<div class="alert ok">✅ Todo en orden: te quedan '+money(resta)+' hasta el tope de tu categoría.</div>';
+ }else{
+  html+='<div class="alert warn">Elegí tu categoría actual arriba para ver cuánto te falta hasta el tope.</div>';
+ }
+ html+='<div class="hint" style="margin-top:10px">Por el total facturado te corresponde, como mínimo, la categoría <strong>'+(catSugerida||"superior a K (régimen general)")+'</strong>. Esto es una guía de control, no reemplaza la recategorización oficial de ARCA (enero y julio).</div></div>';
+ $("resumen").innerHTML=html;
+
+ const max=Math.max(1,...mesesKeys.map(k=>porMes[k]));
+ const hoyK=claveMes(new Date());
+ $("meses").innerHTML='<div class="bars">'+mesesKeys.map(k=>'<div class="bar-row"><div class="bar-date">'+nombreMes(k)+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(1,porMes[k]/max*100)+'%"></div></div><div class="bar-val">'+money(porMes[k])+'</div></div>').join("")+'</div>';
+
+ $("escala").innerHTML='<table><thead><tr><th>Cat.</th><th class="num">Tope anual</th></tr></thead><tbody>'
+  +CATS.map(c=>'<tr class="'+(c===categoria?"actual":"")+'"><td>'+c+(c===categoria?" · tu categoría":"")+'</td><td class="num"><input data-c="'+c+'" type="number" step="0.01" value="'+escala[c]+'" style="margin:0;padding:6px 8px;font-size:13px;text-align:right;width:170px"></td></tr>').join("")
+  +'</tbody></table>';
+ document.querySelectorAll("#escala input").forEach(i=>i.addEventListener("change",()=>{
+  const v=parseFloat(i.value);
+  if(!isNaN(v)&&v>0){escala[i.dataset.c]=v;const custom={};CATS.forEach(c=>{if(escala[c]!==ESCALA_DEFECTO[c])custom[c]=escala[c]});guardarLS("mono_escala",custom);render()}
+ }));
+}
+
+$("categoria").innerHTML='<option value="">Elegí tu categoría...</option>'+CATS.map(c=>'<option value="'+c+'">Categoría '+c+'</option>').join("");
+$("categoria").value=categoria;
+$("otros").value=otros||"";
+$("categoria").addEventListener("change",()=>{categoria=$("categoria").value;guardarLS("mono_categoria",categoria);render()});
+$("otros").addEventListener("input",()=>{otros=parseFloat($("otros").value)||0;guardarLS("mono_otros",otros);render()});
+
+if(session)cargar();
+</script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+</style>
+</body>
+</html>
