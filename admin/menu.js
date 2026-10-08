@@ -6,7 +6,8 @@
   {k:"pedidos",t:"Pedidos",i:I('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>'),l:[
    ["admin.html","Panel de pedidos","pedidos"],["pedido-manual.html","Cargar pedido manual","pedido_manual"],["hoja-ruta.html","Hoja de ruta","pedidos"]]},
   {k:"catalogo",t:"Catálogo",i:I('<path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v8l9 5 9-5V8"/>'),l:[
-   ["productos.html","Productos (Tienda y Regalería)","productos"]]},
+   ["productos.html","Productos (Tienda y Regalería)","productos"],
+   ["sep","Ver publicado"],["../tienda.html","Mi tienda",null,1],["../regaleria.html","Regalería",null,1]]},
   {k:"clientes",t:"Clientes",i:I('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 010 6M18 14c2 .8 3.5 2.8 3.5 5"/>'),l:[
    ["cuenta.html","Cuenta corriente","clientes"]]},
   {k:"facturacion",t:"Facturación",i:I('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),l:[
