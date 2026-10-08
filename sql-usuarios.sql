@@ -31,3 +31,7 @@ create policy "Usuarios ver propio o admin" on usuarios_admin
     )
   );
 -- Sin políticas de INSERT/UPDATE/DELETE: nadie puede tocarla desde el navegador.
+
+-- Nombre de usuario (para ingresar) y email de contacto opcional. Correr también esto.
+alter table usuarios_admin add column if not exists usuario text;
+alter table usuarios_admin add column if not exists email_contacto text;

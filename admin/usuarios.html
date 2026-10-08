@@ -42,7 +42,8 @@ button{border:0;border-radius:14px;font:800 14px Poppins,Arial,sans-serif;cursor
  <div class="card">
   <div style="font-weight:800;color:var(--purple)">➕ Agregar persona</div>
   <label>Nombre<input id="nNombre" placeholder="Ej. Marcos"></label>
-  <label>Email (con este ingresa)<input id="nEmail" type="email" placeholder="marcos@gmail.com"></label>
+  <label>Usuario (con este ingresa)<input id="nUsuario" placeholder="marcos" autocapitalize="none" spellcheck="false"></label>
+  <label>Email de contacto (opcional)<input id="nEmail" type="email" placeholder="marcos@gmail.com"></label>
   <label>Clave temporal (mínimo 8 caracteres)<input id="nClave" type="text" autocomplete="off"></label>
   <label>Tipo<select id="nRol"><option value="equipo">Equipo (con permisos a elección)</option><option value="admin">Administración general (todo, y gestiona usuarios)</option></select></label>
   <div id="nPermsWrap"><div class="muted" style="margin-top:8px">Puede hacer:</div><div class="perms" id="nPerms"></div></div>
@@ -84,7 +85,7 @@ async function cargar(){
  usuarios=d.usuarios;
  $("lista").innerHTML=usuarios.map((u,i)=>{
   const adm=u.rol==="admin";
-  return '<div class="user"><div><b>'+esc(u.nombre||u.email)+'</b> <span class="muted">'+esc(u.email)+'</span> '
+  return '<div class="user"><div><b>'+esc(u.nombre||u.email)+'</b> <span class="muted">'+esc(u.usuario?("usuario: "+u.usuario):u.email)+(u.email_contacto?" · "+esc(u.email_contacto):"")+'</span> '
    +(adm?'<span class="tag">Administración general</span>':'<span class="tag">Equipo</span>')+(u.activo?'':' <span class="tag off">Desactivado</span>')+'</div>'
    +(adm?'':'<div class="perms" data-i="'+i+'">'+checks("u"+i,u.permisos)+'</div>')
    +'<div class="row">'
@@ -114,9 +115,9 @@ async function clave(i){
 $("nPerms").innerHTML=checks("n",["pedidos"]);
 $("nRol").addEventListener("change",()=>{$("nPermsWrap").style.display=$("nRol").value==="admin"?"none":"block"});
 $("crearBtn").addEventListener("click",async()=>{
- const d=await api({accion:"crear",nombre:$("nNombre").value.trim(),email:$("nEmail").value.trim(),password:$("nClave").value,rol:$("nRol").value,permisos:marcados($("nPerms"))});
- aviso(d.ok?"Usuario creado. Ya puede ingresar con ese email y la clave temporal.":d.error,d.ok);
- if(d.ok){["nNombre","nEmail","nClave"].forEach(x=>$(x).value="");cargar()}
+ const d=await api({accion:"crear",nombre:$("nNombre").value.trim(),usuario:$("nUsuario").value.trim().toLowerCase(),email_contacto:$("nEmail").value.trim(),password:$("nClave").value,rol:$("nRol").value,permisos:marcados($("nPerms"))});
+ aviso(d.ok?"Usuario creado. Ingresa con su usuario y la clave temporal.":d.error,d.ok);
+ if(d.ok){["nNombre","nUsuario","nEmail","nClave"].forEach(x=>$(x).value="");cargar()}
 });
 if(!session){$("noSession").style.display="block"}else{$("app").style.display="block";cargar()}
 </script>

@@ -182,7 +182,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 
 <div id="loginView" class="card" style="max-width:420px;margin:40px auto 0">
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:28px">Iniciar sesión</h2>
-  <label>Email<input id="email" type="email" autocomplete="username"></label>
+  <label>Usuario o email<input id="email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
   <label>Contraseña<input id="password" type="password" autocomplete="current-password"></label>
   <button class="btn-main" id="loginBtn">Ingresar</button>
   <div id="loginError"></div>
@@ -277,7 +277,8 @@ function showPanel(){$("loginView").style.display="none";$("panelView").style.di
 function showLogin(){$("loginView").style.display="block";$("panelView").style.display="none";$("headerActions").style.display="none";$("integrationsRow").style.display="none"}
 
 async function login(){
- const email=$("email").value.trim(),password=$("password").value;
+ let email=$("email").value.trim().toLowerCase();const password=$("password").value;
+ if(email&&email.indexOf("@")<0)email=email+"@usuarios.petitscadeaux.com.ar";
  $("loginError").innerHTML="";
  if(!email||!password){$("loginError").innerHTML='<div class="err">Completá email y contraseña.</div>';return}
  $("loginBtn").disabled=true;$("loginBtn").textContent="Ingresando...";

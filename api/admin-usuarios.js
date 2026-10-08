@@ -3,6 +3,8 @@
 import { usuarioDelToken, listarUsuarios, sbHeaders } from "../lib/admin-auth.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
+// Quien no tiene email propio ingresa con "usuario"; internamente se guarda como usuario@dominio.
+const DOMINIO_USUARIOS = "usuarios.petitscadeaux.com.ar";
 const PERMISOS_VALIDOS = ["pedidos", "pedido_manual", "facturar", "envios", "productos", "clientes", "facturacion", "proveedor", "reportes", "auditoria"];
 
 async function authAdmin(path, method, body) {
@@ -54,13 +56,16 @@ export default async function handler(req, res) {
     if (accion === "listar") return res.status(200).json({ ok: true, usuarios: filas, permisosValidos: PERMISOS_VALIDOS });
 
     if (accion === "crear") {
-      const email = String(b.email || "").trim().toLowerCase();
-      if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(200).json({ ok: false, error: "Email inválido." });
+      const usuario = String(b.usuario || "").trim().toLowerCase();
+      if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) return res.status(200).json({ ok: false, error: "El usuario debe tener 3 a 30 letras minúsculas, números, punto, guion o guion bajo (sin espacios ni @)." });
+      const contacto = String(b.email_contacto || "").trim().toLowerCase();
+      if (contacto && !/^\S+@\S+\.\S+$/.test(contacto)) return res.status(200).json({ ok: false, error: "El email de contacto no es válido (o dejalo vacío)." });
+      const email = usuario + "@" + DOMINIO_USUARIOS;
       if (!b.password || String(b.password).length < 8) return res.status(200).json({ ok: false, error: "La clave temporal debe tener al menos 8 caracteres." });
-      if (filas.some((f) => f.email.toLowerCase() === email)) return res.status(200).json({ ok: false, error: "Ese usuario ya existe." });
+      if (filas.some((f) => f.email.toLowerCase() === email || (f.usuario || "").toLowerCase() === usuario)) return res.status(200).json({ ok: false, error: "Ese usuario ya existe." });
       const nuevo = await authAdmin("/users", "POST", { email, password: b.password, email_confirm: true });
       const rol = b.rol === "admin" ? "admin" : "equipo";
-      await guardarFila(email, { email, user_id: nuevo.id, nombre: b.nombre || email.split("@")[0], rol, permisos: rol === "admin" ? [] : limpiarPermisos(b.permisos), activo: true, creado_por: u.email }, true);
+      await guardarFila(email, { email, usuario, email_contacto: contacto || null, user_id: nuevo.id, nombre: b.nombre || usuario, rol, permisos: rol === "admin" ? [] : limpiarPermisos(b.permisos), activo: true, creado_por: u.email }, true);
       return res.status(200).json({ ok: true });
     }
 
@@ -70,6 +75,7 @@ export default async function handler(req, res) {
 
     if (accion === "actualizar") {
       const cambios = {};
+      if (b.email_contacto !== undefined) cambios.email_contacto = String(b.email_contacto || "").trim().toLowerCase() || null;
       if (b.nombre !== undefined) cambios.nombre = String(b.nombre).slice(0, 80);
       if (b.permisos !== undefined) cambios.permisos = limpiarPermisos(b.permisos);
       if (b.rol !== undefined) cambios.rol = b.rol === "admin" ? "admin" : "equipo";
