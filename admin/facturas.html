@@ -6,19 +6,19 @@
 <meta name="theme-color" content="#35265f">
 <title>Facturas Proveedor - Petits Cadeaux</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 :root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
 *{box-sizing:border-box}
-body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
 header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
 header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
 .navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
 main{max-width:900px;margin:auto;padding:18px 14px 42px}
 .card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
 label{display:block;margin-top:11px;color:#5f4d68;font-size:14px;font-weight:800}
-input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none}
+input,select{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Inter,Arial,sans-serif;outline:none}
 input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
-button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
+button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:pointer}
 .btn-main{width:100%;margin-top:16px;padding:15px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
 .btn-main:disabled{opacity:.6}
 .btn-sec{width:100%;margin-top:12px;padding:13px;background:#fff;border:1.5px dashed #c9a8d1;color:#654273}
@@ -26,7 +26,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 .ok{background:#ecfaf4;color:#176044;border:1px solid #ccefe0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .filters{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 4px;margin:12px 0 0}
-.chip{padding:9px 15px;border:1px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 12px Poppins,Arial,sans-serif;white-space:nowrap}
+.chip{padding:9px 15px;border:1px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 12px Inter,Arial,sans-serif;white-space:nowrap}
 .chip.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
 .factura{border:1px solid #eee1ef;border-radius:18px;padding:15px 16px;margin-top:12px;background:linear-gradient(180deg,#fff,#fdf9fe);cursor:pointer}
 .factura.pagada{opacity:.68}
@@ -71,7 +71,7 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 .frow .fmeta{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .frow .fright{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .fimp{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:700;color:var(--purple);text-align:right;line-height:1.1}
-.fimp small{display:block;font:600 11px Poppins,Arial,sans-serif;color:var(--muted)}
+.fimp small{display:block;font:600 11px Inter,Arial,sans-serif;color:var(--muted)}
 .badge.parcial{background:#e8f0fe;color:#1a56b0}
 .btn-pagar{padding:9px 16px;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;font-size:13px}
 .fdet{grid-column:1/-1;border-top:1px dashed #e6d9e8;padding-top:10px;display:none;cursor:default}
@@ -87,7 +87,7 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 .op-line input{margin:0;padding:9px 10px;font-size:15px;text-align:right}
 .op-total{display:flex;justify-content:space-between;font-weight:800;font-size:17px;margin-top:12px;color:var(--purple)}
 .medios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-.medio{padding:11px 6px;border:1.5px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 13px Poppins,Arial,sans-serif;text-align:center}
+.medio{padding:11px 6px;border:1.5px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 13px Inter,Arial,sans-serif;text-align:center}
 .medio.sel{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
 @media(max-width:560px){.totales{grid-template-columns:1fr!important}.frow{grid-template-columns:auto 1fr}.frow .fright{grid-column:1/-1;justify-content:space-between}}
 </style>
