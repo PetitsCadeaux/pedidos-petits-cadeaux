@@ -87,6 +87,7 @@ tfoot td{font-weight:800;border-top:2px solid var(--purple);border-bottom:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -143,6 +144,7 @@ async function buscar(){
   const data=await r.json();
   if(!r.ok){$("err").innerHTML='<div class="err">❌ '+(data.message||JSON.stringify(data))+'</div>';return}
   // El libro IVA solo lleva comprobantes fiscales (Factura A, B, C...): los remitos y compromisos de pago no.
+  Pag.reset("iva");
   filas=data.filter(f=>/^factura/i.test((f.tipo_comprobante||"").trim()));
   renderTabla();
  }catch(e){
@@ -159,9 +161,10 @@ function renderTabla(){
   return;
  }
  let sNeto=0,sIva=0,sPercIva=0,sPercIibb=0,sOtros=0,sTotal=0;
- const rows=filas.map(f=>{
+ filas.forEach(f=>{const d=desglosarFactura(f);sNeto+=d.neto; sIva+=d.iva; sPercIva+=d.percepcionIva; sPercIibb+=d.percepcionIibb; sOtros+=d.otrosImpuestos; sTotal+=d.total});
+ const pag=Pag.page("iva",filas,$("tablaWrap"),renderTabla);
+ const rows=pag.map(f=>{
   const d=desglosarFactura(f);
-  sNeto+=d.neto; sIva+=d.iva; sPercIva+=d.percepcionIva; sPercIibb+=d.percepcionIibb; sOtros+=d.otrosImpuestos; sTotal+=d.total;
   return `<tr>
    <td>${fmtFechaCorta(f.fecha)}</td>
    <td>${f.tipo_comprobante||"-"}</td>

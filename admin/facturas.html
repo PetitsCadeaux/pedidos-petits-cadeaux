@@ -206,6 +206,7 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
@@ -526,9 +527,10 @@ function renderFacturas(){
  });
  sel=new Set([...sel].filter(id=>facturas.some(f=>f.id===id&&!f.pagada)));
  $("countLabel").innerHTML=visible.length+" "+(visible.length===1?"factura":"facturas")+(provFiltro?' · <span class="badge tipo" style="margin-left:4px">'+provFiltro.replace(/</g,"&lt;")+' <a href="#" onclick="provFiltro=\'\';history.replaceState(null,\'\',\'facturas.html\');renderFacturas();return false" style="color:inherit;text-decoration:none">✕</a></span>':"");
+ const pagina=Pag.page("fprov",visible,$("facturasList"),renderFacturas);
  if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';renderSel();return}
 
- $("facturasList").innerHTML=visible.map(f=>{
+ $("facturasList").innerHTML=pagina.map(f=>{
   const open=openFacturaId===f.id;
   const est=estadoDe(f);
   const itemsHtml=(f.items||[]).map(it=>`<tr><td>${it.producto}${it.tipo==="servicio"?' <span class="badge tipo" style="font-size:9px">Servicio</span>':""}</td><td class="num">${it.cantidad}</td><td class="num">${money(it.precioFinal)}</td><td class="num">${money(it.subtotal)}</td></tr>`).join("");
@@ -707,7 +709,7 @@ async function borrarFactura(id){
 
 document.querySelectorAll("#estadoFilters .chip").forEach(btn=>{
  btn.addEventListener("click",()=>{
-  estadoFilter=btn.dataset.f;
+  estadoFilter=btn.dataset.f;Pag.reset("fprov");
   document.querySelectorAll("#estadoFilters .chip").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   renderFacturas();

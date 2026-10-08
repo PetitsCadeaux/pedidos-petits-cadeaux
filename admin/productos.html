@@ -123,6 +123,7 @@ button{border:0;border-radius:13px;font:800 14px Inter,Arial,sans-serif;cursor:p
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -375,8 +376,9 @@ async function borrarProducto(id){
 }
 
 function renderLista(){
- const lista=productos.filter(p=>p.negocio===negocioForm);
- if(!lista.length){$("prodList").innerHTML='<div class="loading">Todavía no hay productos cargados acá.</div>';return}
+ const todos=productos.filter(p=>p.negocio===negocioForm);
+ const lista=Pag.page("prod"+negocioForm,todos.slice().sort((a,b)=>String(a.categoria).localeCompare(String(b.categoria))||String(a.nombre).localeCompare(String(b.nombre))),$("prodList"),renderLista);
+ if(!todos.length){$("prodList").innerHTML='<div class="loading">Todavía no hay productos cargados acá.</div>';return}
  const porCategoria={};
  lista.forEach(p=>{(porCategoria[p.categoria]=porCategoria[p.categoria]||[]).push(p)});
  const folder=negocioForm==="regaleria"?"regaleria/":"";

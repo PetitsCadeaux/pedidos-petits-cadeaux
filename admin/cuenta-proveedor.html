@@ -120,6 +120,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
@@ -193,9 +194,10 @@ function renderProveedores(){
 
  $("countLabel").textContent=visible.length+" "+(visible.length===1?"proveedor":"proveedores");
 
+ const pagina=Pag.page("cprov",visible,$("provList"),renderProveedores);
  if(!visible.length){$("provList").innerHTML='<div class="empty">No hay proveedores para mostrar.</div>';return}
 
- $("provList").innerHTML=visible.map(p=>{
+ $("provList").innerHTML=pagina.map(p=>{
   const aFavor=p.saldo<0;
   const open=openKey===p.key;
   const facturasHtml=p.facturas.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(f=>
@@ -301,9 +303,9 @@ function cerrarModales(){document.querySelectorAll(".modal-bg.open").forEach(m=>
 $("abrirPagoBtn").addEventListener("click",()=>{$("pagoMsg").innerHTML="";$("mPago").classList.add("open")});
 document.querySelectorAll(".modal-bg").forEach(m=>m.addEventListener("click",e=>{if(e.target===m||e.target.hasAttribute("data-close"))cerrarModales()}));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarModales()});
-document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("click",()=>{filtroSaldo=b.dataset.f;document.querySelectorAll("#saldoFilters .chip").forEach(x=>x.classList.toggle("active",x===b));renderProveedores()}));
+document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("click",()=>{filtroSaldo=b.dataset.f;Pag.reset("cprov");document.querySelectorAll("#saldoFilters .chip").forEach(x=>x.classList.toggle("active",x===b));renderProveedores()}));
 $("guardarPagoBtn").addEventListener("click",guardarPago);
-$("searchProv").addEventListener("input",renderProveedores);
+$("searchProv").addEventListener("input",()=>{Pag.reset("cprov");renderProveedores()});
 $("pagoFecha").value=new Date().toISOString().slice(0,10);
 
 if(session){

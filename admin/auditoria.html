@@ -79,6 +79,7 @@ td{padding:8px 5px;border-bottom:1px dotted #eee1ef;font-size:13px;vertical-alig
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -128,8 +129,9 @@ function aplicar(){
  filtrados=eventos.filter(e=>(!u||e.usuario_email===u)&&(!ev||e.evento===ev)&&(!t||String(e.pedido_id||"").includes(t)||(e.detalle||"").toLowerCase().includes(t)||e.evento.toLowerCase().includes(t)));
  $("contador").textContent=filtrados.length+(filtrados.length===1?" evento":" eventos")+(eventos.length>=3000?" (se muestran los últimos 3000: acotá las fechas)":"");
  if(!filtrados.length){$("tabla").innerHTML='<div class="empty">No hay eventos con esos filtros.</div>';return}
+ const pagA=Pag.page("audit",filtrados,$("tabla"),aplicar);
  $("tabla").innerHTML='<table><thead><tr><th>Fecha / Hora</th><th>Usuario</th><th>Evento</th><th>Pedido</th><th>Detalle</th></tr></thead><tbody>'
-  +filtrados.map(e=>{
+  +pagA.map(e=>{
    const cls=/impreso/i.test(e.evento)?"imp":(/borrado/i.test(e.evento)?"del":"");
    return '<tr><td style="white-space:nowrap">'+esc(fmt(e.creado_en))+'</td><td>'+esc(e.usuario_email)+'</td><td><span class="tag '+cls+'">'+esc(e.evento)+'</span></td><td>'+(e.pedido_id?'#'+esc(e.pedido_id):'-')+'</td><td>'+esc(e.detalle||"")+'</td></tr>';
   }).join("")+'</tbody></table>';
@@ -145,8 +147,8 @@ function excel(){
 
 $("buscarBtn").addEventListener("click",buscar);
 $("excelBtn").addEventListener("click",excel);
-["fUsuario","fEvento"].forEach(i=>$(i).addEventListener("change",aplicar));
-$("fTexto").addEventListener("input",aplicar);
+["fUsuario","fEvento"].forEach(i=>$(i).addEventListener("change",()=>{Pag.reset("audit");aplicar()}));
+$("fTexto").addEventListener("input",()=>{Pag.reset("audit");aplicar()});
 if(session)buscar();
 </script>
 <footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>

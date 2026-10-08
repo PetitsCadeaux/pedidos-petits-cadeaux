@@ -90,6 +90,7 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -148,9 +149,10 @@ function fillProductoSelect(){
 
 function renderCostos(){
  if(!costos.length){$("costosList").innerHTML='<div class="empty">Todavía no cargaste ningún costo.</div>';return}
+ const pagC=Pag.page("costos",costos.slice().sort((a,b)=>a.producto.localeCompare(b.producto)),$("costosList"),renderCostos);
  $("costosList").innerHTML=`<table>
   <thead><tr><th>Producto</th><th class="num">Costo</th><th class="num"></th></tr></thead>
-  <tbody>${costos.slice().sort((a,b)=>a.producto.localeCompare(b.producto)).map(c=>
+  <tbody>${pagC.map(c=>
    `<tr><td>${c.producto}</td><td class="num">${money(c.costo)}</td><td class="num"><button class="del-cost" onclick="borrarCosto('${c.producto.replace(/'/g,"\\'")}')">✕</button></td></tr>`
   ).join("")}</tbody>
  </table>`;
@@ -162,8 +164,9 @@ function fmtFechaCorta(iso){
 }
 
 function renderMargenes(){
- const recientes=orders.slice(0,30);
- if(!recientes.length){$("margenesList").innerHTML='<div class="empty">No hay pedidos todavía.</div>';return}
+ const todosRec=orders.slice(0,200);
+ const recientes=Pag.page("margenes",todosRec,$("margenesList"),renderMargenes);
+ if(!todosRec.length){$("margenesList").innerHTML='<div class="empty">No hay pedidos todavía.</div>';return}
  $("margenesList").innerHTML=`<table>
   <thead><tr><th>Pedido</th><th class="num">Venta</th><th class="num">Costo</th><th class="num">Margen</th></tr></thead>
   <tbody>${recientes.map(o=>{

@@ -86,6 +86,7 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -124,6 +125,7 @@ async function buscar(){
   const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
   const data=await r.json();
   if(!r.ok){$("err").innerHTML='<div class="err">❌ '+(data.message||JSON.stringify(data))+'</div>';return}
+  Pag.reset("femit");
   filas=data;
   renderTabla();
  }catch(e){
@@ -138,7 +140,8 @@ function renderTabla(){
   $("tablaWrap").innerHTML='<div class="empty">No hay facturas emitidas en ese rango de fechas.</div>';
   return;
  }
- const rows=filas.map(f=>{
+ const pag=Pag.page("femit",filas,$("tablaWrap"),renderTabla);
+ const rows=pag.map(f=>{
   const comp=String(f.factura_pto_vta||0).padStart(4,"0")+"-"+String(f.factura_nro||0).padStart(8,"0");
   const cliente=f.factura_cliente_razon_social||f.comercio||"Consumidor Final";
   return `<tr>

@@ -135,6 +135,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -222,9 +223,10 @@ function renderClients(){
 
  $("countLabel").textContent=visible.length+" "+(visible.length===1?"cliente":"clientes");
 
+ const pagina=Pag.page("cuenta",visible,$("clientsList"),renderClients);
  if(!visible.length){$("clientsList").innerHTML='<div class="empty">No hay clientes para mostrar.</div>';return}
 
- $("clientsList").innerHTML=visible.map(c=>{
+ $("clientsList").innerHTML=pagina.map(c=>{
   const saldado=c.saldo<=0;
   const open=openKey===c.key;
   const pedidosHtml=c.pedidos.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(o=>
@@ -392,10 +394,10 @@ $("abrirCobranzaBtn").addEventListener("click",()=>abrirCobranza(null));
 $("abrirSaldoBtn").addEventListener("click",()=>{$("saldoMsg").innerHTML="";abrirModal("mSaldo")});
 document.querySelectorAll(".modal-bg").forEach(m=>m.addEventListener("click",e=>{if(e.target===m||e.target.hasAttribute("data-close"))cerrarModales()}));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarModales()});
-document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("click",()=>{filtroSaldo=b.dataset.f;document.querySelectorAll("#saldoFilters .chip").forEach(x=>x.classList.toggle("active",x===b));renderClients()}));
+document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("click",()=>{filtroSaldo=b.dataset.f;Pag.reset("cuenta");document.querySelectorAll("#saldoFilters .chip").forEach(x=>x.classList.toggle("active",x===b));renderClients()}));
 $("guardarPagoBtn").addEventListener("click",guardarPago);
 $("guardarSaldoBtn").addEventListener("click",guardarSaldo);
-$("searchClients").addEventListener("input",renderClients);
+$("searchClients").addEventListener("input",()=>{Pag.reset("cuenta");renderClients()});
 $("exportExcelBtn").addEventListener("click",exportarExcel);
 $("pagoFecha").value=new Date().toISOString().slice(0,10);
 $("saldoFecha").value=new Date().toISOString().slice(0,10);

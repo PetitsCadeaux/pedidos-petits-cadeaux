@@ -96,6 +96,7 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
 </main>
 
 <script src="permisos.js"></script>
+<script src="paginacion.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -170,7 +171,8 @@ function fmtFechaCorta(iso){
 
 function renderMovimientos(){
  if(!movimientos.length){$("movList").innerHTML='<div class="empty">Sin movimientos todavía.</div>';return}
- $("movList").innerHTML=movimientos.slice(0,40).map(m=>`
+ const pag=Pag.page("mov",movimientos.slice(0,200),$("movList"),renderMovimientos);
+ $("movList").innerHTML=pag.map(m=>`
   <div class="mov-row">
    <span><span class="mov-tipo ${m.tipo}">${m.tipo}</span> ${m.producto} ${m.motivo?"· "+m.motivo:""}</span>
    <span>${m.tipo==="salida"?"-":"+"}${m.cantidad} · ${fmtFechaCorta(m.fecha)}</span>
