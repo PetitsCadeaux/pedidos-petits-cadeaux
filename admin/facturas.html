@@ -215,7 +215,9 @@ const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",ma
 
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let facturas=[];
-let estadoFilter="Todas";
+let provFiltro=new URLSearchParams(location.search).get("proveedor")||"";
+let estadoFilter=provFiltro?"Pendiente":"Todas";
+const normP=t=>(t||"").trim().toLowerCase();
 let currentItems=[];
 let openFacturaId=null;
 
@@ -517,12 +519,13 @@ let sel=new Set();
 const estadoDe=f=>f.pagada?"Pagada":(f.pagado_monto>0?"Parcial":"Pendiente");
 function renderFacturas(){
  const visible=facturas.filter(f=>{
+  if(provFiltro&&normP(f.proveedor)!==normP(provFiltro))return false;
   if(estadoFilter==="Todas")return true;
   if(estadoFilter==="Pagada")return f.pagada;
   return !f.pagada;
  });
  sel=new Set([...sel].filter(id=>facturas.some(f=>f.id===id&&!f.pagada)));
- $("countLabel").textContent=visible.length+" "+(visible.length===1?"factura":"facturas");
+ $("countLabel").innerHTML=visible.length+" "+(visible.length===1?"factura":"facturas")+(provFiltro?' · <span class="badge tipo" style="margin-left:4px">'+provFiltro.replace(/</g,"&lt;")+' <a href="#" onclick="provFiltro=\'\';history.replaceState(null,\'\',\'facturas.html\');renderFacturas();return false" style="color:inherit;text-decoration:none">✕</a></span>':"");
  if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';renderSel();return}
 
  $("facturasList").innerHTML=visible.map(f=>{
@@ -717,6 +720,7 @@ $("toggleFormBtn").addEventListener("click",()=>{
  $("toggleFormBtn").textContent=open?"✖ Cerrar formulario":"➕ Cargar factura";
  if(open)c.scrollIntoView({behavior:"smooth",block:"start"});
 });
+document.querySelectorAll("#estadoFilters .chip").forEach(b=>b.classList.toggle("active",b.dataset.f===estadoFilter));
 $("agregarItemBtn").addEventListener("click",agregarItem);
 $("guardarFacturaBtn").addEventListener("click",guardarFactura);
 $("fFecha").value=new Date().toISOString().slice(0,10);
