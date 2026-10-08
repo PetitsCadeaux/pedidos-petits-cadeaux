@@ -198,5 +198,6 @@ if($("fPorPag").value!==String(porPag)){$("fPorPag").value="20";porPag=20}
 $("fPorPag").addEventListener("change",()=>{porPag=Number($("fPorPag").value);try{localStorage.setItem("fact_por_pagina",porPag)}catch(e){}pagina=1;render()});
 if(session)cargar();
 </script>
+<script src="iconos.js"></script>
 </body>
 </html>
