@@ -4,7 +4,7 @@
 // Si el servidor no responde, NO bloquea (el control real está en el servidor para facturar y crear envíos).
 (function(){
  const PAGINAS={
-  "admin.html":"pedidos","pedido-manual.html":"pedido_manual","hoja-ruta.html":"pedidos",
+  "admin.html":"pedidos","pedido-imprimir.html":"pedidos","pedido-manual.html":"pedido_manual","hoja-ruta.html":"pedidos",
   "productos.html":"productos","cuenta.html":"clientes","estado-cuenta.html":"clientes",
   "facturas-emitidas.html":"facturacion","libro-iva-compras.html":"facturacion","monotributo.html":"facturacion",
   "facturas.html":"proveedor","cuenta-proveedor.html":"proveedor","costos.html":"proveedor",

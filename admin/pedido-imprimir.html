@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Imprimir pedido - Petits Cadeaux</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eee;font-family:Arial,Helvetica,sans-serif;color:#111}
+.bar{position:sticky;top:0;background:#35265f;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;z-index:5}
+.bar button{border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer}
+.page{background:#fff;width:210mm;min-height:297mm;margin:12px auto;padding:14mm 14mm 12mm;box-shadow:0 2px 12px rgba(0,0,0,.15);page-break-after:always;position:relative}
+.page:last-child{page-break-after:auto}
+h1{margin:0;font-size:22px}
+.sub{font-size:12px;color:#555;margin-top:2px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px}
+.datos{margin-top:10px;font-size:14px;line-height:1.55}
+.datos b{display:inline-block;min-width:118px}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
+th{text-align:left;font-size:12px;text-transform:uppercase;border-bottom:2px solid #111;padding:6px 4px}
+th.c,td.c{text-align:right;width:70px}
+td{padding:6px 4px;border-bottom:1px solid #ccc}
+tr:nth-child(even) td{background:#f4f4f4}
+.tot{display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:15px}
+.obs{margin-top:12px;border:1px solid #999;border-radius:6px;padding:8px 10px;font-size:14px}
+.canastos{position:absolute;right:14mm;bottom:40mm;width:60mm;border:2px solid #333}
+.canastos div{padding:5px 8px;border-bottom:1px solid #333;font-size:13px;display:flex;justify-content:space-between;min-height:28px}
+.canastos div:last-child{border-bottom:0}
+.canastos .t{justify-content:center;font-weight:800;letter-spacing:1px;font-size:15px}
+.firmas{position:absolute;left:14mm;right:14mm;bottom:12mm;display:flex;gap:20mm;font-size:12px}
+.firmas div{flex:1;border-top:1px solid #111;padding-top:4px;text-align:center}
+.cambio{font-weight:700;font-size:12px;border:1px solid #111;border-radius:4px;padding:0 4px;margin-left:6px}
+@media print{body{background:#fff}.bar{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:277mm}@page{size:A4;margin:8mm}}
+</style>
+</head>
+<body>
+<div class="bar"><div>🖨️ Hoja de pedido (sin precios)</div><button id="printBtn">Imprimir</button></div>
+<div id="sheet"></div>
+<script src="auditoria.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const ids=(new URLSearchParams(location.search).get("ids")||"").split(",").map(s=>s.trim()).filter(Boolean);
+function fmtF(iso){const d=new Date(iso);return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}
+function fmtE(f){if(!f)return"";const[y,m,d]=f.split("-");return d+"/"+m+"/"+y}
+
+function hoja(o){
+ const prods=o.productos||[];
+ const total=prods.reduce((s,p)=>s+(Number(p.cantidad)||0),0);
+ const envio=o.envio_elegido_transportista?("Envío: "+o.envio_elegido_transportista):(o.transportista?("Envío: "+o.transportista):"");
+ const filas=prods.map(p=>`<tr><td>${esc(p.producto)}${p.cambio?'<span class="cambio">CAMBIO</span>':""}</td><td class="c"><b>${esc(p.cantidad)}</b></td></tr>`).join("");
+ return `<div class="page">
+  <div class="head"><div><h1>Pedido #${esc(o.id)}</h1><div class="sub">Pedido del ${esc(fmtF(o.created_at))}</div></div>
+  <div style="text-align:right"><div style="font-weight:800;font-size:15px">Distribuidora Petits Cadeaux</div><div class="sub">Hoja de preparación</div></div></div>
+  <div class="datos">
+   <div><b>Cliente:</b> ${esc(o.comercio||"Sin nombre")}</div>
+   ${o.whatsapp?`<div><b>Teléfono:</b> ${esc(o.whatsapp)}</div>`:""}
+   ${o.domicilio?`<div><b>Dirección entrega:</b> ${esc(o.domicilio)}</div>`:""}
+   <div><b>Entrega prevista:</b> ${esc(o.dia_entrega||"-")}${o.fecha_entrega?" "+esc(fmtE(o.fecha_entrega)):""}</div>
+   ${envio?`<div><b>Forma de entrega:</b> ${esc(envio)}</div>`:""}
+  </div>
+  ${o.observaciones?`<div class="obs"><b>Observaciones:</b> ${esc(o.observaciones)}</div>`:""}
+  <table><thead><tr><th>Producto</th><th class="c">Cant.</th></tr></thead><tbody>${filas||'<tr><td colspan="2">Sin productos</td></tr>'}</tbody></table>
+  <div class="tot"><span>Cant. total de productos</span><span>${total}</span></div>
+  <div class="canastos"><div class="t">CANASTOS</div><div><span>ENTREGA</span><span>&nbsp;</span></div><div><span>DEVUELVE</span><span>&nbsp;</span></div></div>
+  <div class="firmas"><div>Armó</div><div>Controló</div><div>Recibió</div></div>
+ </div>`;
+}
+
+async function cargar(){
+ if(!session){$("sheet").innerHTML='<p style="padding:20px">Iniciá sesión en el panel primero.</p>';return}
+ if(!ids.length){$("sheet").innerHTML='<p style="padding:20px">No se especificaron pedidos.</p>';return}
+ const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id="+encodeURIComponent("in.("+ids.join(",")+")")+"&select=*&order=id.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+ const d=await r.json();
+ if(!r.ok){$("sheet").innerHTML='<p style="padding:20px">Error: '+esc(d.message||"")+'</p>';return}
+ window._orders=d;
+ $("sheet").innerHTML=d.map(hoja).join("");
+}
+let ultimoLog=0;
+window.addEventListener("beforeprint",()=>{
+ if(Date.now()-ultimoLog<4000||!window._orders)return;ultimoLog=Date.now();
+ window._orders.forEach(o=>Audit.log(o.id,"Pedido impreso (hoja de preparación)"));
+});
+$("printBtn").addEventListener("click",()=>window.print());
+cargar();
+</script>
+</body>
+</html>
