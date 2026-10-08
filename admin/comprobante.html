@@ -382,8 +382,8 @@ function renderRemito(o,size){
   return `<div class="receipt size-${size}">
    <div class="r-head">
     <div class="biz">Distribuidora Petits Cadeaux</div>
-    <div class="sub">Comprobante de pedido · ${fmtFecha(o.created_at)}</div>
-    <div class="num">Pedido N° ${numero}</div>
+    <div class="sub">${o.remito_nro?"Remito · documento no válido como factura · "+fmtFecha(o.remito_en||o.created_at):"Comprobante de pedido · "+fmtFecha(o.created_at)}</div>
+    <div class="num">${o.remito_nro?"Remito N° "+String(o.remito_pto_vta||1).padStart(4,"0")+"-"+String(o.remito_nro).padStart(8,"0"):"Pedido N° "+numero}</div>
    </div>
    <div class="r-info">
     <div class="destacado"><span>Comercio</span><span>${o.comercio||"-"}</span></div>

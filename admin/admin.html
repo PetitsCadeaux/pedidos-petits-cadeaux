@@ -153,6 +153,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="facturacion">🧾 Facturación ▾</button>
    <div class="admin-menu-drop" data-drop="facturacion">
+    <a href="facturacion.html" data-perm="facturacion">💼 Facturación y cobranza</a>
     <a href="facturas-emitidas.html" data-perm="facturacion">🧾 Facturas emitidas</a>
     <a href="libro-iva-compras.html" data-perm="facturacion">📥 Libro IVA Compras</a>
     <a href="monotributo.html" data-perm="facturacion">📏 Control Monotributo</a>
@@ -233,6 +234,10 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 </div>
 
 </main>
+
+<div id="facModal" style="display:none;position:fixed;inset:0;background:rgba(40,20,55,.55);z-index:110;align-items:center;justify-content:center;padding:14px">
+ <div style="background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)" id="facModalBody"></div>
+</div>
 
 <div id="historialModal" style="display:none;position:fixed;inset:0;background:rgba(40,20,55,.55);z-index:100;align-items:center;justify-content:center;padding:14px">
  <div style="background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
@@ -334,6 +339,8 @@ async function cargarPedidos(){
   orders=await r.json();
   try{impresiones=await Audit.resumenImpresiones()}catch(e){impresiones={}}
   render();
+  const qf=new URLSearchParams(location.search).get("facturar");
+  if(qf){history.replaceState(null,"",location.pathname);abrirFacturar(Number(qf))}
  }catch(e){
   $("ordersList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar pedidos")+'</div>';
  }
@@ -702,6 +709,7 @@ function render(){
   const trackUrl=o.numero_seguimiento&&TRACK_URLS[o.transportista]?TRACK_URLS[o.transportista]+encodeURIComponent(o.numero_seguimiento):null;
   const envioBadge=o.numero_seguimiento?`<span class="badge" style="background:#e8f0fe;color:#1a56b0">🚚 ${o.transportista||"Envío"} · ${estadoEnvio}${trackUrl?` · <a href="${trackUrl}" target="_blank" style="color:#1a56b0">seguir</a>`:` · ${o.numero_seguimiento}`}</span>`:"";
   const envioElegidoBadge=(!o.numero_seguimiento&&o.envio_elegido_transportista)?`<span class="badge" style="background:#f3e8ff;color:#6b21a8">📦 El cliente eligió: ${o.envio_elegido_transportista} · ${money(o.envio_elegido_costo)} (ya pagado/incluido en el pedido)</span>`:"";
+  const compBadge=compBadgeHtml(o);
   const imp=impresiones[o.id];
   const impBadge=imp?`<span class="badge" style="background:#eef2f7;color:#41506a" title="Última impresión: ${fmtFecha(imp.ultimaVez)}">🖨️ ${imp.veces===1?"Impreso":"Impreso "+imp.veces+" veces"} · última por ${Audit.nombreCorto(imp.ultimoPor)}</span>`:"";
   const filasDescuento=(o.productos||[]).map((it,idx)=>`
@@ -721,7 +729,7 @@ function render(){
     </div>
     <span class="badge ${estadoClase}">${estadoPedido}</span>
    </div>
-   ${envioBadge||envioElegidoBadge||mpBadge||impBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${envioBadge}${envioElegidoBadge}${mpBadge}${impBadge}</div>`:""}
+   ${envioBadge||envioElegidoBadge||mpBadge||impBadge||compBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${compBadge}${envioBadge}${envioElegidoBadge}${mpBadge}${impBadge}</div>`:""}
    <div class="items">${items||"<div>Sin productos</div>"}</div>
    <div class="order-total">Total: ${money(o.total)}</div>
    ${o.observaciones?`<div class="order-notes">📝 ${o.observaciones}</div>`:""}
@@ -772,6 +780,7 @@ function render(){
      <option value="Demorado" ${pago==="Demorado"?"selected":""}>Pago: Demorado</option>
     </select>
     ${waNum?`<button class="btn-wa" onclick="window.open('https://wa.me/${waNum}','_blank')">💬 WhatsApp</button>`:""}
+    ${facBtn(o)}
     <button class="btn-wa" onclick="window.open('pedido-imprimir.html?ids=${o.id}','_blank')">🖨️ Imprimir pedido</button>
     <button class="btn-wa" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🧾 Comprobante</button>
     <button class="btn-wa" onclick="verHistorial(${o.id})">📜 Historial</button>
@@ -783,6 +792,56 @@ function render(){
  }).join("");
 }
 
+const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"0");
+function compBadgeHtml(o){
+ const b=[];
+ if(o.factura_cae)b.push(`<span class="badge" style="background:#e6f7ee;color:#177a4d">🧾 Factura C ${fmtNro(o.factura_pto_vta,o.factura_nro)}</span>`);
+ if(o.remito_nro)b.push(`<span class="badge" style="background:#fff1de;color:#a15b00">📄 Remito ${fmtNro(o.remito_pto_vta||1,o.remito_nro)}</span>`);
+ if(!b.length)b.push(`<span class="badge" style="background:#fde8e8;color:#a13030">Sin facturar</span>`);
+ return b.join(" ");
+}
+function facBtn(o){
+ if(window.Perm&&!Perm.can("facturar"))return "";
+ if(o.factura_cae)return `<button class="btn-wa" onclick="window.open('facturacion.html?ver=${o.id}','_self')">💼 Ver en Facturación</button>`;
+ return `<button class="btn-del" style="font-weight:800" onclick="abrirFacturar(${o.id})">🧾 ${o.remito_nro?"Facturar (ARCA)":"Facturar"}</button>`;
+}
+function cerrarFac(){$("facModal").style.display="none"}
+function abrirFacturar(id){
+ const o=orders.find(x=>x.id===id);if(!o)return;
+ if(o.remito_nro){window.open("comprobante.html?ids="+id,"_blank");return}
+ $("facModalBody").innerHTML=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Facturar orden</div>
+  <div style="color:var(--muted);font-size:13px;margin:4px 0 14px">${esc(o.comercio||"")} · ${money(o.total)}</div>
+  <button class="btn-take" style="width:100%;padding:16px;margin-bottom:10px;text-align:left" onclick="cerrarFac();window.open('comprobante.html?ids=${id}','_blank')">🧾 Comprobante<br><span style="font-weight:500;font-size:12px">Factura C electrónica (ARCA)</span></button>
+  <button class="btn-wa" style="width:100%;padding:16px;text-align:left" onclick="confirmarRemito(${id})">📄 Otro<br><span style="font-weight:500;font-size:12px">Remito manual (compromiso de pago, no fiscal)</span></button>
+  <div style="text-align:right;margin-top:14px"><button class="chip" onclick="cerrarFac()">Cancelar</button></div>`;
+ $("facModal").style.display="flex";
+}
+function confirmarRemito(id){
+ const o=orders.find(x=>x.id===id);if(!o)return;
+ const filas=(o.productos||[]).map(it=>`<tr><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1">${it.cantidad} × ${esc(it.producto)}${it.cambio?" (CAMBIO)":""}</td><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1;text-align:right;white-space:nowrap">${it.cambio?"$0":(it.precio_unitario!=null?money(it.precio_unitario)+" c/u":"")}</td><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1;text-align:right;font-weight:800;white-space:nowrap">${it.cambio?"":(it.precio_unitario!=null?money(it.cantidad*it.precio_unitario):"a confirmar")}</td></tr>`).join("");
+ $("facModalBody").innerHTML=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Confirmar remito</div>
+  <div style="font-size:14px;line-height:1.6;margin-top:6px"><b>${esc(o.comercio||"")}</b><br>${esc(o.domicilio||"")}<br><span style="color:var(--muted)">Fecha: ${new Date().toLocaleDateString("es-AR")} · Pedido #${o.id}</span></div>
+  <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px">${filas}</table>
+  <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--purple);margin-top:10px;font-size:16px"><span>Total</span><span>${money(o.total)}</span></div>
+  ${o.observaciones?`<div class="order-notes">📝 ${esc(o.observaciones)}</div>`:""}
+  <div style="font-size:12px;color:var(--muted);margin-top:10px">Se le asigna el próximo número de remito. No es una factura: no suma al Monotributo hasta que emitas la Factura C.</div>
+  <div class="actions" style="justify-content:flex-end"><button class="chip" onclick="abrirFacturar(${id})">← Volver</button><button class="btn-take" style="flex:none" id="remitoOkBtn" onclick="generarRemito(${id},this)">✅ Confirmar y guardar</button></div>`;
+}
+async function generarRemito(id,btn){
+ btn.disabled=true;btn.textContent="Guardando...";
+ try{
+  const resp=await apiFetch("/rest/v1/rpc/asignar_remito",{method:"POST",body:JSON.stringify({p_pedido:id})});
+  const rows=await resp.json();
+  if(!resp.ok)throw new Error(rows.message||"Error de Supabase");
+  const r=Array.isArray(rows)?rows[0]:rows;
+  if(!r||!r.remito_nro)throw new Error("No se pudo asignar el número de remito");
+  Audit.log(id,"Remito generado","Remito "+fmtNro(r.remito_pto_vta,r.remito_nro));
+  location.href="facturacion.html?ver="+id;
+ }catch(e){
+  alert("No se pudo generar el remito: "+(e.message||"error")+"\n¿Ya corriste sql-facturacion.sql en Supabase?");
+  btn.disabled=false;btn.textContent="✅ Confirmar y guardar";
+ }
+}
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 async function verHistorial(id){

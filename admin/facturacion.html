@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Facturación y cobranza - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(24px,6vw,34px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:1300px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:800px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 8px 22px rgba(84,36,119,.07);cursor:pointer}
+.stat.on{border-color:var(--purple);box-shadow:0 0 0 3px rgba(113,54,158,.15)}
+.stat-label{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.stat-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:28px;font-weight:700;color:var(--purple);margin-top:2px;line-height:1.1}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+label{font-size:12px;color:var(--muted);font-weight:700}
+input,select{padding:9px 10px;border:1px solid #ddcfe1;border-radius:12px;font:500 14px Poppins,Arial,sans-serif;background:#fff;color:var(--ink);margin-top:4px;display:block}
+button{border:0;border-radius:13px;font:800 13px Poppins,Arial,sans-serif;cursor:pointer;padding:10px 14px}
+.chip{background:#fff;border:1px solid #ddcde4;color:#654273;padding:9px 14px;border-radius:13px}
+.chip.active{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
+.btn-main{background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.btn-red{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:860px}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:8px 6px;white-space:nowrap}
+td{padding:9px 6px;border-bottom:1px dotted #eee1ef;font-size:13px;vertical-align:middle}
+tr.hl td{background:#fff8d9}
+td.num,th.num{text-align:right;white-space:nowrap}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:800;font-size:11.5px;white-space:nowrap}
+.tag.fac{background:#e6f7ee;color:#177a4d}.tag.rem{background:#fff1de;color:#a15b00}.tag.sin{background:#fde8e8;color:#a13030}.tag.nc{background:#ede6fb;color:#5a2f8a}
+.pay{padding:7px 9px;font-size:12.5px;font-weight:800;border-width:1.5px;margin:0;min-width:130px}
+.pg-Pendiente{background:#fff1de;color:#a15b00;border-color:#f0cf94}.pg-Efectivo{background:#e6f7ee;color:#177a4d;border-color:#a9e3c4}.pg-Transferencia{background:#e8f0fe;color:#1a56b0;border-color:#b9d0f7}.pg-Demorado{background:#fde8e8;color:#a13030;border-color:#f3bcbc}.pg-Mercado{background:#e0f2ff;color:#0a5a8c;border-color:#a8d8f0}
+.empty,.loading{padding:30px;text-align:center;color:#817287}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.muted{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>💼 Facturación y cobranza</h1><a class="navlink" href="admin.html">← Volver al panel de pedidos</a></header>
+<main>
+<div id="noSession" class="card" style="display:none;text-align:center"><p>Tenés que iniciar sesión primero en el panel de pedidos.</p><a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a></div>
+<div id="app" style="display:none">
+ <div class="stats" id="stats"></div>
+ <div class="card">
+  <div class="row">
+   <div><label>Desde<input type="date" id="desde"></label></div>
+   <div><label>Hasta<input type="date" id="hasta"></label></div>
+   <div><label>Tipo<select id="fTipo"><option value="">Todos</option><option value="factura">Factura C (ARCA)</option><option value="remito">Remito</option></select></label></div>
+   <div style="flex:1;min-width:180px"><label>Buscar cliente o número<input id="fTexto" placeholder="Ej. Florida o 0001-00000012" style="width:100%"></label></div>
+   <button class="chip" id="limpiarBtn">✕ Todo el historial</button>
+  </div>
+  <div class="row" style="margin-top:12px;justify-content:space-between">
+   <div class="row" id="tabs"></div>
+   <div class="row"><button class="btn-main" id="imprimirBtn">🖨️ Imprimir seleccionados</button></div>
+  </div>
+  <div class="muted" style="margin-top:8px">Los remitos salen de a 2 por hoja. Las facturas de ARCA salen solas, a hoja completa.</div>
+  <div id="err"></div>
+ </div>
+ <div class="card"><div class="scroll" id="tabla"><div class="loading">Cargando...</div></div></div>
+</div>
+</main>
+<script src="auditoria.js"></script>
+<script src="permisos.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=n=>n==null?"-":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const verId=Number(new URLSearchParams(location.search).get("ver"))||null;
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"0");
+const diaISO=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const fmtD=iso=>{if(!iso)return"-";const[y,m,d]=String(iso).slice(0,10).split("-");return d+"/"+m+"/"+y};
+const PAGOS=["Pendiente","Efectivo","Transferencia","Mercado Pago","Demorado"];
+const pgClase=p=>"pg-"+(p==="Mercado Pago"?"Mercado":p);
+
+let datos=[],tab=verId?"facturados":"porfacturar",tarjeta=null;
+$("hasta").value=diaISO(new Date());
+$("desde").value=verId?"":diaISO(new Date(Date.now()-60*86400000));
+
+// Estado de cada pedido
+function info(o){
+ const factura=!!o.factura_cae,remito=!!o.remito_nro;
+ const nc=!!o.nc_cae;
+ const fechaDoc=o.facturado_en||o.remito_en||null;
+ const pago=o.estado_pago||"Pendiente";
+ const cobrado=pago!=="Pendiente"&&pago!=="Demorado";
+ return {factura,remito,nc,doc:factura||remito,fechaDoc,pago,cobrado};
+}
+function nroDoc(o){
+ const i=info(o),p=[];
+ if(i.factura)p.push('<span class="tag fac">Factura C '+fmtNro(o.factura_pto_vta,o.factura_nro)+'</span>');
+ if(i.remito)p.push('<span class="tag rem">Remito '+fmtNro(o.remito_pto_vta||1,o.remito_nro)+'</span>');
+ if(i.nc)p.push('<span class="tag nc">Nota de crédito</span>');
+ if(!p.length)p.push('<span class="tag sin">Sin facturar</span>');
+ return p.join(" ");
+}
+
+async function cargar(){
+ $("err").innerHTML="";
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=id,comercio,total,created_at,canal,manual,estado_pago,fecha_pago,estado_entrega,factura_cae,factura_pto_vta,factura_nro,facturado_en,nc_cae,remito_nro,remito_pto_vta,remito_en&order=created_at.desc&limit=3000",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+  const d=await r.json();
+  if(!r.ok)throw new Error((d.message||JSON.stringify(d))+" (¿ya corriste sql-facturacion.sql en Supabase?)");
+  datos=d;render();
+  if(verId){const el=document.querySelector('tr[data-id="'+verId+'"]');if(el)el.scrollIntoView({block:"center"})}
+ }catch(e){$("tabla").innerHTML="";$("err").innerHTML='<div class="err">❌ '+esc(e.message)+'</div>'}
+}
+
+function filtrarBase(){
+ const desde=$("desde").value,hasta=$("hasta").value,t=$("fTexto").value.trim().toLowerCase(),tipo=$("fTipo").value;
+ return datos.filter(o=>{
+  const i=info(o);
+  const f=(i.fechaDoc||o.created_at||"").slice(0,10);
+  if(verId&&o.id===verId)return true;
+  if(desde&&f<desde)return false;
+  if(hasta&&f>hasta)return false;
+  if(tipo==="factura"&&!i.factura)return false;
+  if(tipo==="remito"&&!i.remito)return false;
+  if(t){
+   const txt=(o.comercio||"")+" "+(i.factura?fmtNro(o.factura_pto_vta,o.factura_nro):"")+" "+(i.remito?fmtNro(o.remito_pto_vta||1,o.remito_nro):"")+" #"+o.id;
+   if(!txt.toLowerCase().includes(t))return false;
+  }
+  return true;
+ });
+}
+
+function render(){
+ const base=filtrarBase();
+ const porFact=base.filter(o=>!info(o).doc);
+ const fact=base.filter(o=>info(o).doc&&!info(o).nc);
+ const porCobrar=fact.filter(o=>!info(o).cobrado);
+ const cobrados=fact.filter(o=>info(o).cobrado);
+ const sum=a=>a.reduce((s,o)=>s+(Number(o.total)||0),0);
+ const cards=[
+  ["porfacturar","Por facturar",porFact],["facturados","Facturado",fact],["porcobrar","Por cobrar",porCobrar],["cobrados","Cobrado",cobrados]
+ ];
+ $("stats").innerHTML=cards.map(c=>`<div class="stat ${tab===c[0]?"on":""}" data-tab="${c[0]}"><div class="stat-label">${c[1]}</div><div class="stat-value">${money(sum(c[2]))}</div><div class="stat-sub">${c[2].length} ${c[2].length===1?"pedido":"pedidos"}</div></div>`).join("");
+ $("tabs").innerHTML=[["porfacturar","Por facturar"],["facturados","Facturados"],["porcobrar","Por cobrar"],["cobrados","Cobrados"],["todos","Todos"]].map(t=>`<button class="chip ${tab===t[0]?"active":""}" data-tab="${t[0]}">${t[1]}</button>`).join("");
+ document.querySelectorAll("[data-tab]").forEach(el=>el.addEventListener("click",()=>{tab=el.dataset.tab;render()}));
+ const lista={porfacturar:porFact,facturados:fact,porcobrar:porCobrar,cobrados:cobrados,todos:base}[tab];
+ if(!lista.length){$("tabla").innerHTML='<div class="empty">No hay pedidos en esta vista.</div>';return}
+ $("tabla").innerHTML='<table><thead><tr><th><input type="checkbox" id="chkAll" style="margin:0"></th><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th class="num">Total</th><th>Cobranza</th><th></th></tr></thead><tbody>'
+  +lista.map(o=>{
+   const i=info(o);
+   const fecha=fmtD(i.fechaDoc||o.created_at);
+   const cob=i.doc?`<select class="pay ${pgClase(i.pago)}" data-id="${o.id}">${PAGOS.map(p=>`<option ${p===i.pago?"selected":""}>${p}</option>`).join("")}</select>`+(i.cobrado&&o.fecha_pago?'<div class="muted">'+fmtD(o.fecha_pago)+'</div>':""):'<span class="muted">—</span>';
+   const acc=i.doc
+    ?`<button class="chip" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Ver / imprimir</button>`+(i.remito&&!i.factura?` <button class="btn-red" onclick="location.href='comprobante.html?ids=${o.id}'" title="Emitir la Factura C de este remito">🧾 Facturar (ARCA)</button>`:"")
+    :`<button class="btn-main" onclick="location.href='admin.html?facturar=${o.id}'">🧾 Facturar</button>`;
+   return `<tr data-id="${o.id}" class="${o.id===verId?"hl":""}"><td><input type="checkbox" class="chk" value="${o.id}" ${i.doc?"":"disabled title=\"Primero facturá el pedido\""} style="margin:0"></td><td>${fecha}</td><td>${nroDoc(o)}</td><td>${esc(o.comercio||"Sin nombre")}<div class="muted">Pedido #${o.id}</div></td><td class="num"><b>${money(o.total)}</b></td><td>${cob}</td><td>${acc}</td></tr>`;
+  }).join("")+'</tbody></table>';
+ $("chkAll").addEventListener("change",e=>document.querySelectorAll(".chk:not(:disabled)").forEach(c=>c.checked=e.target.checked));
+ document.querySelectorAll("select.pay").forEach(s=>s.addEventListener("change",()=>cambiarPago(Number(s.dataset.id),s)));
+}
+
+async function cambiarPago(id,sel){
+ const valor=sel.value,o=datos.find(x=>x.id===id);sel.disabled=true;
+ const ahora=valor==="Pendiente"?null:new Date().toISOString();
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id=eq."+id,{method:"PATCH",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({estado_pago:valor,fecha_pago:ahora})});
+  if(!r.ok)throw new Error("No se pudo guardar");
+  Audit.log(id,"Pago modificado","De "+(o.estado_pago||"Pendiente")+" a "+valor+(o.comercio?" · "+o.comercio:"")+" (Facturación)");
+  o.estado_pago=valor;o.fecha_pago=ahora;render();
+ }catch(e){alert(e.message);sel.disabled=false}
+}
+
+$("imprimirBtn").addEventListener("click",()=>{
+ const ids=[...document.querySelectorAll(".chk:checked")].map(c=>c.value);
+ if(!ids.length){alert("Tildá al menos un comprobante para imprimir.");return}
+ window.open("comprobante.html?ids="+ids.join(","),"_blank");
+});
+$("limpiarBtn").addEventListener("click",()=>{$("desde").value="";$("hasta").value="";render()});
+["desde","hasta","fTipo"].forEach(i=>$(i).addEventListener("change",render));
+$("fTexto").addEventListener("input",render);
+if(session)cargar();
+</script>
+</body>
+</html>
