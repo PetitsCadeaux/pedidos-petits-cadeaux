@@ -61,7 +61,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
   </div>
   <div class="row" style="margin-top:12px;justify-content:space-between">
    <div class="row" id="tabs"></div>
-   <div class="row"><button class="btn-main" id="imprimirBtn">🖨️ Imprimir seleccionados</button></div>
+   <div class="row"><div><label>Filas por página<select id="fPorPag" style="margin-top:2px"><option>10</option><option>15</option><option>20</option><option>30</option><option>50</option></select></label></div><button class="btn-main" id="imprimirBtn">🖨️ Imprimir seleccionados</button></div>
   </div>
   <div class="muted" style="margin-top:8px">Los remitos salen de a 2 por hoja. Las facturas de ARCA salen solas, a hoja completa.</div>
   <div id="err"></div>
@@ -87,7 +87,7 @@ const fmtD=iso=>{if(!iso)return"-";const[y,m,d]=String(iso).slice(0,10).split("-
 const PAGOS=["Pendiente","Efectivo","Transferencia","Mercado Pago","Demorado"];
 const pgClase=p=>"pg-"+(p==="Mercado Pago"?"Mercado":p);
 
-let datos=[],tab=verId?"facturados":"porfacturar",tarjeta=null;
+let datos=[],tab=verId?"facturados":"porfacturar",tarjeta=null,pagina=1,porPag=Number(localStorage.getItem("fact_por_pagina"))||20;
 $("hasta").value=diaISO(new Date());
 $("desde").value=verId?"":diaISO(new Date(Date.now()-60*86400000));
 
@@ -150,11 +150,15 @@ function render(){
  ];
  $("stats").innerHTML=cards.map(c=>`<div class="stat ${tab===c[0]?"on":""}" data-tab="${c[0]}"><div class="stat-label">${c[1]}</div><div class="stat-value">${money(sum(c[2]))}</div><div class="stat-sub">${c[2].length} ${c[2].length===1?"pedido":"pedidos"}</div></div>`).join("");
  $("tabs").innerHTML=[["porfacturar","Por facturar"],["facturados","Facturados"],["porcobrar","Por cobrar"],["cobrados","Cobrados"],["todos","Todos"]].map(t=>`<button class="chip ${tab===t[0]?"active":""}" data-tab="${t[0]}">${t[1]}</button>`).join("");
- document.querySelectorAll("[data-tab]").forEach(el=>el.addEventListener("click",()=>{tab=el.dataset.tab;render()}));
+ document.querySelectorAll("[data-tab]").forEach(el=>el.addEventListener("click",()=>{tab=el.dataset.tab;pagina=1;render()}));
  const lista={porfacturar:porFact,facturados:fact,porcobrar:porCobrar,cobrados:cobrados,todos:base}[tab];
  if(!lista.length){$("tabla").innerHTML='<div class="empty">No hay pedidos en esta vista.</div>';return}
+ const totalPag=Math.max(1,Math.ceil(lista.length/porPag));
+ if(pagina>totalPag)pagina=totalPag;
+ const visibles=lista.slice((pagina-1)*porPag,pagina*porPag);
+ const pager=totalPag<=1?"":`<div style="display:flex;justify-content:center;align-items:center;gap:14px;padding:14px 0 4px"><button class="chip" ${pagina<=1?"disabled":""} onclick="irPag(${pagina-1})">‹ Anterior</button><span class="muted">Página ${pagina} de ${totalPag} · ${lista.length} pedidos</span><button class="chip" ${pagina>=totalPag?"disabled":""} onclick="irPag(${pagina+1})">Siguiente ›</button></div>`;
  $("tabla").innerHTML='<table><thead><tr><th><input type="checkbox" id="chkAll" style="margin:0"></th><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th class="num">Total</th><th>Cobranza</th><th></th></tr></thead><tbody>'
-  +lista.map(o=>{
+  +visibles.map(o=>{
    const i=info(o);
    const fecha=fmtD(i.fechaDoc||o.created_at);
    const cob=i.doc?`<select class="pay ${pgClase(i.pago)}" data-id="${o.id}">${PAGOS.map(p=>`<option ${p===i.pago?"selected":""}>${p}</option>`).join("")}</select>`+(i.cobrado&&o.fecha_pago?'<div class="muted">'+fmtD(o.fecha_pago)+'</div>':""):'<span class="muted">—</span>';
@@ -162,11 +166,12 @@ function render(){
     ?`<button class="chip" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Ver / imprimir</button>`+(i.remito&&!i.factura?` <button class="btn-red" onclick="location.href='comprobante.html?ids=${o.id}'" title="Emitir la Factura C de este remito">🧾 Facturar (ARCA)</button>`:"")
     :`<button class="btn-main" onclick="location.href='admin.html?facturar=${o.id}'">🧾 Facturar</button>`;
    return `<tr data-id="${o.id}" class="${o.id===verId?"hl":""}"><td><input type="checkbox" class="chk" value="${o.id}" ${i.doc?"":"disabled title=\"Primero facturá el pedido\""} style="margin:0"></td><td>${fecha}</td><td>${nroDoc(o)}</td><td>${esc(o.comercio||"Sin nombre")}<div class="muted">Pedido #${o.id}</div></td><td class="num"><b>${money(o.total)}</b></td><td>${cob}</td><td>${acc}</td></tr>`;
-  }).join("")+'</tbody></table>';
+  }).join("")+'</tbody></table>'+pager;
  $("chkAll").addEventListener("change",e=>document.querySelectorAll(".chk:not(:disabled)").forEach(c=>c.checked=e.target.checked));
  document.querySelectorAll("select.pay").forEach(s=>s.addEventListener("change",()=>cambiarPago(Number(s.dataset.id),s)));
 }
 
+function irPag(n){pagina=n;render();window.scrollTo({top:0,behavior:"smooth"})}
 async function cambiarPago(id,sel){
  const valor=sel.value,o=datos.find(x=>x.id===id);sel.disabled=true;
  const ahora=valor==="Pendiente"?null:new Date().toISOString();
@@ -183,9 +188,12 @@ $("imprimirBtn").addEventListener("click",()=>{
  if(!ids.length){alert("Tildá al menos un comprobante para imprimir.");return}
  window.open("comprobante.html?ids="+ids.join(","),"_blank");
 });
-$("limpiarBtn").addEventListener("click",()=>{$("desde").value="";$("hasta").value="";render()});
-["desde","hasta","fTipo"].forEach(i=>$(i).addEventListener("change",render));
-$("fTexto").addEventListener("input",render);
+$("limpiarBtn").addEventListener("click",()=>{$("desde").value="";$("hasta").value="";pagina=1;render()});
+["desde","hasta","fTipo"].forEach(i=>$(i).addEventListener("change",()=>{pagina=1;render()}));
+$("fTexto").addEventListener("input",()=>{pagina=1;render()});
+$("fPorPag").value=String(porPag);
+if($("fPorPag").value!==String(porPag)){$("fPorPag").value="20";porPag=20}
+$("fPorPag").addEventListener("change",()=>{porPag=Number($("fPorPag").value);try{localStorage.setItem("fact_por_pagina",porPag)}catch(e){}pagina=1;render()});
 if(session)cargar();
 </script>
 </body>
