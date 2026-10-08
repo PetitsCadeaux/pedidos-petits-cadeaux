@@ -142,7 +142,8 @@ async function buscar(){
   const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
   const data=await r.json();
   if(!r.ok){$("err").innerHTML='<div class="err">❌ '+(data.message||JSON.stringify(data))+'</div>';return}
-  filas=data;
+  // El libro IVA solo lleva comprobantes fiscales (Factura A, B, C...): los remitos y compromisos de pago no.
+  filas=data.filter(f=>/^factura/i.test((f.tipo_comprobante||"").trim()));
   renderTabla();
  }catch(e){
   $("err").innerHTML='<div class="err">❌ '+(e.message||"Error desconocido")+'</div>';
