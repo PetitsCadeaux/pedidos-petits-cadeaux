@@ -5,6 +5,7 @@
 // Usa SUPABASE_SERVICE_ROLE_KEY (nunca expuesta al navegador) para leer y
 // actualizar el pedido directamente, sin depender de la sesión del usuario.
 import { solicitarCAE } from "../lib/arca.js";
+import { requierePermiso } from "../lib/admin-auth.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
   try {
+    if (!(await requierePermiso(req, res, "facturar"))) return;
     const { pedido_id, cuit_cliente, razon_social, domicilio_fiscal, condicion_iva } = req.body || {};
     if (!pedido_id) return res.status(200).json({ ok: false, error: "Falta pedido_id" });
 

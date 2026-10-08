@@ -6,6 +6,7 @@
 // Usa SUPABASE_SERVICE_ROLE_KEY (nunca expuesta al navegador) para leer y
 // actualizar el pedido directamente, sin depender de la sesión del usuario.
 import { solicitarNotaCredito } from "../lib/arca.js";
+import { requierePermiso } from "../lib/admin-auth.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
   try {
+    if (!(await requierePermiso(req, res, "facturar"))) return;
     const { pedido_id, motivo } = req.body || {};
     if (!pedido_id) return res.status(200).json({ ok: false, error: "Falta pedido_id" });
 

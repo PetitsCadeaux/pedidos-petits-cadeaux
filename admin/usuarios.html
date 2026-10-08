@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Usuarios y permisos - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Poppins,Arial,sans-serif;background:linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px)}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:860px;margin:auto;padding:18px 14px 42px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:8px;color:#5f4d68;font-size:13px;font-weight:800}
+input,select{width:100%;padding:11px 13px;margin-top:6px;border:1px solid #ddcfe1;border-radius:14px;font:500 14px Poppins,Arial,sans-serif}
+button{border:0;border-radius:14px;font:800 14px Poppins,Arial,sans-serif;cursor:pointer;padding:11px 16px}
+.btn-main{background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.btn-sec{background:#fff;border:1px solid #ddcde4;color:#654273}
+.btn-del{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2}
+.perms{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px;margin-top:8px}
+.perms label{display:flex;gap:8px;align-items:flex-start;margin:0;font-weight:600;font-size:13px;background:#faf5fb;border-radius:12px;padding:8px 10px}
+.perms input{width:auto;margin:3px 0 0}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:#f3e8f5;color:var(--purple);font-weight:800;font-size:11.5px}
+.tag.off{background:#fff0f1;color:#9b3040}
+.user{border-top:1px dotted #eee1ef;padding:12px 0}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.ok{background:#eefaf0;color:#25693a;border:1px solid #c9e8d0;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.muted{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>👥 Usuarios y permisos</h1><a class="navlink" href="admin.html">← Volver al panel de pedidos</a></header>
+<main>
+<div id="noSession" class="card" style="display:none;text-align:center"><p>Tenés que iniciar sesión primero.</p><a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a></div>
+<div id="app" style="display:none">
+ <div id="msg"></div>
+ <div class="card">
+  <div style="font-weight:800;color:var(--purple)">➕ Agregar persona</div>
+  <label>Nombre<input id="nNombre" placeholder="Ej. Marcos"></label>
+  <label>Email (con este ingresa)<input id="nEmail" type="email" placeholder="marcos@gmail.com"></label>
+  <label>Clave temporal (mínimo 8 caracteres)<input id="nClave" type="text" autocomplete="off"></label>
+  <label>Tipo<select id="nRol"><option value="equipo">Equipo (con permisos a elección)</option><option value="admin">Administración general (todo, y gestiona usuarios)</option></select></label>
+  <div id="nPermsWrap"><div class="muted" style="margin-top:8px">Puede hacer:</div><div class="perms" id="nPerms"></div></div>
+  <div class="row"><button class="btn-main" id="crearBtn">Crear usuario</button></div>
+  <div class="muted" style="margin-top:8px">Pasale la clave por un canal privado. Después puede pedirte cambiarla desde acá.</div>
+ </div>
+ <div class="card"><div style="font-weight:800;color:var(--purple)">Equipo</div><div id="lista">Cargando...</div></div>
+ <div class="muted" style="text-align:center">Todo lo que hace cada persona queda en 🕵️ Auditoría con su email. Desactivar a alguien le impide ingresar de inmediato.</div>
+</div>
+</main>
+<script src="permisos.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const PERMS={
+ pedidos:"Ver y gestionar pedidos (estado, pago, descuentos)",
+ pedido_manual:"Cargar pedidos manuales",
+ facturar:"Emitir facturas y notas de crédito (ARCA)",
+ envios:"Crear envíos (Zipnova)",
+ productos:"Productos y precios",
+ clientes:"Cuenta corriente de clientes",
+ facturacion:"Ver facturas emitidas, IVA y Monotributo",
+ proveedor:"Facturas, cuentas y costos de proveedor",
+ reportes:"Reportes, dashboard, stock y visitas",
+ auditoria:"Ver la auditoría"
+};
+function checks(prefix,sel){return Object.keys(PERMS).map(k=>'<label><input type="checkbox" data-p="'+k+'" '+((sel||[]).includes(k)?"checked":"")+'> '+esc(PERMS[k])+'</label>').join("")}
+function marcados(cont){return [...cont.querySelectorAll("input[data-p]:checked")].map(i=>i.dataset.p)}
+async function api(body){
+ const r=await fetch("/api/admin-usuarios",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify(body)});
+ return r.json();
+}
+function aviso(t,ok){$("msg").innerHTML='<div class="'+(ok?"ok":"err")+'">'+esc(t)+'</div>';window.scrollTo({top:0,behavior:"smooth"})}
+let usuarios=[];
+async function cargar(){
+ const d=await api({accion:"listar"});
+ if(!d.ok){$("lista").innerHTML='<div class="err">'+esc(d.error||"Error")+'</div>';return}
+ usuarios=d.usuarios;
+ $("lista").innerHTML=usuarios.map((u,i)=>{
+  const adm=u.rol==="admin";
+  return '<div class="user"><div><b>'+esc(u.nombre||u.email)+'</b> <span class="muted">'+esc(u.email)+'</span> '
+   +(adm?'<span class="tag">Administración general</span>':'<span class="tag">Equipo</span>')+(u.activo?'':' <span class="tag off">Desactivado</span>')+'</div>'
+   +(adm?'':'<div class="perms" data-i="'+i+'">'+checks("u"+i,u.permisos)+'</div>')
+   +'<div class="row">'
+   +(adm?'':'<button class="btn-main" onclick="guardar('+i+')">Guardar permisos</button>')
+   +'<button class="btn-sec" onclick="cambiarRol('+i+')">'+(adm?'Pasar a Equipo':'Hacer administración general')+'</button>'
+   +'<button class="btn-sec" onclick="clave('+i+')">Cambiar clave</button>'
+   +'<button class="btn-del" onclick="activar('+i+')">'+(u.activo?'Desactivar':'Reactivar')+'</button></div></div>';
+ }).join("")||'<div class="muted">Todavía no hay usuarios.</div>';
+}
+async function guardar(i){
+ const u=usuarios[i];const d=await api({accion:"actualizar",email:u.email,permisos:marcados(document.querySelector('.perms[data-i="'+i+'"]'))});
+ aviso(d.ok?"Permisos guardados para "+u.email:d.error,d.ok);if(d.ok)cargar();
+}
+async function cambiarRol(i){
+ const u=usuarios[i];const nuevo=u.rol==="admin"?"equipo":"admin";
+ if(!confirm(nuevo==="admin"?u.email+" va a poder verlo y cambiarlo todo, incluidos los usuarios. ¿Seguro?":"¿Pasar a "+u.email+" a Equipo? Después le elegís los permisos."))return;
+ const d=await api({accion:"actualizar",email:u.email,rol:nuevo});aviso(d.ok?"Listo":d.error,d.ok);if(d.ok)cargar();
+}
+async function activar(i){
+ const u=usuarios[i];if(u.activo&&!confirm("¿Desactivar a "+u.email+"? No va a poder ingresar."))return;
+ const d=await api({accion:"actualizar",email:u.email,activo:!u.activo});aviso(d.ok?"Listo":d.error,d.ok);if(d.ok)cargar();
+}
+async function clave(i){
+ const u=usuarios[i];const p=prompt("Nueva clave para "+u.email+" (mínimo 8 caracteres):");if(!p)return;
+ const d=await api({accion:"clave",email:u.email,password:p});aviso(d.ok?"Clave cambiada":d.error,d.ok);
+}
+$("nPerms").innerHTML=checks("n",["pedidos"]);
+$("nRol").addEventListener("change",()=>{$("nPermsWrap").style.display=$("nRol").value==="admin"?"none":"block"});
+$("crearBtn").addEventListener("click",async()=>{
+ const d=await api({accion:"crear",nombre:$("nNombre").value.trim(),email:$("nEmail").value.trim(),password:$("nClave").value,rol:$("nRol").value,permisos:marcados($("nPerms"))});
+ aviso(d.ok?"Usuario creado. Ya puede ingresar con ese email y la clave temporal.":d.error,d.ok);
+ if(d.ok){["nNombre","nEmail","nClave"].forEach(x=>$(x).value="");cargar()}
+});
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block";cargar()}
+</script>
+</body>
+</html>

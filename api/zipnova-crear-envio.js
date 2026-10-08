@@ -3,6 +3,7 @@
 // cotizar con /api/zipnova-cotizar), y guarda el resultado en el pedido
 // (transportista, numero_seguimiento, estado_envio, zipnova_shipment_id).
 import { crearEnvio } from "../lib/zipnova.js";
+import { requierePermiso } from "../lib/admin-auth.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 const ACCOUNT_ID = process.env.ZIPNOVA_ACCOUNT_ID;
@@ -48,6 +49,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
   try {
+    if (!(await requierePermiso(req, res, "envios"))) return;
     if (!ACCOUNT_ID) {
       return res.status(200).json({
         ok: false,

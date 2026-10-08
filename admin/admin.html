@@ -127,46 +127,52 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="pedidos">📋 Pedidos ▾</button>
    <div class="admin-menu-drop" data-drop="pedidos">
-    <a href="pedido-manual.html">✍️ Cargar pedido manual</a>
-    <a href="hoja-ruta.html">🗺️ Hoja de ruta</a>
+    <a href="pedido-manual.html" data-perm="pedido_manual">✍️ Cargar pedido manual</a>
+    <a href="hoja-ruta.html" data-perm="pedidos">🗺️ Hoja de ruta</a>
    </div>
   </div>
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="catalogo">🛍️ Catálogo ▾</button>
    <div class="admin-menu-drop" data-drop="catalogo">
-    <a href="productos.html">🛍️ Productos (Tienda y Regaleria)</a>
+    <a href="productos.html" data-perm="productos">🛍️ Productos (Tienda y Regaleria)</a>
    </div>
   </div>
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="clientes">👥 Clientes ▾</button>
    <div class="admin-menu-drop" data-drop="clientes">
-    <a href="cuenta.html">📒 Cuenta corriente</a>
+    <a href="cuenta.html" data-perm="clientes">📒 Cuenta corriente</a>
    </div>
   </div>
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="facturacion">🧾 Facturación ▾</button>
    <div class="admin-menu-drop" data-drop="facturacion">
-    <a href="facturas-emitidas.html">🧾 Facturas emitidas</a>
-    <a href="libro-iva-compras.html">📥 Libro IVA Compras</a>
-    <a href="monotributo.html">📏 Control Monotributo</a>
+    <a href="facturas-emitidas.html" data-perm="facturacion">🧾 Facturas emitidas</a>
+    <a href="libro-iva-compras.html" data-perm="facturacion">📥 Libro IVA Compras</a>
+    <a href="monotributo.html" data-perm="facturacion">📏 Control Monotributo</a>
    </div>
   </div>
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="proveedor">📦 Proveedor ▾</button>
    <div class="admin-menu-drop" data-drop="proveedor">
-    <a href="facturas.html">🧾 Facturas proveedor</a>
-    <a href="cuenta-proveedor.html">📒 Cuenta proveedor</a>
-    <a href="costos.html">💰 Costos y márgenes</a>
+    <a href="facturas.html" data-perm="proveedor">🧾 Facturas proveedor</a>
+    <a href="cuenta-proveedor.html" data-perm="proveedor">📒 Cuenta proveedor</a>
+    <a href="costos.html" data-perm="proveedor">💰 Costos y márgenes</a>
    </div>
   </div>
   <div class="admin-menu-cat">
    <button type="button" class="admin-menu-btn" data-cat="reportes">📊 Reportes ▾</button>
    <div class="admin-menu-drop" data-drop="reportes">
-    <a href="reporte.html">📦 Reporte para distribuidor</a>
-    <a href="dashboard.html">📊 Dashboard</a>
-    <a href="stock.html">📦 Stock</a>
-    <a href="visitas.html">📈 Visitas</a>
-    <a href="auditoria.html">🕵️ Auditoría</a>
+    <a href="reporte.html" data-perm="reportes">📦 Reporte para distribuidor</a>
+    <a href="dashboard.html" data-perm="reportes">📊 Dashboard</a>
+    <a href="stock.html" data-perm="reportes">📦 Stock</a>
+    <a href="visitas.html" data-perm="reportes">📈 Visitas</a>
+    <a href="auditoria.html" data-perm="auditoria">🕵️ Auditoría</a>
+   </div>
+  </div>
+  <div class="admin-menu-cat" data-perm="usuarios">
+   <button type="button" class="admin-menu-btn" data-cat="usuarios">👥 Usuarios ▾</button>
+   <div class="admin-menu-drop" data-drop="usuarios">
+    <a href="usuarios.html" data-perm="usuarios">👥 Usuarios y permisos</a>
    </div>
   </div>
  </nav>
@@ -232,6 +238,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 </div>
 
 <script src="auditoria.js"></script>
+<script src="permisos.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -293,6 +300,7 @@ async function login(){
 
 function logout(){
  localStorage.removeItem("admin_session");
+ try{sessionStorage.removeItem("perm_cache")}catch(e){}
  session=null;
  showLogin();
 }
@@ -465,7 +473,7 @@ async function crearEnvioZipnova(id,carrierId,serviceType,logisticType,btn){
  try{
   const r=await fetch("/api/zipnova-crear-envio",{
    method:"POST",
-   headers:{"Content-Type":"application/json"},
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},
    body:JSON.stringify({pedidoId:id,carrierId,serviceType,logisticType})
   });
   const data=await r.json();
