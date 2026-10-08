@@ -194,6 +194,7 @@ body{margin:0;font-family:Poppins,Arial,sans-serif;color:var(--ink);background:#
  </div>
 </div>
 
+<script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -430,6 +431,15 @@ async function cargar(){
 $("sizeSelect").addEventListener("change",()=>{if(window._orders)renderReceipts(window._orders,$("sizeSelect").value)});
 $("printBtn").addEventListener("click",()=>window.print());
 
+// Auditoría: cada vez que se abre el diálogo de impresión (botón o Ctrl+P)
+// se registra quién imprimió; la primera vez "Impreso", luego "Reimpreso".
+let _ultimaImpresionLog=0;
+window.addEventListener("beforeprint",()=>{
+ if(Date.now()-_ultimaImpresionLog<4000)return;
+ _ultimaImpresionLog=Date.now();
+ if(window._orders&&window._orders.length)Audit.logPrint(window._orders.map(o=>o.id));
+});
+
 let facPedidoId=null;
 let facBtnActual=null;
 
@@ -537,6 +547,7 @@ $("facConfirmar").addEventListener("click",async()=>{
    orden.factura_cuit_cliente=data.cuit_cliente;
    orden.factura_cliente_condicion_iva=data.condicion_iva;
   }
+  Audit.log(id,"Factura emitida (ARCA)","Factura C "+String(data.pto_vta||0).padStart(4,"0")+"-"+String(data.nro||0).padStart(8,"0")+" · CAE "+data.cae+(razonSocial?" · "+razonSocial:""));
   renderReceipts(window._orders,$("sizeSelect").value);
  }catch(err){
   btn.disabled=false;
@@ -596,6 +607,7 @@ $("ncConfirmar").addEventListener("click",async()=>{
    orden.nc_motivo=data.motivo;
    orden.nc_facturada_en=data.facturado_en;
   }
+  Audit.log(id,"Nota de crédito emitida (ARCA)","NC "+String(data.pto_vta||0).padStart(4,"0")+"-"+String(data.nro||0).padStart(8,"0")+" · CAE "+data.cae+(motivo?" · "+motivo:""));
   renderReceipts(window._orders,$("sizeSelect").value);
  }catch(err){
   if(btn){btn.disabled=false;btn.textContent="↩️ Nota de Crédito";}

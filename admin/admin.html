@@ -166,6 +166,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
     <a href="dashboard.html">📊 Dashboard</a>
     <a href="stock.html">📦 Stock</a>
     <a href="visitas.html">📈 Visitas</a>
+    <a href="auditoria.html">🕵️ Auditoría</a>
    </div>
   </div>
  </nav>
@@ -220,6 +221,17 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 
 </main>
 
+<div id="historialModal" style="display:none;position:fixed;inset:0;background:rgba(40,20,55,.55);z-index:100;align-items:center;justify-content:center;padding:14px">
+ <div style="background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+   <strong id="historialTitulo" style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:24px">Historial</strong>
+   <button type="button" id="historialCerrar" class="chip">✕ Cerrar</button>
+  </div>
+  <div id="historialBody" style="margin-top:10px"></div>
+ </div>
+</div>
+
+<script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -228,6 +240,7 @@ const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"curre
 
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let orders=[];
+let impresiones={};
 let statusFilter="Todos";
 let canalFilter="Todos";
 
@@ -303,6 +316,7 @@ async function cargarPedidos(){
  try{
   const r=await apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc");
   orders=await r.json();
+  try{impresiones=await Audit.resumenImpresiones()}catch(e){impresiones={}}
   render();
  }catch(e){
   $("ordersList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar pedidos")+'</div>';
@@ -324,7 +338,9 @@ async function cambiarEstadoPedido(id,select){
    body:JSON.stringify(body)
   });
   const o=orders.find(x=>x.id===id);
+  const antesEstado=o?(o.estado_entrega==="Entregado"?"Entregado":(o.estado==="Tomado"?"Tomado":"Pendiente")):"?";
   if(o)Object.assign(o,body);
+  Audit.log(id,"Estado modificado","De "+antesEstado+" a "+valor+(o&&o.comercio?" · "+o.comercio:""));
   render();
  }catch(e){
   alert("No se pudo actualizar: "+(e.message||"error desconocido"));
@@ -360,7 +376,9 @@ async function guardarDescuentos(id,btn){
    headers:{"Prefer":"return=minimal"},
    body:JSON.stringify({productos:nuevosItems,total:nuevoTotal})
   });
+  const totalAntes=o.total;
   o.productos=nuevosItems;o.total=nuevoTotal;
+  Audit.log(id,"Descuento aplicado","Total de "+money(totalAntes)+" a "+money(nuevoTotal)+" · "+nuevosItems.filter(it=>it.bonif_pct>0).map(it=>it.producto+" -"+it.bonif_pct+"%").join(", "));
   openDescuentoId=null;
   render();
  }catch(e){
@@ -390,6 +408,7 @@ async function guardarEnvio(id,btn){
    body:JSON.stringify({transportista:transportista||null,numero_seguimiento:numero||null,estado_envio:estadoEnvio})
   });
   o.transportista=transportista||null;o.numero_seguimiento=numero||null;o.estado_envio=estadoEnvio;
+  Audit.log(id,"Envío modificado",(transportista||"Sin transportista")+(numero?" · "+numero:"")+" · "+estadoEnvio);
   openEnvioId=null;
   render();
  }catch(e){
@@ -455,6 +474,7 @@ async function crearEnvioZipnova(id,carrierId,serviceType,logisticType,btn){
    err.detalle=data.detalle;
    throw err;
   }
+  Audit.log(id,"Envío creado en Zipnova",(data.envio&&(data.envio.carrier_name||data.envio.carrier))||("Transportista "+carrierId)+" · "+serviceType);
   await cargarPedidos();
   openEnvioId=id;
   render();
@@ -504,6 +524,7 @@ async function borrarPedido(id,btn){
    headers:{"Prefer":"return=minimal"}
   });
   await reponerStock(o?.productos,"Pedido borrado — "+(o?.comercio||""));
+  Audit.log(id,"Pedido borrado",(o?.comercio||"Sin nombre")+" · total "+money(o?.total));
   orders=orders.filter(x=>x.id!==id);
   render();
  }catch(e){
@@ -523,7 +544,9 @@ async function cambiarPago(id,select){
    body:JSON.stringify({estado_pago:valor,fecha_pago:ahora})
   });
   const o=orders.find(x=>x.id===id);
+  const antesPago=o?(o.estado_pago||"Pendiente"):"?";
   if(o){o.estado_pago=valor;o.fecha_pago=ahora}
+  Audit.log(id,"Pago modificado","De "+antesPago+" a "+valor+(o&&o.comercio?" · "+o.comercio:""));
   render();
  }catch(e){
   alert("No se pudo actualizar el pago: "+(e.message||"error desconocido"));
@@ -542,6 +565,7 @@ async function marcarPagadoMP(id,btn){
   });
   const o=orders.find(x=>x.id===id);
   if(o)o.pagado=true;
+  Audit.log(id,"Pago Mercado Pago confirmado",o&&o.comercio?o.comercio:null);
   render();
  }catch(e){
   alert("No se pudo marcar como pagado: "+(e.message||"error desconocido"));
@@ -659,6 +683,8 @@ function render(){
   const trackUrl=o.numero_seguimiento&&TRACK_URLS[o.transportista]?TRACK_URLS[o.transportista]+encodeURIComponent(o.numero_seguimiento):null;
   const envioBadge=o.numero_seguimiento?`<span class="badge" style="background:#e8f0fe;color:#1a56b0">🚚 ${o.transportista||"Envío"} · ${estadoEnvio}${trackUrl?` · <a href="${trackUrl}" target="_blank" style="color:#1a56b0">seguir</a>`:` · ${o.numero_seguimiento}`}</span>`:"";
   const envioElegidoBadge=(!o.numero_seguimiento&&o.envio_elegido_transportista)?`<span class="badge" style="background:#f3e8ff;color:#6b21a8">📦 El cliente eligió: ${o.envio_elegido_transportista} · ${money(o.envio_elegido_costo)} (ya pagado/incluido en el pedido)</span>`:"";
+  const imp=impresiones[o.id];
+  const impBadge=imp?`<span class="badge" style="background:#eef2f7;color:#41506a" title="Última impresión: ${fmtFecha(imp.ultimaVez)}">🖨️ ${imp.veces===1?"Impreso":"Impreso "+imp.veces+" veces"} · última por ${Audit.nombreCorto(imp.ultimoPor)}</span>`:"";
   const filasDescuento=(o.productos||[]).map((it,idx)=>`
     <div class="descuento-row">
      <span>${it.producto}</span>
@@ -676,7 +702,7 @@ function render(){
     </div>
     <span class="badge ${estadoClase}">${estadoPedido}</span>
    </div>
-   ${envioBadge||envioElegidoBadge||mpBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${envioBadge}${envioElegidoBadge}${mpBadge}</div>`:""}
+   ${envioBadge||envioElegidoBadge||mpBadge||impBadge?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${envioBadge}${envioElegidoBadge}${mpBadge}${impBadge}</div>`:""}
    <div class="items">${items||"<div>Sin productos</div>"}</div>
    <div class="order-total">Total: ${money(o.total)}</div>
    ${o.observaciones?`<div class="order-notes">📝 ${o.observaciones}</div>`:""}
@@ -728,6 +754,7 @@ function render(){
     </select>
     ${waNum?`<button class="btn-wa" onclick="window.open('https://wa.me/${waNum}','_blank')">💬 WhatsApp</button>`:""}
     <button class="btn-wa" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Imprimir</button>
+    <button class="btn-wa" onclick="verHistorial(${o.id})">📜 Historial</button>
     <button class="btn-wa" onclick="toggleDescuento(${o.id})">🏷️ ${descuentoAbierto?"Cerrar":"Descuento"}</button>
     <button class="btn-wa" onclick="toggleEnvio(${o.id})">🚚 ${envioAbierto?"Cerrar":"Envío"}</button>
     <button class="btn-del" onclick="borrarPedido(${o.id},this)">🗑️ Borrar</button>
@@ -735,6 +762,31 @@ function render(){
   </div>`;
  }).join("");
 }
+
+function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+async function verHistorial(id){
+ const o=orders.find(x=>x.id===id);
+ $("historialTitulo").textContent="Historial · "+(o&&o.comercio?o.comercio:"Pedido "+id);
+ $("historialBody").innerHTML='<div class="loading">Cargando...</div>';
+ $("historialModal").style.display="flex";
+ try{
+  const eventos=await Audit.historial(id);
+  const filas=eventos.map(e=>({fecha:e.creado_en,evento:e.evento,por:e.usuario_email,obs:e.detalle}));
+  if(o)filas.push({fecha:o.created_at,evento:"Creado",por:o.manual?"Carga manual":"Cliente (web)",obs:"Pedido #"+o.id});
+  $("historialBody").innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>'
+   +'<th style="text-align:left;padding:6px 4px;border-bottom:2px solid var(--purple);font-size:11px;color:var(--muted);text-transform:uppercase">Fecha / Hora</th>'
+   +'<th style="text-align:left;padding:6px 4px;border-bottom:2px solid var(--purple);font-size:11px;color:var(--muted);text-transform:uppercase">Evento</th>'
+   +'<th style="text-align:left;padding:6px 4px;border-bottom:2px solid var(--purple);font-size:11px;color:var(--muted);text-transform:uppercase">Por</th>'
+   +'<th style="text-align:left;padding:6px 4px;border-bottom:2px solid var(--purple);font-size:11px;color:var(--muted);text-transform:uppercase">Obs.</th></tr></thead><tbody>'
+   +filas.map(f=>'<tr><td style="padding:7px 4px;border-bottom:1px dotted #eee1ef;white-space:nowrap">'+esc(new Date(f.fecha).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+new Date(f.fecha).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}))+'</td><td style="padding:7px 4px;border-bottom:1px dotted #eee1ef;font-weight:700">'+esc(f.evento)+'</td><td style="padding:7px 4px;border-bottom:1px dotted #eee1ef">'+esc(f.por)+'</td><td style="padding:7px 4px;border-bottom:1px dotted #eee1ef">'+esc(f.obs||"")+'</td></tr>').join("")
+   +'</tbody></table><div style="font-size:11px;color:var(--muted);margin-top:8px">Los eventos anteriores a la activación de la auditoría no aparecen acá.</div>';
+ }catch(e){
+  $("historialBody").innerHTML='<div class="err">❌ '+esc(e.message||"No se pudo cargar")+' (¿ya corriste sql-auditoria.sql en Supabase?)</div>';
+ }
+}
+$("historialCerrar").addEventListener("click",()=>{$("historialModal").style.display="none"});
+$("historialModal").addEventListener("click",e=>{if(e.target.id==="historialModal")$("historialModal").style.display="none"});
 
 function irPagina(n){
  paginaActual=n;
