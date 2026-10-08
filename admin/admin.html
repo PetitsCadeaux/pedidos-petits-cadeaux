@@ -187,66 +187,8 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
    <button type="button" class="pill danger" id="logoutBtnHeader">Cerrar sesión</button>
   </div>
  </div>
- <nav class="admin-menu" id="adminMenu">
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="pedidos"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/></svg><span>Pedidos</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="pedidos">
-    <a href="pedido-manual.html" data-perm="pedido_manual">Cargar pedido manual</a>
-    <a href="hoja-ruta.html" data-perm="pedidos">Hoja de ruta</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="catalogo"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg><span>Catálogo</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="catalogo">
-    <a href="productos.html" data-perm="productos">Productos (Tienda y Regaleria)</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="clientes"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 010 6M18 14c2 .8 3.5 2.8 3.5 5"/></svg><span>Clientes</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="clientes">
-    <a href="cuenta.html" data-perm="clientes">Cuenta corriente</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="facturacion"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Facturación</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="facturacion">
-    <a href="facturacion.html" data-perm="facturacion">Facturación y cobranza</a>
-    <a href="facturas-emitidas.html" data-perm="facturacion">Facturas emitidas</a>
-    <a href="libro-iva-compras.html" data-perm="facturacion">Libro IVA Compras</a>
-    <a href="monotributo.html" data-perm="facturacion">Control Monotributo</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="proveedor"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg><span>Proveedor</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="proveedor">
-    <a href="facturas.html" data-perm="proveedor">Facturas proveedor</a>
-    <a href="cuenta-proveedor.html" data-perm="proveedor">Cuenta proveedor</a>
-    <a href="costos.html" data-perm="proveedor">Costos y márgenes</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="reportes"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Reportes</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="reportes">
-    <a href="reporte.html" data-perm="reportes">Reporte para distribuidor</a>
-    <a href="dashboard.html" data-perm="reportes">Dashboard</a>
-    <a href="stock.html" data-perm="reportes">Stock</a>
-    <a href="visitas.html" data-perm="reportes">Visitas</a>
-    <a href="auditoria.html" data-perm="auditoria">Auditoría</a>
-   </div>
-  </div>
-  <div class="admin-menu-cat">
-   <button type="button" class="admin-menu-btn" data-cat="config"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Configuración</span><i class="car"></i></button>
-   <div class="admin-menu-drop" data-drop="config" style="left:auto;right:0">
-    <a href="usuarios.html" data-perm="usuarios">Usuarios y permisos</a>
-    <div class="menu-sep">Integraciones</div>
-    <a href="https://app.zipnova.com.ar" target="_blank" rel="noopener">Zipnova</a>
-    <a href="https://cabifylogistics.com/ar" target="_blank" rel="noopener">Cabify Logistics</a>
-    <a href="https://www.oca.com.ar" target="_blank" rel="noopener">OCA</a>
-    <a href="https://www.mercadopago.com.ar" target="_blank" rel="noopener">Mercado Pago</a>
-   </div>
-  </div>
- </nav>
 </header>
+<script src="menu.js"></script>
 
 <main>
 
@@ -979,20 +921,6 @@ $("printSelectedBtn").addEventListener("click",()=>{
  window.open("pedido-imprimir.html?ids="+ids.join(","),"_blank");
 });
 
-document.querySelectorAll(".admin-menu-btn").forEach(btn=>{
- btn.addEventListener("click",(e)=>{
-  e.stopPropagation();
-  const drop=document.querySelector('.admin-menu-drop[data-drop="'+btn.dataset.cat+'"]');
-  const yaAbierto=drop.classList.contains("open");
-  document.querySelectorAll(".admin-menu-drop.open").forEach(d=>d.classList.remove("open"));
-  document.querySelectorAll(".admin-menu-btn.open").forEach(b=>b.classList.remove("open"));
-  if(!yaAbierto){drop.classList.add("open");btn.classList.add("open")}
- });
-});
-document.addEventListener("click",()=>{
- document.querySelectorAll(".admin-menu-drop.open").forEach(d=>d.classList.remove("open"));
- document.querySelectorAll(".admin-menu-btn.open").forEach(b=>b.classList.remove("open"));
-});
 
 if(session){showPanel()}else{showLogin()}
 </script>
