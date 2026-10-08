@@ -1,0 +1,7 @@
+/* Pantallas de computadora: aprovechar el ancho disponible en todas las secciones. */
+@media(min-width:1100px){
+  main{max-width:1320px!important;padding-left:28px!important;padding-right:28px!important}
+  /* Formularios dentro de tarjetas: que no se estiren a todo el ancho */
+  .card > label,.card > .row2,.card > .row3,.card > input,.card > select,.card > .radio-row,.card > .item-form{max-width:760px}
+  .card > .btn-main,.card > .btn-sec{max-width:760px}
+}

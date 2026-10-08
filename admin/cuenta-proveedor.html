@@ -46,6 +46,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 .tot-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
 .tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:700;color:var(--purple)}
 </style>
+<link rel="stylesheet" href="ancho.css">
 </head>
 <body>
 
@@ -92,6 +93,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 </main>
 
 <script src="permisos.js"></script>
+<script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -102,6 +104,7 @@ const normProv=p=>(p||"").trim().toLowerCase().replace(/\s+/g," ");
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let facturas=[];
 let pagos=[];
+let opIds=new Set();
 let proveedores=[];
 let openKey=null;
 
@@ -123,7 +126,7 @@ function buildProveedores(){
   map[key].facturas.push(f);
   map[key].debe+=(f.importe||0);
  });
- pagos.forEach(p=>{
+ pagos.filter(p=>!p.anulado).forEach(p=>{
   const key=normProv(p.proveedor);
   if(!map[key])map[key]={key,proveedor:p.proveedor,facturas:[],pagos:[],debe:0};
   map[key].pagos.push(p);
@@ -170,9 +173,11 @@ function renderProveedores(){
   const facturasHtml=p.facturas.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(f=>
    `<div class="mini-row"><span>${fmtFechaCorta(f.fecha)} ${f.tipo_comprobante?"· "+f.tipo_comprobante:""}${f.descripcion?" · "+f.descripcion:""}</span><span>${money(f.importe)}</span></div>`
   ).join("")||'<div class="mini-row"><span>Sin facturas registradas</span></div>';
-  const pagosHtml=p.pagos.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(x=>
-   `<div class="mini-row"><span>${fmtFechaCorta(x.fecha)} ${x.nota?"· "+x.nota:""}</span><span>${money(x.monto)} <button class="del-pago" onclick="event.stopPropagation();borrarPago(${x.id})">✕</button></span></div>`
-  ).join("")||'<div class="mini-row"><span>Sin pagos registrados</span></div>';
+  const pagosHtml=p.pagos.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(x=>{
+   const esOP=opIds.has(x.id);
+   const det=[x.medio,x.referencia,x.nota].filter(Boolean).join(" · ");
+   return `<div class="mini-row"><span>${fmtFechaCorta(x.fecha)}${esOP?" · <strong>OP N° "+String(x.id).padStart(6,"0")+"</strong>":""}${det?" · "+det:""}</span><span>${money(x.monto)} ${esOP?`<button class="del-pago" title="Ver orden de pago" style="color:#542477" onclick="event.stopPropagation();window.open('orden-pago.html?id=${x.id}','_blank')">🖨️</button>`:""}<button class="del-pago" title="${esOP?"Anular":"Borrar"}" onclick="event.stopPropagation();borrarPago(${x.id},${esOP})">✕</button></span></div>`;
+  }).join("")||'<div class="mini-row"><span>Sin pagos registrados</span></div>';
 
   return `<div class="prov" onclick="toggleProv('${p.key.replace(/'/g,"\\'")}')">
    <div class="prov-top">
@@ -206,6 +211,8 @@ async function cargarTodo(){
   ]);
   facturas=await rFacturas.json();
   pagos=await rPagos.json();
+  opIds=new Set();
+  try{const rl=await apiFetch("/rest/v1/pagos_proveedor_facturas?select=pago_id");if(rl.ok)(await rl.json()).forEach(l=>opIds.add(l.pago_id))}catch(e){}
   buildProveedores();
   renderTotales();
   fillProveedorSelect();
@@ -241,13 +248,19 @@ async function guardarPago(){
  $("guardarPagoBtn").disabled=false;$("guardarPagoBtn").textContent="Guardar pago";
 }
 
-async function borrarPago(id){
- if(!confirm("¿Borrar este pago?"))return;
+async function borrarPago(id,esOP){
+ if(!confirm(esOP?"¿Anular esta orden de pago? Las facturas vuelven a quedar pendientes.":"¿Borrar este pago?"))return;
  try{
-  await apiFetch("/rest/v1/pagos_proveedor?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  if(esOP){
+   const r=await apiFetch("/rest/v1/rpc/anular_orden_pago",{method:"POST",body:JSON.stringify({p_pago:id})});
+   if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||"error")}
+   try{if(window.Audit)Audit.log(null,"Orden de pago anulada","Orden N° "+id)}catch(e){}
+  }else{
+   await apiFetch("/rest/v1/pagos_proveedor?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  }
   await cargarTodo();
  }catch(e){
-  alert("No se pudo borrar: "+(e.message||"error desconocido"));
+  alert("No se pudo completar: "+(e.message||"error desconocido"));
  }
 }
 

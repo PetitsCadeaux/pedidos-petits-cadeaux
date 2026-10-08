@@ -62,7 +62,36 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 .del-item{background:none;border:0;color:#c0435a;font-size:12px;font-weight:700;padding:2px 6px;cursor:pointer}
 .detail{margin-top:12px;border-top:1px dashed #e6d9e8;padding-top:10px;display:none}
 .detail.open{display:block}
+
+.frow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid #eee1ef;border-radius:16px;padding:11px 14px;margin-top:9px;background:linear-gradient(180deg,#fff,#fdf9fe);cursor:pointer}
+.frow.pagada{opacity:.7}
+.frow input[type=checkbox]{width:20px;height:20px;margin:0;padding:0;accent-color:#71369e}
+.frow .fmain{min-width:0}
+.frow .fprov{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .fmeta{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .fright{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.fimp{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:700;color:var(--purple);text-align:right;line-height:1.1}
+.fimp small{display:block;font:600 11px Poppins,Arial,sans-serif;color:var(--muted)}
+.badge.parcial{background:#e8f0fe;color:#1a56b0}
+.btn-pagar{padding:9px 16px;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;font-size:13px}
+.fdet{grid-column:1/-1;border-top:1px dashed #e6d9e8;padding-top:10px;display:none;cursor:default}
+.fdet.open{display:block}
+.fdet .actions{margin-top:10px}
+.selbar{position:sticky;bottom:12px;z-index:20;display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#392541;color:#fff;border-radius:18px;padding:12px 16px;margin-top:14px;box-shadow:0 10px 30px rgba(57,37,65,.35)}
+.selbar button{padding:10px 18px;background:#fff;color:#542477}
+.modal-bg{position:fixed;inset:0;background:rgba(57,37,65,.55);display:none;align-items:center;justify-content:center;padding:14px;z-index:100}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:22px;padding:20px;width:100%;max-width:560px;max-height:92vh;overflow:auto}
+.modal h2{margin:0 0 4px;font-family:"Cormorant Garamond",Georgia,serif;color:var(--purple);font-size:26px}
+.op-line{display:grid;grid-template-columns:1fr 140px;gap:10px;align-items:center;border-bottom:1px dotted #eee1ef;padding:8px 0;font-size:13px}
+.op-line input{margin:0;padding:9px 10px;font-size:15px;text-align:right}
+.op-total{display:flex;justify-content:space-between;font-weight:800;font-size:17px;margin-top:12px;color:var(--purple)}
+.medios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.medio{padding:11px 6px;border:1.5px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 13px Poppins,Arial,sans-serif;text-align:center}
+.medio.sel{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
+@media(max-width:560px){.totales{grid-template-columns:1fr!important}.frow{grid-template-columns:auto 1fr}.frow .fright{grid-column:1/-1;justify-content:space-between}}
 </style>
+<link rel="stylesheet" href="ancho.css">
 </head>
 <body>
 
@@ -82,7 +111,8 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 
  <div class="totales" id="totales"></div>
 
- <div class="card">
+ <button type="button" class="btn-main" id="toggleFormBtn" style="margin:0 0 14px;max-width:340px">➕ Cargar factura</button>
+ <div class="card" id="formCard" style="display:none">
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Cargar factura</h2>
 
   <label>Proveedor<input id="fProveedor" placeholder="Ej. Pazzi S.A."></label>
@@ -169,9 +199,14 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
 
 </div>
 
+<div class="selbar" id="selbar"><span id="selInfo"></span><button type="button" id="selPagarBtn">Pagar seleccionadas</button></div>
+
+<div class="modal-bg" id="opModal"><div class="modal" id="opBox"></div></div>
+
 </main>
 
 <script src="permisos.js"></script>
+<script src="auditoria.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -198,9 +233,11 @@ async function apiFetch(path,options={}){
  return r;
 }
 
+const saldoDe=f=>f.pagada?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0));
+const pagadoDe=f=>f.pagada?(f.importe||0):Math.min(f.importe||0,f.pagado_monto||0);
 function renderTotales(){
  const total=facturas.reduce((s,f)=>s+(f.importe||0),0);
- const pagado=facturas.filter(f=>f.pagada).reduce((s,f)=>s+(f.importe||0),0);
+ const pagado=facturas.reduce((s,f)=>s+pagadoDe(f),0);
  const pendiente=total-pagado;
  $("totales").innerHTML=`
   <div class="tot-stat"><div class="tot-label">Total facturado</div><div class="tot-value">${money(total)}</div></div>
@@ -476,43 +513,144 @@ async function guardarFactura(){
  $("guardarFacturaBtn").disabled=false;$("guardarFacturaBtn").textContent="Guardar factura";
 }
 
+let sel=new Set();
+const estadoDe=f=>f.pagada?"Pagada":(f.pagado_monto>0?"Parcial":"Pendiente");
 function renderFacturas(){
  const visible=facturas.filter(f=>{
   if(estadoFilter==="Todas")return true;
   if(estadoFilter==="Pagada")return f.pagada;
   return !f.pagada;
  });
-
+ sel=new Set([...sel].filter(id=>facturas.some(f=>f.id===id&&!f.pagada)));
  $("countLabel").textContent=visible.length+" "+(visible.length===1?"factura":"facturas");
-
- if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';return}
+ if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';renderSel();return}
 
  $("facturasList").innerHTML=visible.map(f=>{
   const open=openFacturaId===f.id;
+  const est=estadoDe(f);
   const itemsHtml=(f.items||[]).map(it=>`<tr><td>${it.producto}${it.tipo==="servicio"?' <span class="badge tipo" style="font-size:9px">Servicio</span>':""}</td><td class="num">${it.cantidad}</td><td class="num">${money(it.precioFinal)}</td><td class="num">${money(it.subtotal)}</td></tr>`).join("");
-  return `<div class="factura ${f.pagada?"pagada":""}" onclick="toggleFactura(${f.id})">
-   <div class="factura-top">
-    <div>
-     <div class="factura-prov">${f.proveedor||"Sin nombre"}</div>
-     <div class="factura-meta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}${f.cuit_proveedor?" · CUIT "+f.cuit_proveedor:""}</div>
-    </div>
-    <div>
-     <span class="badge ${f.pagada?"pagada":"pendiente"}">${f.pagada?"Pagada":"Pendiente"}</span>
-     ${f.tipo_comprobante?`<span class="badge tipo">${f.tipo_comprobante}</span>`:""}
-    </div>
+  const saldo=saldoDe(f);
+  return `<div class="frow ${f.pagada?"pagada":""}" onclick="toggleFactura(${f.id})">
+   ${f.pagada?'<span style="width:20px"></span>':`<input type="checkbox" ${sel.has(f.id)?"checked":""} onclick="event.stopPropagation()" onchange="toggleSel(${f.id},this.checked)">`}
+   <div class="fmain">
+    <div class="fprov">${f.proveedor||"Sin nombre"}</div>
+    <div class="fmeta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}${f.tipo_comprobante?" · "+f.tipo_comprobante:""}</div>
    </div>
-   <div class="factura-importe" onclick="event.stopPropagation();editarImporte(${f.id},this)" style="cursor:pointer" title="Tocá para editar">${money(f.importe)} ✏️</div>
-   ${itemsHtml?`<div class="detail ${open?"open":""}"><table><thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table></div>`:""}
-   <div class="actions">
-    ${!f.pagada?`<button class="btn-pay" onclick="event.stopPropagation();marcarPagada(${f.id},this)">Marcar como pagada</button>`:""}
-    ${f.archivo_url?`<button class="btn-del" onclick="event.stopPropagation();window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
-    <button class="btn-del" onclick="event.stopPropagation();borrarFactura(${f.id})">Borrar</button>
+   <div class="fright">
+    <div class="fimp">${money(f.importe)}${est==="Parcial"?`<small>Debe ${money(saldo)}</small>`:""}</div>
+    <span class="badge ${est==="Pagada"?"pagada":est==="Parcial"?"parcial":"pendiente"}">${est}</span>
+    ${!f.pagada?`<button class="btn-pagar" onclick="event.stopPropagation();abrirPago([${f.id}])">Pagar</button>`:""}
+   </div>
+   <div class="fdet ${open?"open":""}" onclick="event.stopPropagation()">
+    ${f.cuit_proveedor?`<div class="fmeta" style="white-space:normal">CUIT ${f.cuit_proveedor}</div>`:""}
+    ${f.pagada&&f.fecha_pago?`<div class="fmeta" style="white-space:normal">Pagada el ${fmtFechaCorta(f.fecha_pago)}</div>`:""}
+    ${itemsHtml?`<table><thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table>`:""}
+    <div class="actions">
+     <button class="btn-del" onclick="editarImporte(${f.id})">✏️ Editar importe</button>
+     ${f.archivo_url?`<button class="btn-del" onclick="window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
+     <button class="btn-del" onclick="borrarFactura(${f.id})">Borrar</button>
+    </div>
    </div>
   </div>`;
  }).join("");
+ renderSel();
 }
 
+function toggleSel(id,on){if(on)sel.add(id);else sel.delete(id);renderSel()}
+function renderSel(){
+ const bar=$("selbar");
+ if(!sel.size){bar.style.display="none";return}
+ const fs=facturas.filter(f=>sel.has(f.id));
+ const provs=new Set(fs.map(f=>(f.proveedor||"").trim().toLowerCase()));
+ const tot=fs.reduce((s,f)=>s+saldoDe(f),0);
+ bar.style.display="flex";
+ $("selInfo").textContent=fs.length+" seleccionada"+(fs.length>1?"s":"")+" · "+money(tot)+(provs.size>1?" · ⚠️ elegí un solo proveedor":"");
+ $("selPagarBtn").disabled=provs.size>1;
+}
+$("selPagarBtn").addEventListener("click",()=>abrirPago([...sel]));
+
 function toggleFactura(id){openFacturaId=openFacturaId===id?null:id;renderFacturas()}
+
+// ---------- Orden de pago ----------
+const MEDIOS=["Efectivo","Transferencia","Cheque","Mercado Pago","Tarjeta","Otro"];
+let opState=null;
+function abrirPago(ids){
+ const fs=facturas.filter(f=>ids.includes(f.id)&&!f.pagada);
+ if(!fs.length)return;
+ const provs=new Set(fs.map(f=>(f.proveedor||"").trim().toLowerCase()));
+ if(provs.size>1){alert("Elegí facturas de un solo proveedor para generar la orden de pago.");return}
+ opState={fs,medio:"",done:null};
+ renderOp();
+ $("opModal").classList.add("open");
+}
+function cerrarOp(){$("opModal").classList.remove("open");opState=null}
+function renderOp(){
+ const st=opState;
+ if(st.done){
+  $("opBox").innerHTML=`<h2>✅ Orden de pago N° ${String(st.done.id).padStart(6,"0")}</h2>
+   <div class="ok">Se registró el pago de ${money(st.done.total)} a ${st.done.prov} (${st.done.medio}).</div>
+   <button class="btn-main" onclick="window.open('orden-pago.html?id=${st.done.id}','_blank')">🖨️ Ver / imprimir orden de pago</button>
+   <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cerrar</button>`;
+  return;
+ }
+ const hoy=new Date().toISOString().slice(0,10);
+ $("opBox").innerHTML=`<h2>Orden de pago</h2>
+  <div class="fmeta" style="white-space:normal">${st.fs[0].proveedor||""}</div>
+  <div style="margin-top:10px">${st.fs.map(f=>`<div class="op-line"><div><strong>${fmtFechaCorta(f.fecha)}</strong> · ${f.descripcion||f.tipo_comprobante||"Factura"}<br><span style="color:var(--muted)">Saldo ${money(saldoDe(f))}</span></div><input type="number" step="0.01" min="0" data-op="${f.id}" value="${saldoDe(f)}" oninput="opTotal()"></div>`).join("")}</div>
+  <div class="op-total"><span>Total a pagar</span><span id="opTot">$0</span></div>
+  <label>Medio de pago</label>
+  <div class="medios">${MEDIOS.map(m=>`<button type="button" class="medio ${st.medio===m?"sel":""}" onclick="opMedio('${m}')">${m}</button>`).join("")}</div>
+  <div class="row2"><label>Fecha<input id="opFecha" type="date" value="${hoy}"></label>
+  <label>Referencia (opcional)<input id="opRef" placeholder="N° de transferencia, cheque…"></label></div>
+  <label>Nota (opcional)<input id="opNota"></label>
+  <div id="opMsg"></div>
+  <button class="btn-main" id="opGuardar" onclick="confirmarPago()">Confirmar pago y generar orden</button>
+  <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cancelar</button>`;
+ opTotal();
+}
+function opMedio(m){
+ // conserva lo tipeado
+ const keep={f:$("opFecha").value,r:$("opRef").value,n:$("opNota").value,v:[...document.querySelectorAll("[data-op]")].map(i=>i.value)};
+ opState.medio=m;renderOp();
+ $("opFecha").value=keep.f;$("opRef").value=keep.r;$("opNota").value=keep.n;
+ document.querySelectorAll("[data-op]").forEach((i,k)=>i.value=keep.v[k]);opTotal();
+}
+function opTotal(){
+ const t=[...document.querySelectorAll("[data-op]")].reduce((s,i)=>s+(parseFloat(i.value)||0),0);
+ $("opTot").textContent=money(t);
+}
+async function confirmarPago(){
+ const st=opState;
+ const items=[...document.querySelectorAll("[data-op]")].map(i=>({factura_id:+i.dataset.op,monto:Math.round((parseFloat(i.value)||0)*100)/100})).filter(x=>x.monto>0);
+ const msg=$("opMsg");
+ if(!items.length){msg.innerHTML='<div class="err">Poné un monto a pagar.</div>';return}
+ for(const it of items){
+  const f=st.fs.find(x=>x.id===it.factura_id);
+  if(it.monto>saldoDe(f)+0.005){msg.innerHTML='<div class="err">Un monto supera el saldo de la factura.</div>';return}
+ }
+ if(!st.medio){msg.innerHTML='<div class="err">Elegí el medio de pago.</div>';return}
+ const btn=$("opGuardar");btn.disabled=true;btn.textContent="Generando...";
+ const total=items.reduce((s,i)=>s+i.monto,0);
+ try{
+  const r=await apiFetch("/rest/v1/rpc/generar_orden_pago",{method:"POST",body:JSON.stringify({
+   p_proveedor:st.fs[0].proveedor,p_fecha:$("opFecha").value,p_medio:st.medio,
+   p_referencia:$("opRef").value.trim(),p_nota:$("opNota").value.trim(),p_items:items})});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok){
+   const m=(data&&(data.message||data.hint))||"error";
+   throw new Error(/function|schema cache|does not exist/i.test(m)?"Falta correr el SQL de órdenes de pago en Supabase (sql-ordenes-pago.sql).":m);
+  }
+  const id=data;
+  try{if(window.Audit)Audit.log(null,"Orden de pago generada","Orden N° "+id+" · "+st.fs[0].proveedor+" · "+money(total)+" · "+st.medio)}catch(e){}
+  sel.clear();
+  st.done={id,total,prov:st.fs[0].proveedor,medio:st.medio};
+  renderOp();
+  cargarFacturas();
+ }catch(e){
+  msg.innerHTML='<div class="err">❌ '+(e.message||"No se pudo generar")+'</div>';
+  btn.disabled=false;btn.textContent="Confirmar pago y generar orden";
+ }
+}
 
 async function cargarFacturas(){
  $("facturasList").innerHTML='<div class="loading">Cargando...</div>';
@@ -541,45 +679,17 @@ function fillProductoSelect(){
  $("iProducto").innerHTML='<option value="">Seleccionar de la lista...</option>'+opts;
 }
 
-function editarImporte(id,el){
+async function editarImporte(id){
  const f=facturas.find(x=>x.id===id);
  if(!f)return;
- const input=document.createElement("input");
- input.type="number";input.min="0";input.step="0.01";input.value=f.importe;
- input.style.cssText="width:140px;display:inline-block;margin:0;padding:8px 10px;font-size:16px";
- input.onclick=e=>e.stopPropagation();
- const guardar=async()=>{
-  const nuevo=parseFloat(input.value);
-  if(!nuevo||nuevo<0){renderFacturas();return}
-  try{
-   await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{
-    method:"PATCH",headers:{"Prefer":"return=minimal"},
-    body:JSON.stringify({importe:nuevo})
-   });
-   f.importe=nuevo;
-   renderTotales();renderFacturas();
-  }catch(e){alert("No se pudo actualizar: "+(e.message||"error desconocido"))}
- };
- input.onblur=guardar;
- input.onkeydown=e=>{if(e.key==="Enter")input.blur()};
- el.replaceWith(input);
- input.focus();input.select();
-}
-
-async function marcarPagada(id,btn){
- btn.disabled=true;btn.textContent="Guardando...";
+ const v=prompt("Nuevo importe de la factura:",f.importe);
+ if(v===null)return;
+ const nuevo=parseFloat(String(v).replace(",","."));
+ if(!nuevo||nuevo<0)return;
  try{
-  const hoy=new Date().toISOString().slice(0,10);
-  await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{
-   method:"PATCH",
-   headers:{"Prefer":"return=minimal"},
-   body:JSON.stringify({pagada:true,fecha_pago:hoy})
-  });
-  await cargarFacturas();
- }catch(e){
-  alert("No se pudo actualizar: "+(e.message||"error desconocido"));
-  btn.disabled=false;btn.textContent="Marcar como pagada";
- }
+  await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({importe:nuevo})});
+  f.importe=nuevo;renderTotales();renderFacturas();
+ }catch(e){alert("No se pudo actualizar: "+(e.message||"error desconocido"))}
 }
 
 async function borrarFactura(id){
@@ -601,6 +711,12 @@ document.querySelectorAll("#estadoFilters .chip").forEach(btn=>{
  });
 });
 
+$("toggleFormBtn").addEventListener("click",()=>{
+ const c=$("formCard"),open=c.style.display==="none";
+ c.style.display=open?"block":"none";
+ $("toggleFormBtn").textContent=open?"✖ Cerrar formulario":"➕ Cargar factura";
+ if(open)c.scrollIntoView({behavior:"smooth",block:"start"});
+});
 $("agregarItemBtn").addEventListener("click",agregarItem);
 $("guardarFacturaBtn").addEventListener("click",guardarFactura);
 $("fFecha").value=new Date().toISOString().slice(0,10);

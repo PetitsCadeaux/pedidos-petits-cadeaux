@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orden de pago - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#66566c;--line:#d9c8db}
+*{box-sizing:border-box}
+body{margin:0;font-family:Poppins,Arial,sans-serif;color:var(--ink);background:#e9e2ec}
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:10}
+.toolbar h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;margin:0;color:var(--purple);flex:1}
+.toolbar button{padding:10px 18px;border-radius:12px;border:0;font:700 13px Poppins,Arial,sans-serif;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;cursor:pointer}
+.toolbar a{color:var(--muted);font-size:13px;text-decoration:none;font-weight:700}
+.page{background:#fff;width:210mm;min-height:148mm;margin:16px auto;padding:14mm;box-shadow:0 2px 12px rgba(0,0,0,.12);font-size:13px}
+.head{text-align:center;border-bottom:2px solid var(--purple);padding-bottom:4mm;margin-bottom:5mm}
+.biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:30px;line-height:1.1}
+.num{display:inline-block;margin-top:3mm;background:#f2e5f7;color:var(--purple);border-radius:999px;padding:1mm 5mm;font-weight:800;font-size:15px}
+.anul{color:#b3243a;border:2px solid #b3243a;display:inline-block;padding:1mm 4mm;border-radius:6px;font-weight:800;margin-top:3mm}
+.info div{display:flex;justify-content:space-between;padding:1.2mm 0;border-bottom:1px dotted #e4d7e6}
+.info span:first-child{font-weight:800;color:var(--muted)}
+h4{margin:6mm 0 2mm;color:var(--purple);text-transform:uppercase;font-size:12px;letter-spacing:.4px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--muted);border-bottom:1.5px solid var(--purple);padding:0 0 1.5mm}
+th:last-child,td:last-child{text-align:right}
+td{padding:1.8mm 0;border-bottom:1px dotted #eee1ef}
+.total{display:flex;justify-content:space-between;align-items:center;border:2.5px solid var(--purple);border-radius:6px;padding:3mm 5mm;margin-top:6mm;font-weight:900;color:var(--purple)}
+.total .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:32px;color:#1a0e24}
+.firmas{display:grid;grid-template-columns:1fr 1fr;gap:20mm;margin-top:22mm}
+.firma{border-top:1px solid var(--ink);padding-top:2mm;text-align:center;font-size:12px;color:var(--muted)}
+.msg{text-align:center;padding:40px;color:var(--muted)}
+@media print{body{background:#fff}.toolbar{display:none}.page{margin:0;box-shadow:none;width:auto}@page{size:A4;margin:10mm}}
+</style>
+</head>
+<body>
+<div class="toolbar"><h1>Orden de pago</h1><a href="facturas.html">← Facturas</a><a href="cuenta-proveedor.html">Cuenta proveedor</a><button onclick="imprimir()">🖨️ Imprimir</button></div>
+<div id="out" class="msg">Cargando...</div>
+<script src="permisos.js"></script>
+<script src="auditoria.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(n||0);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=iso=>{if(!iso)return "-";const [y,m,d]=String(iso).slice(0,10).split("-");return d+"/"+m+"/"+y};
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+const id=new URLSearchParams(location.search).get("id");
+let op=null;
+async function api(p){
+ const r=await fetch(SUPABASE_URL+p,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+ if(!r.ok)throw new Error("No se pudo leer ("+r.status+")");
+ return r.json();
+}
+async function init(){
+ const out=document.getElementById("out");
+ if(!session){out.textContent="Iniciá sesión en el panel para ver esta orden.";return}
+ if(!id){out.textContent="Falta el número de orden.";return}
+ try{
+  const [pago]=await api("/rest/v1/pagos_proveedor?id=eq."+encodeURIComponent(id)+"&select=*");
+  if(!pago){out.textContent="No se encontró la orden de pago.";return}
+  const links=await api("/rest/v1/pagos_proveedor_facturas?pago_id=eq."+encodeURIComponent(id)+"&select=factura_id,monto");
+  let facs=[];
+  if(links.length)facs=await api("/rest/v1/facturas_proveedor?id=in.("+links.map(l=>l.factura_id).join(",")+")&select=id,fecha,tipo_comprobante,descripcion,importe");
+  op=pago;
+  const filas=links.map(l=>{const f=facs.find(x=>x.id===l.factura_id)||{};return `<tr><td>${fmt(f.fecha)}</td><td>${esc(f.tipo_comprobante||"Factura")}${f.descripcion?" · "+esc(f.descripcion):""}</td><td>${money(f.importe)}</td><td>${money(l.monto)}</td></tr>`}).join("")||'<tr><td colspan="4">Pago registrado sin detalle de facturas.</td></tr>';
+  out.className="";
+  out.innerHTML=`<div class="page">
+   <div class="head"><div class="biz">Petits Cadeaux</div><div style="color:var(--muted)">Orden de pago a proveedor</div>
+    <div class="num">OP N° ${String(pago.id).padStart(6,"0")}</div>${pago.anulado?'<div><span class="anul">ANULADA</span></div>':""}</div>
+   <div class="info">
+    <div><span>Proveedor</span><span>${esc(pago.proveedor)}</span></div>
+    <div><span>Fecha de pago</span><span>${fmt(pago.fecha)}</span></div>
+    <div><span>Medio de pago</span><span>${esc(pago.medio||"-")}</span></div>
+    ${pago.referencia?`<div><span>Referencia</span><span>${esc(pago.referencia)}</span></div>`:""}
+    ${pago.nota?`<div><span>Nota</span><span>${esc(pago.nota)}</span></div>`:""}
+   </div>
+   <h4>Comprobantes cancelados</h4>
+   <table><thead><tr><th>Fecha</th><th>Comprobante</th><th style="text-align:right">Importe</th><th>Pagado</th></tr></thead><tbody>${filas}</tbody></table>
+   <div class="total"><span>TOTAL PAGADO</span><span class="val">${money(pago.monto)}</span></div>
+   <div class="firmas"><div class="firma">Pagó</div><div class="firma">Recibió (firma y aclaración)</div></div>
+  </div>`;
+ }catch(e){out.textContent="❌ "+e.message}
+}
+function imprimir(){
+ try{if(window.Audit)Audit.log(null,"Orden de pago impresa","Orden N° "+id)}catch(e){}
+ window.print();
+}
+init();
+</script>
+</body>
+</html>
