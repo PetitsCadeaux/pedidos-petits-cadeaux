@@ -142,6 +142,34 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 .admin-menu-drop.open{display:block}
 .admin-menu-drop a{display:block;padding:9px 11px;border-radius:9px;color:var(--ink);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
 .admin-menu-drop a:hover{background:#f8edf4;color:var(--purple)}
+
+.menu-sep{padding:8px 11px 3px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--line);margin-top:5px}
+.header-top{flex-direction:row!important;justify-content:center;position:relative}
+.header-top h1{width:auto!important}
+.header-actions .pill{padding:6px 11px;font-size:11px}
+@media(min-width:1000px){.header-actions{position:absolute;right:0;top:50%;transform:translateY(-50%)}header{padding-top:12px;padding-bottom:12px}}
+@media(max-width:999px){.header-top{flex-direction:column!important}.header-top h1{width:100%!important}}
+.statbar{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-bottom:12px}
+.sb{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:14px;padding:7px 16px;display:flex;align-items:baseline;gap:9px;box-shadow:0 6px 16px rgba(84,36,119,.06)}
+.sb b{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;color:var(--purple);line-height:1}
+.sb span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.sb-toggle{border:1px solid var(--line);background:#fff;color:#654273;border-radius:14px;padding:0 14px;font:700 12px Poppins,Arial,sans-serif;cursor:pointer}
+.resumen{display:none;width:100%;gap:8px;flex-wrap:wrap;align-items:center}
+.resumen.open{display:flex}
+.resumen .rg{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:14px;padding:6px 10px}
+.resumen .rg em{font-style:normal;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-right:4px}
+.resumen .rc{font-size:12px;font-weight:700;color:var(--ink);background:#f8edf4;border-radius:999px;padding:3px 10px}
+.resumen .rc strong{color:var(--purple)}
+.fil-main{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.fil-main .search{margin:0;flex:1 1 260px;width:auto}
+.fil-main select{width:auto;margin:0;padding:11px 12px;font-size:14px;border-radius:14px}
+.fil-main .chip{padding:11px 14px}
+.fil-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.fil-chips .filters{margin:0;padding:0;flex-wrap:wrap}
+.fil-chips .sepv{width:1px;height:22px;background:var(--line);margin:0 4px}
+#fechasBox{display:none}
+#fechasBox.open{display:flex}
+.chip.on{border-color:#6d3a97;color:#6d3a97;background:#f4eaf9}
 </style>
 <link rel="stylesheet" href="ancho.css">
 </head>
@@ -151,19 +179,10 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
  <div class="header-top">
   <h1>📋 Panel de Pedidos</h1>
   <div class="header-actions" id="headerActions" style="display:none">
-   <a class="pill" href="https://app.zipnova.com.ar" target="_blank" rel="noopener">🔗 Zipnova</a>
-   <a class="pill" href="https://cabifylogistics.com/ar" target="_blank" rel="noopener">🏍️ Cabify Logistics</a>
    <a class="pill" href="../tienda.html" target="_blank" rel="noopener">🛒 Mi tienda</a>
    <a class="pill" href="../regaleria.html" target="_blank" rel="noopener">🎁 Regaleria</a>
    <button type="button" class="pill danger" id="logoutBtnHeader">🚪 Cerrar sesión</button>
   </div>
- </div>
- <div class="integrations" id="integrationsRow" style="display:none">
-  <span class="integrations-label">Integraciones:</span>
-  <a class="integration-badge" href="https://app.zipnova.com.ar" target="_blank" rel="noopener" style="text-decoration:none">🔗 Zipnova</a>
-  <a class="integration-badge" href="https://cabifylogistics.com/ar" target="_blank" rel="noopener" style="text-decoration:none">🏍️ Cabify Logistics</a>
-  <span class="integration-badge">🚚 OCA</span>
-  <span class="integration-badge">💳 Mercado Pago</span>
  </div>
  <nav class="admin-menu" id="adminMenu">
   <div class="admin-menu-cat">
@@ -212,10 +231,15 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
     <a href="auditoria.html" data-perm="auditoria">🕵️ Auditoría</a>
    </div>
   </div>
-  <div class="admin-menu-cat" data-perm="usuarios">
-   <button type="button" class="admin-menu-btn" data-cat="usuarios">👥 Usuarios ▾</button>
-   <div class="admin-menu-drop" data-drop="usuarios">
+  <div class="admin-menu-cat">
+   <button type="button" class="admin-menu-btn" data-cat="config">⚙️ Configuración ▾</button>
+   <div class="admin-menu-drop" data-drop="config" style="left:auto;right:0">
     <a href="usuarios.html" data-perm="usuarios">👥 Usuarios y permisos</a>
+    <div class="menu-sep">Integraciones</div>
+    <a href="https://app.zipnova.com.ar" target="_blank" rel="noopener">🔗 Zipnova</a>
+    <a href="https://cabifylogistics.com/ar" target="_blank" rel="noopener">🏍️ Cabify Logistics</a>
+    <a href="https://www.oca.com.ar" target="_blank" rel="noopener">🚚 OCA</a>
+    <a href="https://www.mercadopago.com.ar" target="_blank" rel="noopener">💳 Mercado Pago</a>
    </div>
   </div>
  </nav>
@@ -232,7 +256,7 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
 </div>
 
 <div id="panelView" style="display:none">
-  <div class="stats" id="stats"></div>
+  <div class="statbar" id="stats"></div>
   <div class="card">
     <div class="topbar">
       <div><strong id="countLabel">0 pedidos</strong></div>
@@ -240,29 +264,31 @@ button{border:0;border-radius:15px;font:800 15px Poppins,Arial,sans-serif;cursor
        <button class="logout" id="printSelectedBtn">🖨️ Imprimir pedidos seleccionados</button>
       </div>
     </div>
-    <input id="searchOrders" class="search" placeholder="🔎 Buscar por comercio...">
-    <div class="filters" id="statusFilters">
+    <div class="fil-main">
+     <input id="searchOrders" class="search" placeholder="🔎 Buscar por comercio...">
+     <select id="canalSel"><option value="Todos">Todos los canales</option><option value="mayorista">🏭 Mayorista</option><option value="comercio">🏪 Comercio</option><option value="tienda">🛒 Tienda online</option><option value="regaleria">🎁 Regaleria</option></select>
+     <button type="button" class="chip" id="fechasBtn">📅 Fechas ▾</button>
+    </div>
+    <div class="fil-chips">
+     <div class="filters" id="statusFilters">
       <button type="button" class="chip active" data-f="Todos">Todos</button>
       <button type="button" class="chip" data-f="Pendiente">Pendientes</button>
       <button type="button" class="chip" data-f="Tomado">Tomados</button>
       <button type="button" class="chip" data-f="Entregado">Entregados</button>
       <button type="button" class="chip" data-f="Anulado">Anulados</button>
+     </div>
+     <span class="sepv"></span>
+     <button type="button" class="chip" data-q="hoy">Hoy</button>
+     <button type="button" class="chip" data-q="semana">Esta semana</button>
+     <button type="button" class="chip" data-q="mes">Este mes</button>
     </div>
-    <div class="fil-row">
-     <label>Canal
-      <select id="canalSel"><option value="Todos">Todos los canales</option><option value="mayorista">🏭 Mayorista</option><option value="comercio">🏪 Comercio</option><option value="tienda">🛒 Tienda online</option><option value="regaleria">🎁 Regaleria</option></select>
-     </label>
+    <div class="fil-row" id="fechasBox">
      <label>Filtrar por fecha de
       <select id="fechaTipo"><option value="pedido">Pedido</option><option value="entrega">Entrega</option></select>
      </label>
      <label>Desde<input type="date" id="filtroDesde"></label>
      <label>Hasta<input type="date" id="filtroHasta"></label>
-     <div class="fil-quick">
-      <button type="button" class="chip" data-q="hoy">Hoy</button>
-      <button type="button" class="chip" data-q="semana">Esta semana</button>
-      <button type="button" class="chip" data-q="mes">Este mes</button>
-      <button type="button" class="chip" id="limpiarFechas">✕ Limpiar</button>
-     </div>
+     <button type="button" class="chip" id="limpiarFechas">✕ Limpiar fechas</button>
     </div>
   </div>
   <div id="ordersList"></div>
@@ -322,8 +348,8 @@ let openDescuentoId=null;
 let openEnvioId=null;
 const expandidos=new Set();
 
-function showPanel(){$("loginView").style.display="none";$("panelView").style.display="block";$("headerActions").style.display="flex";$("integrationsRow").style.display="flex";cargarPedidos()}
-function showLogin(){$("loginView").style.display="block";$("panelView").style.display="none";$("headerActions").style.display="none";$("integrationsRow").style.display="none"}
+function showPanel(){$("loginView").style.display="none";$("panelView").style.display="block";$("headerActions").style.display="flex";cargarPedidos()}
+function showLogin(){$("loginView").style.display="block";$("panelView").style.display="none";$("headerActions").style.display="none";}
 
 async function login(){
  let email=$("email").value.trim().toLowerCase();const password=$("password").value;
@@ -652,6 +678,7 @@ function fmtFechaEntrega(fecha){
  return d+"/"+m;
 }
 
+let resumenAbierto=false;
 function renderStats(){
  const vivos=orders.filter(o=>!o.anulado);
  const total=vivos.length;
@@ -669,28 +696,16 @@ function renderStats(){
  vivos.forEach(o=>{const e=o.estado_pago||"Pendiente";if(porPago[e]==null)porPago[e]=0;porPago[e]++});
 
  $("stats").innerHTML=`
-  <div class="stat"><div class="stat-label">Total pedidos</div><div class="stat-value">${total}</div></div>
-  <div class="stat"><div class="stat-label">Pendientes</div><div class="stat-value">${pendientes.length}</div></div>
-  <div class="stat"><div class="stat-label">Tomados</div><div class="stat-value">${tomados.length}</div></div>
-  <div class="stat"><div class="stat-label">Entregados</div><div class="stat-value">${entregados}</div></div>
-  <div class="stat"><div class="stat-label">Sin entregar</div><div class="stat-value">${sinEntregar}</div></div>
-  <div class="stat wide">
-   <div class="stat-label">Pedidos por día de entrega</div>
-   <div class="dias-row">
-    <div><span>Miércoles</span><strong>${porMiercoles}</strong></div>
-    <div><span>Viernes</span><strong>${porViernes}</strong></div>
-   </div>
-  </div>
-  <div class="stat wide">
-   <div class="stat-label">Forma de pago (según el cliente)</div>
-   <div class="dias-row">
-    <div><span>Pendiente</span><strong>${porPago.Pendiente||0}</strong></div>
-    <div><span>Efectivo</span><strong>${porPago.Efectivo||0}</strong></div>
-    <div><span>Transferencia</span><strong>${porPago.Transferencia||0}</strong></div>
-    <div><span>Demorado</span><strong>${porPago.Demorado||0}</strong></div>
-   </div>
+  <div class="sb"><b>${total}</b><span>Total pedidos</span></div>
+  <div class="sb"><b>${pendientes.length}</b><span>Pendientes</span></div>
+  <button type="button" class="sb-toggle" id="resumenBtn">${resumenAbierto?"Ocultar resumen ▴":"Ver resumen ▾"}</button>
+  <div class="resumen ${resumenAbierto?"open":""}">
+   <div class="rg"><em>Entrega</em><span class="rc">Miércoles <strong>${porMiercoles}</strong></span><span class="rc">Viernes <strong>${porViernes}</strong></span></div>
+   <div class="rg"><em>Pago (según el cliente)</em><span class="rc">Pendiente <strong>${porPago.Pendiente||0}</strong></span><span class="rc">Efectivo <strong>${porPago.Efectivo||0}</strong></span><span class="rc">Transferencia <strong>${porPago.Transferencia||0}</strong></span><span class="rc">Demorado <strong>${porPago.Demorado||0}</strong></span></div>
+   <div class="rg"><em>Entregas</em><span class="rc">Entregados <strong>${entregados}</strong></span><span class="rc">Sin entregar <strong>${sinEntregar}</strong></span></div>
   </div>
  `;
+ $("resumenBtn").onclick=()=>{resumenAbierto=!resumenAbierto;renderStats()};
 }
 
 const POR_PAGINA=25;
@@ -698,6 +713,7 @@ let paginaActual=1;
 
 function render(){
  renderStats();
+ if(typeof fechasUI==="function")fechasUI();
  const term=($("searchOrders").value||"").toLowerCase().trim();
  const desde=$("filtroDesde").value;
  const hasta=$("filtroHasta").value;
@@ -930,6 +946,8 @@ document.querySelectorAll("#statusFilters .chip").forEach(btn=>{
  });
 });
 
+$("fechasBtn").addEventListener("click",()=>{$("fechasBox").classList.toggle("open")});
+function fechasUI(){const act=!!($("filtroDesde").value||$("filtroHasta").value);$("fechasBtn").classList.toggle("on",act);$("fechasBtn").textContent=act?"📅 Fechas ✓":"📅 Fechas ▾"}
 $("canalSel").addEventListener("change",()=>{canalFilter=$("canalSel").value;paginaActual=1;render();});
 $("fechaTipo").addEventListener("change",()=>{paginaActual=1;render();});
 document.querySelectorAll("[data-q]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -937,7 +955,7 @@ document.querySelectorAll("[data-q]").forEach(btn=>btn.addEventListener("click",
  let d1=new Date(hoy),d2=new Date(hoy);
  if(btn.dataset.q==="semana"){const dow=(hoy.getDay()+6)%7;d1.setDate(hoy.getDate()-dow);d2=new Date(d1);d2.setDate(d1.getDate()+6)}
  if(btn.dataset.q==="mes"){d1=new Date(hoy.getFullYear(),hoy.getMonth(),1);d2=new Date(hoy.getFullYear(),hoy.getMonth()+1,0)}
- $("filtroDesde").value=iso(d1);$("filtroHasta").value=iso(d2);paginaActual=1;render();
+ $("filtroDesde").value=iso(d1);$("filtroHasta").value=iso(d2);$("fechasBox").classList.add("open");paginaActual=1;render();
 }));
 $("filtroDesde").addEventListener("change",()=>{paginaActual=1;render();});
 $("filtroHasta").addEventListener("change",()=>{paginaActual=1;render();});
