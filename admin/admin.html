@@ -173,6 +173,20 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 #fechasBox{display:none}
 #fechasBox.open{display:flex}
 .chip.on{border-color:#6d3a97;color:#6d3a97;background:#f4eaf9}
+
+.ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px}
+.ed-grid label{margin:8px 0 0;font-size:13px}
+.ed-grid input,.ed-grid select{margin-top:5px;padding:11px 12px;font-size:15px;border-radius:12px;width:100%}
+.ed-full{grid-column:1/-1}
+.ed-row{display:grid;grid-template-columns:1fr 84px 110px 34px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dotted #eee1ef;font-size:14px}
+.ed-row input{margin:0;padding:8px 10px;font-size:14px;border-radius:10px;text-align:right}
+.ed-row .ed-x{background:none;border:0;color:#c0435a;font-size:18px;cursor:pointer;padding:0}
+.ed-row .ed-sub{grid-column:1/-1;text-align:right;font-size:12px;color:var(--muted);margin-top:-4px}
+.ed-add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ed-add input{margin:0;padding:10px 12px;font-size:14px;border-radius:12px;flex:1;min-width:120px}
+.ed-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;font-size:15px}
+.ed-total strong{font-family:"Cormorant Garamond",Georgia,serif;font-size:28px;color:var(--purple)}
+@media(max-width:560px){.ed-grid{grid-template-columns:1fr}.ed-row{grid-template-columns:1fr 70px 96px 30px}}
 </style>
 <link rel="stylesheet" href="ancho.css">
 </head>
@@ -246,6 +260,33 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  <div style="background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)" id="facModalBody"></div>
 </div>
 
+<div id="editarModal" style="display:none;position:fixed;inset:0;background:rgba(40,20,55,.55);z-index:100;align-items:center;justify-content:center;padding:14px">
+ <div style="background:#fff;border-radius:20px;max-width:680px;width:100%;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+   <strong id="editarTitulo" style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Editar pedido</strong>
+   <button type="button" id="editarCerrar" class="chip">✕ Cerrar</button>
+  </div>
+  <div id="editarAviso"></div>
+  <div class="ed-grid">
+   <label>Comercio<input id="edComercio"></label>
+   <label>WhatsApp<input id="edWhatsapp" inputmode="tel"></label>
+   <label class="ed-full">Domicilio<input id="edDomicilio"></label>
+   <label>Día de entrega<select id="edDia"><option>Miércoles</option><option>Viernes</option></select></label>
+   <label>Observaciones<input id="edObs"></label>
+  </div>
+  <div style="margin-top:14px;font-weight:800;font-size:13px;color:#5f4d68">Productos</div>
+  <div id="edItems"></div>
+  <div id="edAgregar" class="ed-add">
+   <input id="edNuevoProd" placeholder="Producto nuevo (ej. Hamburguesa Mix x4)">
+   <input id="edNuevoCant" type="number" min="1" value="1" style="max-width:80px" title="Cantidad">
+   <input id="edNuevoPrecio" type="number" min="0" step="0.01" placeholder="Precio unit." style="max-width:120px">
+   <button type="button" class="chip" id="edAgregarBtn">Agregar</button>
+  </div>
+  <div class="ed-total"><span>Total</span><strong id="edTotal"></strong></div>
+  <div id="editarMsg"></div>
+  <button type="button" class="btn-main" id="editarGuardar">Guardar cambios</button>
+ </div>
+</div>
 <div id="historialModal" style="display:none;position:fixed;inset:0;background:rgba(40,20,55,.55);z-index:100;align-items:center;justify-content:center;padding:14px">
  <div style="background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -779,6 +820,7 @@ function render(){
     ${waNum?`<button type="button" onclick="window.open('https://wa.me/${waNum}','_blank')">💬 WhatsApp</button>`:""}
     <button type="button" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🧾 Comprobante</button>
     <button type="button" onclick="verHistorial(${o.id})">📜 Historial</button>
+    ${anulado?"":`<button type="button" onclick="abrirEditar(${o.id})">✏️ Editar pedido</button>`}
     <button type="button" onclick="toggleDescuento(${o.id})">🏷️ Descuento</button>
     <button type="button" onclick="toggleEnvio(${o.id})">🚚 Envío</button>
     ${anulado?"":`<hr><button type="button" class="red" onclick="anularPedido(${o.id})">⛔ Anular pedido</button>`}
@@ -851,6 +893,105 @@ async function generarRemito(id,btn){
  }
 }
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+
+// ---------- Editar pedido ----------
+let editId=null,editItems=[],editBloqueado=false;
+function abrirEditar(id){
+ const o=orders.find(x=>x.id===id);
+ if(!o)return;
+ editId=id;
+ editBloqueado=!!(o.factura_cae||o.remito_nro);
+ editItems=(o.productos||[]).map(it=>({...it}));
+ $("editarTitulo").textContent="Editar pedido #"+id;
+ $("edComercio").value=o.comercio||"";
+ $("edWhatsapp").value=o.whatsapp||"";
+ $("edDomicilio").value=o.domicilio||"";
+ $("edObs").value=o.observaciones||"";
+ const dia=o.dia_entrega||"Viernes";
+ const sel=$("edDia");
+ if(![...sel.options].some(op=>op.value===dia)){const op=document.createElement("option");op.textContent=dia;sel.appendChild(op)}
+ sel.value=dia;
+ $("editarAviso").innerHTML=editBloqueado?'<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0">Este pedido ya tiene un comprobante emitido ('+(o.factura_cae?"factura":"remito")+'). Podés corregir los datos de contacto y entrega, pero no los productos ni el importe.</div>':"";
+ $("edAgregar").style.display=editBloqueado?"none":"flex";
+ $("editarMsg").innerHTML="";
+ $("editarGuardar").disabled=false;$("editarGuardar").textContent="Guardar cambios";
+ renderEditItems();
+ $("editarModal").style.display="flex";
+}
+function totalEdit(){
+ if(!editItems.length)return 0;
+ return editItems.some(it=>it.precio_unitario==null)?null:editItems.reduce((s,it)=>s+(Number(it.cantidad)||0)*it.precio_unitario,0);
+}
+function renderEditItems(){
+ $("edItems").innerHTML=editItems.map((it,i)=>`<div class="ed-row">
+  <div>${esc(it.producto)}${it.bonif_pct>0?` <span class="badge tipo" style="font-size:9px">-${it.bonif_pct}%</span>`:""}</div>
+  <input type="number" min="1" step="1" value="${it.cantidad}" ${editBloqueado?"disabled":""} onchange="editCant(${i},this.value)" title="Cantidad">
+  <input type="number" min="0" step="0.01" value="${it.precio_unitario==null?"":it.precio_unitario}" placeholder="A confirmar" ${editBloqueado?"disabled":""} onchange="editPrecio(${i},this.value)" title="Precio unitario">
+  ${editBloqueado?"<span></span>":`<button type="button" class="ed-x" onclick="editQuitar(${i})" title="Quitar">✕</button>`}
+ </div>`).join("")||'<div style="font-size:13px;color:var(--muted);padding:8px 0">Sin productos</div>';
+ const oo=orders.find(x=>x.id===editId);
+ const t=editBloqueado&&oo?oo.total:totalEdit();
+ $("edTotal").textContent=t==null?"A confirmar":money(t);
+}
+function editCant(i,v){const n=parseInt(v);editItems[i].cantidad=(isNaN(n)||n<1)?1:n;renderEditItems()}
+function editPrecio(i,v){
+ const p=v===""?null:parseFloat(v);
+ editItems[i].precio_unitario=(p==null||isNaN(p))?null:Math.max(0,p);
+ // si cambian el precio a mano, ese pasa a ser el precio de lista y se quita el descuento
+ editItems[i].precio_lista=editItems[i].precio_unitario;editItems[i].bonif_pct=0;
+ renderEditItems();
+}
+function editQuitar(i){editItems.splice(i,1);renderEditItems()}
+function editAgregar(){
+ const nombre=$("edNuevoProd").value.trim();
+ const cant=parseInt($("edNuevoCant").value)||1;
+ const precio=$("edNuevoPrecio").value===""?null:parseFloat($("edNuevoPrecio").value);
+ if(!nombre){$("editarMsg").innerHTML='<div class="err">Escribí el nombre del producto.</div>';return}
+ $("editarMsg").innerHTML="";
+ editItems.push({producto:nombre,cantidad:cant,precio_unitario:precio,precio_lista:precio,bonif_pct:0});
+ $("edNuevoProd").value="";$("edNuevoCant").value="1";$("edNuevoPrecio").value="";
+ renderEditItems();
+}
+async function guardarEdicion(){
+ const o=orders.find(x=>x.id===editId);
+ if(!o)return;
+ const comercio=$("edComercio").value.trim();
+ if(!comercio){$("editarMsg").innerHTML='<div class="err">El comercio no puede quedar vacío.</div>';return}
+ if(!editItems.length){$("editarMsg").innerHTML='<div class="err">El pedido tiene que tener al menos un producto. Si hay que cancelarlo, usá "Anular pedido".</div>';return}
+ const cambios={comercio,whatsapp:$("edWhatsapp").value.trim()||null,domicilio:$("edDomicilio").value.trim()||null,dia_entrega:$("edDia").value,observaciones:$("edObs").value.trim()||null};
+ const nombres={comercio:"Comercio",whatsapp:"WhatsApp",domicilio:"Domicilio",dia_entrega:"Día de entrega",observaciones:"Observaciones"};
+ const detalle=[];
+ Object.keys(cambios).forEach(k=>{if((o[k]||null)!==(cambios[k]||null))detalle.push(nombres[k]+": "+(o[k]||"vacío")+" → "+(cambios[k]||"vacío"))});
+ const body={...cambios};
+ let totalAntes=o.total,totalNuevo=o.total;
+ if(!editBloqueado){
+  const itemsAntes=JSON.stringify((o.productos||[]).map(it=>[it.producto,it.cantidad,it.precio_unitario]));
+  const itemsAhora=JSON.stringify(editItems.map(it=>[it.producto,it.cantidad,it.precio_unitario]));
+  if(itemsAntes!==itemsAhora){
+   totalNuevo=totalEdit();
+   body.productos=editItems;body.total=totalNuevo;
+   detalle.push("Productos modificados · total de "+money(totalAntes)+" a "+(totalNuevo==null?"A confirmar":money(totalNuevo)));
+  }
+ }
+ if(!detalle.length){$("editarMsg").innerHTML='<div class="ok">No hay cambios para guardar.</div>';return}
+ $("editarGuardar").disabled=true;$("editarGuardar").textContent="Guardando...";
+ try{
+  const r=await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+editId,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(body)});
+  if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||"error "+r.status)}
+  Object.assign(o,body);
+  Audit.log(editId,"Pedido editado",detalle.join(" | "));
+  $("editarModal").style.display="none";
+  render();
+ }catch(e){
+  $("editarMsg").innerHTML='<div class="err">❌ No se pudo guardar: '+esc(e.message||"error desconocido")+'</div>';
+  $("editarGuardar").disabled=false;$("editarGuardar").textContent="Guardar cambios";
+ }
+}
+$("editarCerrar").addEventListener("click",()=>{$("editarModal").style.display="none"});
+$("editarModal").addEventListener("click",e=>{if(e.target===$("editarModal"))$("editarModal").style.display="none"});
+$("edAgregarBtn").addEventListener("click",editAgregar);
+$("editarGuardar").addEventListener("click",guardarEdicion);
 
 async function verHistorial(id){
  const o=orders.find(x=>x.id===id);
