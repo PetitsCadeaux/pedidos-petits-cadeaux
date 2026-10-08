@@ -238,11 +238,11 @@ async function cargarTodo(){
  $("clientsList").innerHTML='<div class="loading">Cargando...</div>';
  try{
   const [rOrders,rPagos,rSaldos]=await Promise.all([
-   apiFetch("/rest/v1/pedidos_distribuidora?select=id,comercio,domicilio,total,created_at&order=created_at.desc"),
+   apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc"),
    apiFetch("/rest/v1/pagos_clientes?select=*&order=fecha.desc"),
    apiFetch("/rest/v1/saldos_iniciales?select=*&order=fecha.desc")
   ]);
-  orders=await rOrders.json();
+  orders=(await rOrders.json()).filter(o=>!o.anulado);
   pagos=await rPagos.json();
   saldosIniciales=await rSaldos.json();
   buildClients();

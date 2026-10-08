@@ -180,10 +180,10 @@ async function cargarTodo(){
  try{
   const [rCostos,rOrders]=await Promise.all([
    apiFetch("/rest/v1/costos_productos?select=*"),
-   apiFetch("/rest/v1/pedidos_distribuidora?select=id,comercio,productos,created_at&order=created_at.desc&limit=30")
+   apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc&limit=60")
   ]);
   costos=await rCostos.json();
-  orders=await rOrders.json();
+  orders=(await rOrders.json()).filter(o=>!o.anulado).slice(0,30);
   renderTotales();
   fillProductoSelect();
   renderCostos();

@@ -135,7 +135,7 @@ async function cargar(){
  $("tablaWrap").innerHTML='<div class="loading">Cargando...</div>';
  try{
   const r=await apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=domicilio.asc");
-  orders=await r.json();
+  orders=(await r.json()).filter(o=>!o.anulado);
   aplicarFiltro();
  }catch(e){
   $("tablaWrap").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar pedidos")+'</div>';

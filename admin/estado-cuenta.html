@@ -79,11 +79,11 @@ async function cargar(){
  try{
   const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token};
   const [rOrders,rPagos,rSaldos]=await Promise.all([
-   fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=comercio,domicilio,total,created_at&order=created_at.asc",{headers}),
+   fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=*&order=created_at.asc",{headers}),
    fetch(SUPABASE_URL+"/rest/v1/pagos_clientes?select=*&order=fecha.asc",{headers}),
    fetch(SUPABASE_URL+"/rest/v1/saldos_iniciales?select=*&order=fecha.asc",{headers})
   ]);
-  const allOrders=await rOrders.json();
+  const allOrders=(await rOrders.json()).filter(o=>!o.anulado);
   const allPagos=await rPagos.json();
   const allSaldos=await rSaldos.json();
   const key=normDom(domicilio);

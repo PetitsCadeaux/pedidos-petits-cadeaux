@@ -129,7 +129,7 @@ async function cargar(){
    apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc"),
    apiFetch("/rest/v1/costos_productos?select=*")
   ]);
-  orders=await rOrders.json();
+  orders=(await rOrders.json()).filter(o=>!o.anulado);
   costos=await rCostos.json();
   aplicarFiltro();
  }catch(e){

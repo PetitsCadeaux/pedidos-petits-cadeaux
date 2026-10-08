@@ -96,8 +96,8 @@ function info(o){
  const factura=!!o.factura_cae,remito=!!o.remito_nro;
  const nc=!!o.nc_cae;
  const fechaDoc=o.facturado_en||o.remito_en||null;
- const pago=o.estado_pago||"Pendiente";
- const cobrado=pago!=="Pendiente"&&pago!=="Demorado";
+ const pago=o.cobro||((o.estado_pago==="Mercado Pago"&&o.pagado)?"Mercado Pago":"Pendiente");
+ const cobrado=pago==="Efectivo"||pago==="Transferencia"||pago==="Mercado Pago";
  return {factura,remito,nc,doc:factura||remito,fechaDoc,pago,cobrado};
 }
 function nroDoc(o){
@@ -112,10 +112,10 @@ function nroDoc(o){
 async function cargar(){
  $("err").innerHTML="";
  try{
-  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=id,comercio,total,created_at,canal,manual,estado_pago,fecha_pago,estado_entrega,factura_cae,factura_pto_vta,factura_nro,facturado_en,nc_cae,remito_nro,remito_pto_vta,remito_en&order=created_at.desc&limit=3000",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=id,comercio,total,created_at,canal,manual,estado_pago,pagado,anulado,cobro,cobro_fecha,estado_entrega,factura_cae,factura_pto_vta,factura_nro,facturado_en,nc_cae,remito_nro,remito_pto_vta,remito_en&order=created_at.desc&limit=3000",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
   const d=await r.json();
-  if(!r.ok)throw new Error((d.message||JSON.stringify(d))+" (¿ya corriste sql-facturacion.sql en Supabase?)");
-  datos=d;render();
+  if(!r.ok)throw new Error((d.message||JSON.stringify(d))+" (¿ya corriste sql-facturacion.sql y sql-pedidos-v2.sql en Supabase?)");
+  datos=d.filter(o=>!o.anulado);render();
   if(verId){const el=document.querySelector('tr[data-id="'+verId+'"]');if(el)el.scrollIntoView({block:"center"})}
  }catch(e){$("tabla").innerHTML="";$("err").innerHTML='<div class="err">❌ '+esc(e.message)+'</div>'}
 }
@@ -161,7 +161,7 @@ function render(){
   +visibles.map(o=>{
    const i=info(o);
    const fecha=fmtD(i.fechaDoc||o.created_at);
-   const cob=i.doc?`<select class="pay ${pgClase(i.pago)}" data-id="${o.id}">${PAGOS.map(p=>`<option ${p===i.pago?"selected":""}>${p}</option>`).join("")}</select>`+(i.cobrado&&o.fecha_pago?'<div class="muted">'+fmtD(o.fecha_pago)+'</div>':""):'<span class="muted">—</span>';
+   const cob=i.doc?`<select class="pay ${pgClase(i.pago)}" data-id="${o.id}">${PAGOS.map(p=>`<option value="${p}" ${p===i.pago?"selected":""}>${p==="Pendiente"?"Por cobrar":(p==="Demorado"?"Demorado":"Cobrado · "+p)}</option>`).join("")}</select>`+(i.cobrado&&o.cobro_fecha?'<div class="muted">Cobrado el '+fmtD(o.cobro_fecha)+'</div>':'<div class="muted">Cliente eligió: '+esc(o.estado_pago||"-")+'</div>'):'<span class="muted">—</span>';
    const acc=i.doc
     ?`<button class="chip" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Ver / imprimir</button>`+(i.remito&&!i.factura?` <button class="btn-red" onclick="location.href='comprobante.html?ids=${o.id}'" title="Emitir la Factura C de este remito">🧾 Facturar (ARCA)</button>`:"")
     :`<button class="btn-main" onclick="location.href='admin.html?facturar=${o.id}'">🧾 Facturar</button>`;
@@ -176,10 +176,10 @@ async function cambiarPago(id,sel){
  const valor=sel.value,o=datos.find(x=>x.id===id);sel.disabled=true;
  const ahora=valor==="Pendiente"?null:new Date().toISOString();
  try{
-  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id=eq."+id,{method:"PATCH",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({estado_pago:valor,fecha_pago:ahora})});
-  if(!r.ok)throw new Error("No se pudo guardar");
-  Audit.log(id,"Pago modificado","De "+(o.estado_pago||"Pendiente")+" a "+valor+(o.comercio?" · "+o.comercio:"")+" (Facturación)");
-  o.estado_pago=valor;o.fecha_pago=ahora;render();
+  const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id=eq."+id,{method:"PATCH",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({cobro:valor==="Pendiente"?null:valor,cobro_fecha:ahora})});
+  if(!r.ok)throw new Error("No se pudo guardar (¿corriste sql-pedidos-v2.sql en Supabase?)");
+  Audit.log(id,"Cobranza modificada","De "+info(o).pago+" a "+valor+(o.comercio?" · "+o.comercio:"")+" (Facturación)");
+  o.cobro=valor==="Pendiente"?null:valor;o.cobro_fecha=ahora;render();
  }catch(e){alert(e.message);sel.disabled=false}
 }
 

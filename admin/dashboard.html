@@ -114,8 +114,8 @@ async function cargar(){
  $("msg").innerHTML="";
 
  try{
-  const [pedidos,costos,pagosClientes,saldosIniciales,facturasProv,pagosProv]=await Promise.all([
-   apiFetch("/rest/v1/pedidos_distribuidora?select=total,productos,created_at"),
+  const [pedidosAll,costos,pagosClientes,saldosIniciales,facturasProv,pagosProv]=await Promise.all([
+   apiFetch("/rest/v1/pedidos_distribuidora?select=*"),
    apiFetch("/rest/v1/costos_productos?select=*"),
    apiFetch("/rest/v1/pagos_clientes?select=monto,fecha"),
    apiFetch("/rest/v1/saldos_iniciales?select=monto"),
@@ -123,6 +123,7 @@ async function cargar(){
    apiFetch("/rest/v1/pagos_proveedor?select=monto,fecha"),
   ]);
 
+  const pedidos=pedidosAll.filter(o=>!o.anulado);
   // ---- Utilidad del período (por fecha de pedido) ----
   const pedidosPeriodo=pedidos.filter(o=>enRango(o.created_at,desde,hasta));
   const costoDe=p=>{const c=costos.find(x=>x.producto===p);return c?c.costo:null};
