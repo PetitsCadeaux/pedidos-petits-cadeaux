@@ -29,6 +29,7 @@ th{text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;bo
 th.num,td.num{text-align:right}
 th.chk,td.chk{text-align:center;width:60px}
 td{padding:10px 5px;border-bottom:1px dotted #eee1ef;font-size:14.5px}
+.resumen-pago{margin-top:14px;width:auto;min-width:50%}
 tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);border-bottom:0}
 .pago-tag{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800}
 .pago-tag.efectivo{background:#e6f7ee;color:#177a4d}
@@ -177,6 +178,11 @@ function aplicarFiltro(){
    </tr>`;
   }).join("")}</tbody>
   <tfoot><tr><td colspan="2">Total (${currentRows.length} pedidos)</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>
+ </table>
+ <table class="resumen-pago">
+  <thead><tr><th>Resumen por modo de pago</th><th class="num">Pedidos</th><th class="num">Importe</th></tr></thead>
+  <tbody>${(()=>{const g={};currentRows.forEach(o=>{const k=o.estado_pago||"Pendiente";g[k]=g[k]||{n:0,t:0};g[k].n++;g[k].t+=(o.total||0)});
+   return Object.keys(g).sort().map(k=>`<tr><td><span class="pago-tag ${k==="Efectivo"?"efectivo":k==="Transferencia"?"transferencia":k==="Demorado"?"demorado":"pendiente"}">${k}</span></td><td class="num">${g[k].n}</td><td class="num">${money(g[k].t)}</td></tr>`).join("")})()}</tbody>
  </table>`;
 }
 
