@@ -58,6 +58,24 @@ button.send{width:100%;margin-top:12px;padding:16px;border:0;border-radius:17px;
 .lock-card input{width:100%;padding:14px 15px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Poppins,Arial,sans-serif;outline:none;text-align:center}
 .lock-card button{width:100%;margin-top:12px;padding:14px;border:0;border-radius:17px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;font:800 15px Poppins,Arial,sans-serif;cursor:pointer}
 .lock-err{margin-top:12px;padding:10px 12px;border-radius:12px;background:#fff0f1;color:#9b3040;font-size:13px;font-weight:650}
+
+.cf-back{position:fixed;inset:0;z-index:900;display:none;align-items:flex-end;justify-content:center;background:rgba(40,20,60,.55);padding:0}
+.cf-box{width:100%;max-width:520px;max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:22px 20px 24px;box-shadow:0 -10px 40px rgba(40,20,60,.3)}
+@media(min-width:600px){.cf-back{align-items:center}.cf-box{border-radius:24px}}
+.cf-box h3{margin:0 0 4px;font-family:"Cormorant Garamond",Georgia,serif;font-size:30px;color:var(--purple)}
+.cf-sub{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+.cf-dato{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dotted var(--line);font-size:14px}
+.cf-dato span{color:var(--muted)}.cf-dato b{text-align:right}
+.cf-items{margin:12px 0;padding:10px 12px;background:#faf5fc;border-radius:14px;font-size:13.5px}
+.cf-item{display:flex;justify-content:space-between;gap:10px;padding:4px 0}
+.cf-total{display:flex;justify-content:space-between;margin-top:6px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;font-weight:800}
+.cf-btn{display:block;width:100%;margin-top:10px;padding:15px;border:0;border-radius:16px;font:800 15px Poppins,Arial,sans-serif;text-align:center;text-decoration:none;cursor:pointer}
+.cf-pri{background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.cf-sec{background:#fff;color:var(--purple);border:1.5px solid #ddcde4}
+.cf-wa{background:#25a244;color:#fff}
+.cf-btn:disabled{opacity:.6}
+.cf-ok{text-align:center}.cf-ok .tick{width:64px;height:64px;margin:0 auto 10px;border-radius:50%;background:#ecfaf4;border:2px solid #7fd1ac;color:#176044;font-size:34px;display:grid;place-items:center}
+.cf-aviso{margin:14px 0 4px;padding:13px 14px;border-radius:14px;background:#fff7e6;border:1.5px solid #f0d9a8;color:#7a5a12;font-size:14px;line-height:1.45;text-align:left}
 </style>
 </head>
 <body>
@@ -107,7 +125,7 @@ button.send{width:100%;margin-top:12px;padding:16px;border:0;border-radius:17px;
    </div>
   </div>
 
-  <button class="send" id="send">Enviar pedido por WhatsApp</button>
+  <button class="send" id="send">Revisar y enviar pedido</button>
   <div id="status"></div>
 </div>
 
@@ -341,21 +359,53 @@ function notificarPedido(datos){
   }).catch(()=>{});
 }
 
-async function enviar(){
+let pedidoPendiente=null,guardando=false,pedidoGuardado=false;
+function escH(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+// Paso 1: validar y mostrar el resumen para que el cliente confirme o vuelva a editar.
+function enviar(){
  const comercio=$("shop").value.trim(),dia=$("delivery").value,wa=$("phone").value.trim(),obs=$("notes").value.trim(),direccion=$("address").value.trim(),formaPago=$("paymentMethod").value;
  if(!comercio)return show("Ingresá el nombre del comercio.",false);
  if(!dia)return show("Seleccioná miércoles o viernes.",false);
  if(!direccion)return show("Ingresá el domicilio de entrega.",false);
  if(!formaPago)return show("Seleccioná la forma de pago.",false);
-
  const opcionElegida=OPCIONES_ENTREGA.find(o=>o.nombre===dia);
  const fechaEntrega=opcionElegida?fmtDiaISO(opcionElegida.fecha):null;
  const diaConFecha=opcionElegida?`${dia} ${fmtDiaCorto(opcionElegida.fecha)}`:dia;
-
  const calc=totalizar(),lista=items();
  if(!lista.length)return show("Seleccioná al menos un producto.",false);
+ $("status").className="";$("status").textContent="";
+ pedidoPendiente={comercio,dia,wa,obs,direccion,formaPago,fechaEntrega,diaConFecha,calc,lista};
+ pedidoGuardado=false;
+ mostrarResumen();
+}
 
- $("send").disabled=true;$("send").textContent="Guardando pedido...";
+function mostrarResumen(){
+ const q=pedidoPendiente;
+ const filas=q.lista.map(x=>`<div class="cf-item"><span>${x.cantidad} × ${escH(x.producto)}${x.cambio?" (CAMBIO)":""}</span><b>${x.cambio?"$0":(x.precio_unitario==null?"A confirmar":money(x.cantidad*x.precio_unitario))}</b></div>`).join("");
+ $("cfBox").innerHTML=`<h3>Revisá tu pedido</h3>
+  <p class="cf-sub">Todavía no se envió. Si algo está mal, volvé a editarlo.</p>
+  <div class="cf-dato"><span>Comercio</span><b>${escH(q.comercio)}</b></div>
+  <div class="cf-dato"><span>WhatsApp</span><b>${escH(q.wa||"No informado")}</b></div>
+  <div class="cf-dato"><span>Entrega</span><b>${escH(q.diaConFecha)}</b></div>
+  <div class="cf-dato"><span>Domicilio</span><b>${escH(q.direccion)}</b></div>
+  <div class="cf-dato"><span>Forma de pago</span><b>${escH(q.formaPago)}</b></div>
+  ${q.obs?`<div class="cf-dato"><span>Observaciones</span><b>${escH(q.obs)}</b></div>`:""}
+  <div class="cf-items">${filas}</div>
+  <div class="cf-total"><span>TOTAL</span><span>${q.calc.confirmar?money(q.calc.total)+" + a confirmar":money(q.calc.total)}</span></div>
+  <div id="cfErr"></div>
+  <button class="cf-btn cf-pri" id="cfOk">Confirmar y enviar pedido</button>
+  <button class="cf-btn cf-sec" id="cfEdit">Volver a editar</button>`;
+ $("cfBack").style.display="flex";
+ $("cfOk").addEventListener("click",confirmarEnvio);
+ $("cfEdit").addEventListener("click",()=>{$("cfBack").style.display="none"});
+}
+
+// Paso 2: guardar el pedido (una sola vez) y avisar que se envió.
+async function confirmarEnvio(){
+ if(guardando||pedidoGuardado)return;
+ const {comercio,dia,wa,obs,direccion,formaPago,fechaEntrega,calc,lista}=pedidoPendiente;
+ guardando=true;$("cfOk").disabled=true;$("cfEdit").disabled=true;$("cfOk").textContent="Enviando pedido...";
  try{
   const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora",{
    method:"POST",
@@ -368,28 +418,48 @@ async function enviar(){
   });
   const text=await r.text();
   if(!r.ok)throw new Error(text);
+  pedidoGuardado=true;
   await restarStock(lista,"Pedido — "+comercio);
-
   notificarPedido({
-    tienda:"Lista "+listaActiva+" · Distribuidora Petits Cadeaux",
-    comercio,whatsapp:wa,domicilio:direccion,productos:lista,
-    total:calc.confirmar?null:calc.total,
-    canal:CANAL_POR_LISTA[listaActiva]||"comercio",observaciones:obs||null
+   tienda:"Lista "+listaActiva+" · Distribuidora Petits Cadeaux",
+   comercio,whatsapp:wa,domicilio:direccion,productos:lista,
+   total:calc.confirmar?null:calc.total,
+   canal:CANAL_POR_LISTA[listaActiva]||"comercio",observaciones:obs||null
   });
-
-  show("✅ ¡Pedido registrado correctamente! Te abrimos WhatsApp para confirmar.",true);
-  $("status").scrollIntoView({behavior:"smooth",block:"center"});
-  const lines=lista.map(x=>`• ${x.cantidad} × ${x.producto}${x.cambio?" (CAMBIO)":""} — ${x.cambio?"$0":(x.precio_unitario==null?"Precio a confirmar":money(x.cantidad*x.precio_unitario))}`).join("\n");
-  const hayCambios=lista.some(x=>x.cambio);
-  const notaCambios=hayCambios?"\n\n📸 CAMBIOS: recordá enviar foto de la zona afectada y de la fecha de vencimiento de los productos en cambio para validarlo.":"";
-  const msg=`Hola! 👋\nNuevo pedido\nComercio: ${comercio}\nWhatsApp: ${wa||"No informado"}\nDía de entrega: ${diaConFecha}\nDomicilio: ${direccion}\nForma de pago: ${formaPago}\n\n${lines}\n\nTOTAL: ${calc.confirmar?money(calc.total)+" + productos con precio a confirmar":money(calc.total)}${obs?"\n\nObservaciones: "+obs:""}${notaCambios}\n\nDistribuidora Petits Cadeaux`;
-  window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(msg),"_blank");
-  setTimeout(limpiarFormulario,1200);
+  mostrarEnviado();
  }catch(e){
   console.error(e);
-  show("❌ No se pudo registrar el pedido. Supabase respondió: "+(e.message||"error desconocido"),false);
+  $("cfErr").innerHTML='<div class="err">❌ No se pudo enviar el pedido. Probá de nuevo. ('+escH(e.message||"error")+')</div>';
+  $("cfOk").disabled=false;$("cfEdit").disabled=false;$("cfOk").textContent="Confirmar y enviar pedido";
  }
- $("send").disabled=false;$("send").textContent="Enviar pedido por WhatsApp";
+ guardando=false;
+}
+
+function mensajeWhatsApp(){
+ const {comercio,wa,obs,direccion,formaPago,diaConFecha,calc,lista}=pedidoPendiente;
+ const lines=lista.map(x=>`• ${x.cantidad} × ${x.producto}${x.cambio?" (CAMBIO)":""} — ${x.cambio?"$0":(x.precio_unitario==null?"Precio a confirmar":money(x.cantidad*x.precio_unitario))}`).join("\n");
+ const hayCambios=lista.some(x=>x.cambio);
+ const notaCambios=hayCambios?"\n\n📸 CAMBIOS: recordá enviar foto de la zona afectada y de la fecha de vencimiento de los productos en cambio para validarlo.":"";
+ return `Hola! 👋\nNuevo pedido\nComercio: ${comercio}\nWhatsApp: ${wa||"No informado"}\nDía de entrega: ${diaConFecha}\nDomicilio: ${direccion}\nForma de pago: ${formaPago}\n\n${lines}\n\nTOTAL: ${calc.confirmar?money(calc.total)+" + productos con precio a confirmar":money(calc.total)}${obs?"\n\nObservaciones: "+obs:""}${notaCambios}\n\nDistribuidora Petits Cadeaux`;
+}
+
+function mostrarEnviado(){
+ const url="https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(mensajeWhatsApp());
+ $("cfBox").innerHTML=`<div class="cf-ok">
+  <div class="tick">✓</div>
+  <h3>¡Tu pedido fue enviado correctamente!</h3>
+  <p class="cf-sub">Ya lo recibimos. No hace falta que lo cargues de nuevo.</p>
+  <div class="cf-aviso"><b>Último paso:</b> tocá el botón verde y enviá el mensaje por WhatsApp para <b>confirmar la recepción</b>. No te olvides de mandarlo.</div>
+  <a class="cf-btn cf-wa" id="cfWa" href="${url}" target="_blank" rel="noopener">Abrir WhatsApp y confirmar</a>
+  <button class="cf-btn cf-sec" id="cfCerrar">Cerrar</button>
+ </div>`;
+ $("cfWa").addEventListener("click",()=>{setTimeout(finalizarPedido,800)});
+ $("cfCerrar").addEventListener("click",finalizarPedido);
+}
+
+function finalizarPedido(){
+ $("cfBack").style.display="none";
+ if(pedidoGuardado){limpiarFormulario();pedidoPendiente=null;pedidoGuardado=false;window.scrollTo({top:0,behavior:"smooth"})}
 }
 
 $("send").addEventListener("click",enviar);
@@ -463,5 +533,6 @@ renderOpcionesEntrega();
 .app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
 @media print{.app-copyright{display:none}}
 </style>
+<div class="cf-back" id="cfBack"><div class="cf-box" id="cfBox"></div></div>
 </body>
 </html>
