@@ -993,9 +993,15 @@ async function guardarEdicion(){
  if(!detalle.length){$("editarMsg").innerHTML='<div class="ok">No hay cambios para guardar.</div>';return}
  $("editarGuardar").disabled=true;$("editarGuardar").textContent="Guardando...";
  try{
-  const r=await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+editId,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(body)});
+  const r=await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+editId,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(body)});
   if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||"error "+r.status)}
+  const filas=await r.json().catch(()=>null);
+  if(Array.isArray(filas)){
+   if(!filas.length)throw new Error("la base no actualizó el pedido (sin permiso). Avisame y lo revisamos.");
+   if(body.created_at&&fechaLocalISO(filas[0].created_at)!==fechaLocalISO(body.created_at))throw new Error("la base de datos no permite cambiar la fecha del pedido (columna protegida).");
+  }
   Object.assign(o,body);
+  if(body.created_at)orders.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   Audit.log(editId,"Pedido editado",detalle.join(" | "));
   $("editarModal").style.display="none";
   render();
