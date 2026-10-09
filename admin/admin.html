@@ -428,7 +428,7 @@ function toggleDescuento(id){
 async function guardarDescuentos(id,btn){
  const o=orders.find(x=>x.id===id);
  if(!o)return;
- const card=btn.closest(".order");
+ const card=btn.closest(".orow");
  const inputs=card.querySelectorAll(".descuento-input");
  const nuevosItems=(o.productos||[]).map((it,idx)=>{
   const bonifInput=[...inputs].find(inp=>parseInt(inp.dataset.idx)===idx);
@@ -467,7 +467,7 @@ function toggleEnvio(id){
 async function guardarEnvio(id,btn){
  const o=orders.find(x=>x.id===id);
  if(!o)return;
- const card=btn.closest(".order");
+ const card=btn.closest(".orow");
  const transportista=card.querySelector(".envio-transportista").value;
  const numero=card.querySelector(".envio-numero").value.trim();
  const estadoEnvio=card.querySelector(".envio-estado").value;
