@@ -271,6 +271,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
    <label>Comercio<input id="edComercio"></label>
    <label>WhatsApp<input id="edWhatsapp" inputmode="tel"></label>
    <label class="ed-full">Domicilio<input id="edDomicilio"></label>
+   <label>Fecha del pedido<input id="edFecha" type="date"></label>
    <label>Día de entrega<select id="edDia"><option>Miércoles</option><option>Viernes</option></select></label>
    <label>Observaciones<input id="edObs"></label>
   </div>
@@ -897,6 +898,11 @@ function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","
 
 // ---------- Editar pedido ----------
 let editId=null,editItems=[],editBloqueado=false;
+function fechaLocalISO(iso){
+ if(!iso)return "";
+ const d=new Date(iso);
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 function abrirEditar(id){
  const o=orders.find(x=>x.id===id);
  if(!o)return;
@@ -908,6 +914,7 @@ function abrirEditar(id){
  $("edWhatsapp").value=o.whatsapp||"";
  $("edDomicilio").value=o.domicilio||"";
  $("edObs").value=o.observaciones||"";
+ $("edFecha").value=fechaLocalISO(o.created_at);
  const dia=o.dia_entrega||"Viernes";
  const sel=$("edDia");
  if(![...sel.options].some(op=>op.value===dia)){const op=document.createElement("option");op.textContent=dia;sel.appendChild(op)}
@@ -964,6 +971,15 @@ async function guardarEdicion(){
  const detalle=[];
  Object.keys(cambios).forEach(k=>{if((o[k]||null)!==(cambios[k]||null))detalle.push(nombres[k]+": "+(o[k]||"vacío")+" → "+(cambios[k]||"vacío"))});
  const body={...cambios};
+ const fechaNueva=$("edFecha").value;
+ if(fechaNueva&&fechaNueva!==fechaLocalISO(o.created_at)){
+  // se cambia el día y se conserva la hora original del pedido
+  const ant=new Date(o.created_at);
+  const [y,m,d]=fechaNueva.split("-").map(Number);
+  const nueva=new Date(y,m-1,d,ant.getHours(),ant.getMinutes(),ant.getSeconds());
+  body.created_at=nueva.toISOString();
+  detalle.push("Fecha del pedido: "+fechaLocalISO(o.created_at).split("-").reverse().join("/")+" → "+fechaNueva.split("-").reverse().join("/"));
+ }
  let totalAntes=o.total,totalNuevo=o.total;
  if(!editBloqueado){
   const itemsAntes=JSON.stringify((o.productos||[]).map(it=>[it.producto,it.cantidad,it.precio_unitario]));
