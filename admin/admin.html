@@ -855,9 +855,27 @@ function compBadgeHtml(o){
 }
 function facBtn(o){
  if(window.Perm&&!Perm.can("facturar"))return "";
- if(o.factura_cae)return `<button class="btn-wa" onclick="window.open('facturacion.html?ver=${o.id}','_self')">💼 Ver en Facturación</button>`;
+ if(o.factura_cae)return `<button class="btn-wa" onclick="window.open('facturacion.html?ver=${o.id}','_blank')">💼 Ver en Facturación</button>`;
  return `<button class="btn-del" style="font-weight:800" onclick="abrirFacturar(${o.id})">🧾 ${o.remito_nro?"Facturar (ARCA)":"Facturar"}</button>`;
 }
+function avisoRapido(t){
+ const d=document.createElement("div");d.textContent="✓ "+t;
+ d.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#176044;color:#fff;padding:12px 20px;border-radius:999px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25)";
+ document.body.appendChild(d);setTimeout(()=>d.remove(),3500);
+}
+// Al volver a esta pestaña (por ej. después de facturar en otra), se actualizan los pedidos sin mover la vista.
+let ultimoRefresco=Date.now();
+document.addEventListener("visibilitychange",async()=>{
+ if(document.visibilityState!=="visible"||!session||Date.now()-ultimoRefresco<5000)return;
+ if($("facModal").style.display==="flex"||$("editarModal").style.display==="flex")return;
+ ultimoRefresco=Date.now();
+ try{
+  const r=await apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc");
+  if(!r.ok)return;
+  const d=await r.json();
+  if(Array.isArray(d)){orders=d;render()}
+ }catch(e){}
+});
 function cerrarFac(){$("facModal").style.display="none"}
 function abrirFacturar(id){
  const o=orders.find(x=>x.id===id);if(!o)return;
@@ -889,7 +907,9 @@ async function generarRemito(id,btn){
   const r=Array.isArray(rows)?rows[0]:rows;
   if(!r||!r.remito_nro)throw new Error("No se pudo asignar el número de remito");
   Audit.log(id,"Remito generado","Remito "+fmtNro(r.remito_pto_vta,r.remito_nro));
-  location.href="facturacion.html?ver="+id;
+  const o=orders.find(x=>x.id===id);
+  if(o){o.remito_nro=r.remito_nro;o.remito_pto_vta=r.remito_pto_vta}
+  cerrarFac();render();avisoRapido("Remito "+fmtNro(r.remito_pto_vta,r.remito_nro)+" generado");
  }catch(e){
   alert("No se pudo generar el remito: "+(e.message||"error")+"\n¿Ya corriste sql-facturacion.sql en Supabase?");
   btn.disabled=false;btn.textContent="✅ Confirmar y guardar";
