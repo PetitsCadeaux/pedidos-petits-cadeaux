@@ -278,7 +278,8 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
   <div style="margin-top:14px;font-weight:800;font-size:13px;color:#5f4d68">Productos</div>
   <div id="edItems"></div>
   <div id="edAgregar" class="ed-add">
-   <input id="edNuevoProd" placeholder="Producto nuevo (ej. Hamburguesa Mix x4)">
+   <input id="edNuevoProd" list="edCatalogoList" autocomplete="off" placeholder="Producto nuevo (empezá a escribir)">
+   <datalist id="edCatalogoList"></datalist>
    <input id="edNuevoCant" type="number" min="1" value="1" style="max-width:80px" title="Cantidad">
    <input id="edNuevoPrecio" type="number" min="0" step="0.01" placeholder="Precio unit." style="max-width:120px">
    <button type="button" class="chip" id="edAgregarBtn">Agregar</button>
@@ -925,7 +926,7 @@ function abrirEditar(id){
  $("editarMsg").innerHTML="";
  $("editarGuardar").disabled=false;$("editarGuardar").textContent="Guardar cambios";
  renderEditItems();
- $("editarModal").style.display="flex";
+ $("editarModal").style.display="flex";cargarCatalogoEdicion(parseInt(o.lista_precio)||1);
 }
 function totalEdit(){
  if(!editItems.length)return 0;
@@ -951,6 +952,27 @@ function editPrecio(i,v){
  renderEditItems();
 }
 function editQuitar(i){editItems.splice(i,1);renderEditItems()}
+let edCatalogo=null;
+async function cargarCatalogoEdicion(lista){
+ try{
+  if(!edCatalogo){
+   const r=await apiFetch("/rest/v1/productos_catalogo?select=nombre,precio,negocio&activo=eq.true&negocio=in.(comercio,mayorista)&order=nombre.asc");
+   const d=await r.json();
+   edCatalogo={comercio:[],mayorista:[]};
+   (Array.isArray(d)?d:[]).forEach(x=>{if(edCatalogo[x.negocio])edCatalogo[x.negocio].push(x)});
+  }
+  const arr=(lista===2?edCatalogo.mayorista:edCatalogo.comercio);
+  const l=arr.length?arr:(edCatalogo.comercio.length?edCatalogo.comercio:edCatalogo.mayorista);
+  $("edCatalogoList").innerHTML=l.map(x=>`<option value="${esc(x.nombre)}">${x.precio!=null?esc(money(x.precio)):""}</option>`).join("");
+  $("edCatalogoList")._items=l;
+ }catch(e){}
+}
+function edAutoPrecio(){
+ const l=$("edCatalogoList")._items||[];
+ const v=$("edNuevoProd").value.trim().toLowerCase();
+ const x=l.find(y=>(y.nombre||"").toLowerCase()===v);
+ if(x&&x.precio!=null)$("edNuevoPrecio").value=x.precio;
+}
 function editAgregar(){
  const nombre=$("edNuevoProd").value.trim();
  const cant=parseInt($("edNuevoCant").value)||1;
@@ -1023,6 +1045,7 @@ async function guardarEdicion(){
 }
 $("editarCerrar").addEventListener("click",()=>{$("editarModal").style.display="none"});
 $("editarModal").addEventListener("click",e=>{if(e.target===$("editarModal"))$("editarModal").style.display="none"});
+$("edNuevoProd").addEventListener("input",edAutoPrecio);
 $("edAgregarBtn").addEventListener("click",editAgregar);
 $("edEnvioBtn").addEventListener("click",editAgregarEnvio);
 $("editarGuardar").addEventListener("click",guardarEdicion);
