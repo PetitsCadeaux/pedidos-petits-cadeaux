@@ -282,6 +282,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
    <input id="edNuevoCant" type="number" min="1" value="1" style="max-width:80px" title="Cantidad">
    <input id="edNuevoPrecio" type="number" min="0" step="0.01" placeholder="Precio unit." style="max-width:120px">
    <button type="button" class="chip" id="edAgregarBtn">Agregar</button>
+   <button type="button" class="chip" id="edEnvioBtn" title="Suma el ítem Envío; el monto se define en su fila">+ Envío</button>
   </div>
   <div class="ed-total"><span>Total</span><strong id="edTotal"></strong></div>
   <div id="editarMsg"></div>
@@ -960,6 +961,16 @@ function editAgregar(){
  $("edNuevoProd").value="";$("edNuevoCant").value="1";$("edNuevoPrecio").value="";
  renderEditItems();
 }
+function editAgregarEnvio(){
+ if(editBloqueado)return;
+ if(editItems.some(it=>/^env[ií]o$/i.test((it.producto||"").trim()))){$("editarMsg").innerHTML='<div class="err">El pedido ya tiene el ítem Envío. Cambiá su monto en la fila.</div>';return}
+ $("editarMsg").innerHTML="";
+ const precio=$("edNuevoPrecio").value===""?null:parseFloat($("edNuevoPrecio").value);
+ editItems.push({producto:"Envío",cantidad:1,precio_unitario:precio,precio_lista:precio,bonif_pct:0});
+ $("edNuevoPrecio").value="";
+ renderEditItems();
+ const f=$("edItems").querySelectorAll(".ed-row");const inp=f[f.length-1]&&f[f.length-1].querySelectorAll("input")[1];if(inp&&precio==null)inp.focus();
+}
 async function guardarEdicion(){
  const o=orders.find(x=>x.id===editId);
  if(!o)return;
@@ -1013,6 +1024,7 @@ async function guardarEdicion(){
 $("editarCerrar").addEventListener("click",()=>{$("editarModal").style.display="none"});
 $("editarModal").addEventListener("click",e=>{if(e.target===$("editarModal"))$("editarModal").style.display="none"});
 $("edAgregarBtn").addEventListener("click",editAgregar);
+$("edEnvioBtn").addEventListener("click",editAgregarEnvio);
 $("editarGuardar").addEventListener("click",guardarEdicion);
 
 async function verHistorial(id){
