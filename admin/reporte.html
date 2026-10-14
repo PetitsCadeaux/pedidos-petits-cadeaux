@@ -160,7 +160,7 @@ function aplicarFiltro(){
   if(it.precio_unitario!=null)map[it.producto].importe+=it.cantidad*it.precio_unitario;
   else map[it.producto].confirmar=true;
  }));
- currentAgg=Object.values(map).sort((a,b)=>b.cantidad-a.cantidad);
+ currentAgg=Object.values(map).sort((a,b)=>String(a.producto||a.nombre||"").localeCompare(String(b.producto||b.nombre||""),"es",{sensitivity:"base",numeric:true}));
 
  const totalPedidos=filtrados.length;
  const totalUnidades=currentAgg.reduce((s,p)=>s+p.cantidad,0);
