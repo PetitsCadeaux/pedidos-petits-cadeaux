@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Respaldo de datos - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+.navlink{display:inline-block;margin-top:8px;color:#865a8e;font-size:13px;font-weight:700;text-decoration:none}
+main{max-width:1040px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:8px;color:#5f4d68;font-size:13px;font-weight:800}
+input,select{width:100%;padding:11px 13px;margin-top:6px;border:1px solid #ddcfe1;border-radius:14px;background:#fff;color:var(--ink);font:500 14px Inter,Arial,sans-serif;outline:none}
+input:focus,select:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:14px;font:800 14px Inter,Arial,sans-serif;cursor:pointer}
+.btn-main{padding:13px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-sec{padding:13px 18px;background:#fff;border:1px solid #ddcde4;color:#654273}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.btns-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btns-row button{flex:1;min-width:140px}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:7px 5px}
+td{padding:8px 5px;border-bottom:1px dotted #eee1ef;font-size:13px;vertical-align:top}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:#f3e8f5;color:var(--purple);font-weight:800;font-size:11.5px;white-space:nowrap}
+.tag.imp{background:#eef2f7;color:#41506a}
+.tag.del{background:#fff0f1;color:#9b3040}
+.empty,.loading{padding:30px;text-align:center;color:#817287}
+.scroll{overflow-x:auto}
+
+.tbl-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px dotted #eee1ef;font-size:14px}
+.tbl-row .n{flex:1;font-weight:700;color:var(--ink)}
+.tbl-row .st{font-size:12.5px;color:var(--muted);min-width:150px;text-align:right}
+.tbl-row .st.ok{color:#176044;font-weight:700}.tbl-row .st.bad{color:#9b3040;font-weight:700}
+.tbl-row input[type=checkbox]{width:auto;margin:0}
+.aviso{background:#fff7e6;border:1.5px solid #f0d9a8;color:#7a5a12;border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5;margin-top:12px}
+.okbox{background:#ecfaf4;border:1px solid #ccefe0;color:#176044;border-radius:14px;padding:12px 14px;margin-top:12px;font-weight:600;font-size:14px}
+</style>
+<link rel="stylesheet" href="ancho.css">
+</head>
+<body>
+
+<header>
+ <h1>Respaldo de datos</h1>
+</header>
+<script src="menu.js"></script>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="card" data-perm="usuarios">
+ <div style="font-weight:800;color:var(--purple);font-size:16px;margin-bottom:4px">Descargá una copia de tus datos</div>
+ <div style="font-size:13.5px;color:var(--muted);line-height:1.5">Baja todas las tablas de la base (pedidos, productos, stock, cuentas, facturas de proveedores, auditoría, etc.). Hacelo <b>antes de cualquier cambio grande</b> y guardalo en un lugar seguro.</div>
+ <div id="lista" style="margin-top:12px"></div>
+ <div class="btns-row">
+  <button class="btn-main" id="jsonBtn">⬇️ Respaldo completo (.json)</button>
+  <button class="btn-sec" id="excelBtn">⬇️ En Excel (.xlsx)</button>
+ </div>
+ <div style="display:flex;gap:8px;margin-top:12px;align-items:end">
+  <div style="flex:1"><label for="otraTabla">Agregar otra tabla (nombre exacto)</label><input id="otraTabla" placeholder="Ej. mi_tabla"></div>
+  <button class="btn-sec" id="otraBtn" style="padding:11px 16px">Agregar</button>
+ </div>
+ <div id="msg"></div>
+ <div class="aviso"><b>Qué incluye y qué no:</b> incluye los datos de las tablas. <b>No incluye</b> los usuarios del login, las fotos de productos ni la estructura de la base (tablas, reglas y funciones). Esas partes se respaldan aparte desde Supabase.<br>El archivo tiene datos de clientes: no lo compartas ni lo subas a sitios públicos.</div>
+</div>
+
+<div id="sinPermiso" class="card" style="display:none;text-align:center;color:#817287">Esta sección es solo para la administración general.</div>
+
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="permisos.js"></script>
+<script src="auditoria.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+// No se incluye arca_wsaa_token a propósito: es un token de acceso a ARCA, no un dato del negocio.
+let TABLAS=["pedidos_distribuidora","productos_catalogo","stock_productos","movimientos_stock","costos_productos",
+ "facturas_proveedor","pagos_proveedor","pagos_proveedor_facturas","pagos_clientes","saldos_iniciales",
+ "auditoria_eventos","usuarios_admin","visitas"];
+const sel=new Set(TABLAS);
+const estado={};
+
+function renderLista(){
+ $("lista").innerHTML=TABLAS.map(t=>`<div class="tbl-row"><input type="checkbox" ${sel.has(t)?"checked":""} data-t="${esc(t)}"><span class="n">${esc(t)}</span><span class="st ${estado[t]?estado[t].c:""}">${esc(estado[t]?estado[t].t:"")}</span></div>`).join("");
+ document.querySelectorAll("#lista input[type=checkbox]").forEach(c=>c.addEventListener("change",()=>{c.checked?sel.add(c.dataset.t):sel.delete(c.dataset.t)}));
+}
+function setEstado(t,txt,c){estado[t]={t:txt,c:c||""};renderLista()}
+
+async function refrescarToken(){
+ try{
+  const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:session.refresh_token})});
+  if(!r.ok)return false;
+  const d=await r.json();
+  session={...session,access_token:d.access_token,refresh_token:d.refresh_token||session.refresh_token};
+  localStorage.setItem("admin_session",JSON.stringify(session));
+  return true;
+ }catch(e){return false}
+}
+async function get(path){
+ const h=()=>({apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token});
+ let r=await fetch(SUPABASE_URL+path,{headers:h()});
+ if(r.status===401&&await refrescarToken())r=await fetch(SUPABASE_URL+path,{headers:h()});
+ return r;
+}
+async function bajarTabla(t){
+ const filas=[];const paso=1000;let orden="&order=id.asc";
+ for(let off=0;;off+=paso){
+  let r=await get("/rest/v1/"+encodeURIComponent(t)+"?select=*"+orden+"&limit="+paso+"&offset="+off);
+  if(r.status===400&&orden){orden="";r=await get("/rest/v1/"+encodeURIComponent(t)+"?select=*&limit="+paso+"&offset="+off)}
+  if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}throw new Error(m||("error "+r.status))}
+  const d=await r.json();
+  filas.push(...d);
+  setEstado(t,"Descargando… "+filas.length+" filas");
+  if(d.length<paso)break;
+ }
+ return filas;
+}
+async function bajarTodo(){
+ const datos={};const fallos=[];
+ const elegidas=TABLAS.filter(t=>sel.has(t));
+ if(!elegidas.length){$("msg").innerHTML='<div class="err">Elegí al menos una tabla.</div>';return null}
+ $("msg").innerHTML="";
+ for(const t of elegidas){
+  try{const f=await bajarTabla(t);datos[t]=f;setEstado(t,f.length+" filas ✓","ok")}
+  catch(e){fallos.push(t);setEstado(t,"No se pudo: "+(e.message||"error"),"bad")}
+ }
+ return {datos,fallos};
+}
+function stamp(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function descargar(blob,nombre){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+function resumen(res,archivo){
+ const total=Object.values(res.datos).reduce((s,a)=>s+a.length,0);
+ let h=`<div class="okbox">Listo: ${Object.keys(res.datos).length} tablas, ${total} filas. Archivo: ${esc(archivo)}</div>`;
+ if(res.fallos.length)h+=`<div class="err">Estas tablas no se pudieron bajar y NO están en el respaldo: ${res.fallos.map(esc).join(", ")}. Puede ser que no existan o que no tengas permiso.</div>`;
+ $("msg").innerHTML=h;
+ try{Audit.log(null,"Respaldo descargado",archivo+" · "+Object.keys(res.datos).length+" tablas, "+total+" filas"+(res.fallos.length?" · fallaron: "+res.fallos.join(", "):""))}catch(e){}
+}
+async function respaldoJson(){
+ $("jsonBtn").disabled=$("excelBtn").disabled=true;
+ try{
+  const res=await bajarTodo(); if(!res)return;
+  const nombre="respaldo-petits-"+stamp()+".json";
+  descargar(new Blob([JSON.stringify({generado:new Date().toISOString(),origen:SUPABASE_URL,tablas:res.datos},null,1)],{type:"application/json"}),nombre);
+  resumen(res,nombre);
+ }finally{$("jsonBtn").disabled=$("excelBtn").disabled=false}
+}
+async function respaldoExcel(){
+ $("jsonBtn").disabled=$("excelBtn").disabled=true;
+ try{
+  const res=await bajarTodo(); if(!res)return;
+  const wb=XLSX.utils.book_new();
+  Object.keys(res.datos).forEach(t=>{
+   const filas=res.datos[t].map(f=>{const o={};Object.keys(f).forEach(k=>{const v=f[k];o[k]=(v!==null&&typeof v==="object")?JSON.stringify(v).slice(0,32000):v});return o});
+   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filas.length?filas:[{}]),t.slice(0,31));
+  });
+  const nombre="respaldo-petits-"+stamp()+".xlsx";
+  XLSX.writeFile(wb,nombre);
+  resumen(res,nombre);
+ }finally{$("jsonBtn").disabled=$("excelBtn").disabled=false}
+}
+$("jsonBtn").addEventListener("click",respaldoJson);
+$("excelBtn").addEventListener("click",respaldoExcel);
+$("otraBtn").addEventListener("click",()=>{
+ const t=$("otraTabla").value.trim().toLowerCase();
+ if(!/^[a-z_][a-z0-9_]*$/.test(t)){$("msg").innerHTML='<div class="err">Nombre de tabla no válido.</div>';return}
+ if(!TABLAS.includes(t))TABLAS.push(t);sel.add(t);$("otraTabla").value="";$("msg").innerHTML="";renderLista();
+});
+renderLista();
+if(window.Perm&&Perm.ready)Perm.ready.then(()=>{if(!Perm.can("usuarios"))$("sinPermiso").style.display="block"});
+</script>
+<script src="iconos.js"></script>
+</body>
+</html>

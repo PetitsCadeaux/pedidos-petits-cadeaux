@@ -9,7 +9,7 @@
   "facturacion.html":"facturacion","facturas-emitidas.html":"facturacion","libro-iva-compras.html":"facturacion","monotributo.html":"facturacion",
   "facturas.html":"proveedor","orden-pago.html":"proveedor","cuenta-proveedor.html":"proveedor","costos.html":"proveedor",
   "reporte.html":"reportes","dashboard.html":"reportes","stock.html":"reportes","visitas.html":"reportes",
-  "auditoria.html":"auditoria","usuarios.html":"usuarios"
+  "auditoria.html":"auditoria","usuarios.html":"usuarios","respaldo.html":"usuarios"
  };
  function sesion(){try{return JSON.parse(localStorage.getItem("admin_session")||"null")}catch(e){return null}}
  const estado={cargado:false,rol:"admin",permisos:null,email:null,nombre:null};

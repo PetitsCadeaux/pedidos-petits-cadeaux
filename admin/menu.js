@@ -19,7 +19,7 @@
    ["reporte.html","Reporte para distribuidor","reportes"],["dashboard.html","Dashboard","reportes"],["stock.html","Stock","reportes"],
    ["visitas.html","Visitas","reportes"],["auditoria.html","Auditoría","auditoria"]]},
   {k:"config",t:"Configuración",right:true,i:I('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'),l:[
-   ["usuarios.html","Usuarios y permisos","usuarios"],
+   ["usuarios.html","Usuarios y permisos","usuarios"],["respaldo.html","Respaldo de datos","usuarios"],
    ["sep","Integraciones"],
    ["https://app.zipnova.com.ar","Zipnova",null,1],["https://cabifylogistics.com/ar","Cabify Logistics",null,1],
    ["https://www.oca.com.ar","OCA",null,1],["https://www.mercadopago.com.ar","Mercado Pago",null,1]]}
