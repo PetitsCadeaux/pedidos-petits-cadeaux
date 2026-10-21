@@ -76,6 +76,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  .client-cols div{text-align:right;min-width:92px;font-weight:700;font-size:14px}
  .client-cols span{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800}
 }
+.btn-wa{border:1px solid #bfe3cf;background:#e9f8ef;color:#177a4d;border-radius:12px;padding:9px 11px;font-size:16px;cursor:pointer;margin-right:6px}
 </style>
 <link rel="stylesheet" href="ancho.css">
 </head>
@@ -191,6 +192,32 @@ function creditoDe(c){
  const imputado=pid=>links.filter(l=>l.pago_id===pid).reduce((s,l)=>s+(l.monto||0),0);
  return Math.max(0,r2((c.pagos||[]).filter(p=>p.medio).reduce((s,p)=>s+(p.monto||0)-imputado(p.id),0)));
 }
+
+// ---- WhatsApp: recordatorio de deuda ----
+function waNumero(t){
+ let d=String(t||"").replace(/\D/g,"").replace(/^0+/,"");
+ if(!d)return"";
+ if(d.startsWith("54")){if(!d.startsWith("549")&&d.length===12)d="549"+d.slice(2);return d}
+ if(d.length===10)return"549"+d;
+ if(d.length===12&&d.startsWith("15"))return d; // formato dudoso: se deja tal cual
+ return d;
+}
+function recordatorioWA(key){
+ const c=clients.find(x=>x.key===key);if(!c)return;
+ const pend=pedidosPorCobrar(c);
+ const conTel=c.pedidos.find(o=>o.whatsapp);
+ const nombre=(c.comercios[0]||"").trim();
+ const lineas=pend.slice(0,12).map(o=>"• "+fmtFechaCorta(o.created_at)+" – "+money(faltaCobrar(o))).join("\n");
+ const resto=pend.length>12?"\n• y "+(pend.length-12)+" pedido"+(pend.length-12===1?"":"s")+" más":"";
+ const saldoAnt=(c.saldos||[]).reduce((s,x)=>s+(x.monto||0),0);
+ const msg="Hola"+(nombre?" "+nombre:"")+"! Te escribimos de Petits Cadeaux 🐞\n"
+  +"Te pasamos el detalle de tu cuenta:\n"+(lineas?lineas+resto+"\n":"")
+  +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
+  +"*Total a pagar: "+money(c.saldo)+"*\n"
+  +"¿Nos confirmás cuándo podés abonarlo? Muchas gracias!";
+ const num=waNumero(conTel&&conTel.whatsapp);
+ window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
+}
 let openKey=null;
 let filtroSaldo="todos";
 
@@ -301,7 +328,7 @@ function renderClients(){
       <div class="saldo-label">${saldado?"Al día":"Debe"}</div>
       <div class="saldo-val ${saldado?"saldado":"debe"}">${money(Math.abs(c.saldo))}</div>
      </div>
-     ${saldado?'<span style="width:84px"></span>':`<button type="button" class="btn-cobrar" onclick="event.stopPropagation();abrirCobranza('${c.key.replace(/'/g,"\\'")}')">Cobrar</button>`}
+     ${saldado?'<span style="width:84px"></span>':`<button type="button" class="btn-wa" title="Enviar recordatorio de deuda por WhatsApp" onclick="event.stopPropagation();recordatorioWA('${c.key.replace(/'/g,"\\'")}')">💬</button><button type="button" class="btn-cobrar" onclick="event.stopPropagation();abrirCobranza('${c.key.replace(/'/g,"\\'")}')">Cobrar</button>`}
     </div>
    </div>
    <div class="detail ${open?"open":""}">

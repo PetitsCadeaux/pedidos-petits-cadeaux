@@ -111,10 +111,27 @@ function nroDoc(o){
  return p.join(" ");
 }
 
+
+function waNumero(t){
+ let d=String(t||"").replace(/\D/g,"").replace(/^0+/,"");
+ if(!d)return"";
+ if(d.startsWith("54")){if(!d.startsWith("549")&&d.length===12)d="549"+d.slice(2);return d}
+ if(d.length===10)return"549"+d;
+ return d;
+}
+// Abre WhatsApp con el aviso listo; el PDF del comprobante se adjunta a mano (Ver / imprimir → Guardar como PDF).
+function avisarWA(id){
+ const o=datos.find(x=>x.id===id);if(!o)return;
+ const i=info(o);
+ const doc=i.factura?"Factura C "+fmtNro(o.factura_pto_vta,o.factura_nro):"Remito "+fmtNro(o.remito_pto_vta||1,o.remito_nro);
+ const msg="Hola"+(o.comercio?" "+o.comercio:"")+"! Te enviamos tu "+doc+" por "+money(o.total)+" (pedido #"+o.id+").\n"
+  +(i.cobrado?"Ya figura abonado. ¡Gracias!":"Cuando puedas, avisanos el pago. ¡Gracias por tu compra!")+" 🐞";
+ window.open("https://wa.me/"+waNumero(o.whatsapp)+"?text="+encodeURIComponent(msg),"_blank");
+}
 async function cargar(){
  $("err").innerHTML="";
  try{
-  const cols="id,comercio,total,created_at,canal,manual,estado_pago,pagado,anulado,cobro,cobro_fecha,estado_entrega,factura_cae,factura_pto_vta,factura_nro,facturado_en,nc_cae,remito_nro,remito_pto_vta,remito_en";
+  const cols="id,whatsapp,comercio,total,created_at,canal,manual,estado_pago,pagado,anulado,cobro,cobro_fecha,estado_entrega,factura_cae,factura_pto_vta,factura_nro,facturado_en,nc_cae,remito_nro,remito_pto_vta,remito_en";
   const pedir=c=>fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select="+c+"&order=created_at.desc&limit=3000",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
   // cobrado_monto lo crea sql-cobranzas-clientes.sql; si todavía no se corrió, se carga sin ese dato.
   let r=await pedir(cols+",cobrado_monto");
@@ -169,7 +186,7 @@ function render(){
    const fecha=fmtD(i.fechaDoc||o.created_at);
    const cob=i.doc?`<select class="pay ${pgClase(i.pago)}" data-id="${o.id}">${PAGOS.map(p=>`<option value="${p}" ${p===i.pago?"selected":""}>${p==="Pendiente"?"Por cobrar":(p==="Demorado"?"Demorado":"Cobrado · "+p)}</option>`).join("")}</select>`+(i.cobrado&&o.cobro_fecha?'<div class="muted">Cobrado el '+fmtD(o.cobro_fecha)+'</div>':'<div class="muted">Cliente eligió: '+esc(o.estado_pago||"-")+'</div>'):'<span class="muted">—</span>';
    const acc=i.doc
-    ?`<button class="chip" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Ver / imprimir</button>`+(i.remito&&!i.factura?` <button class="btn-red" onclick="location.href='comprobante.html?ids=${o.id}'" title="Emitir la Factura C de este remito">🧾 Facturar (ARCA)</button>`:"")
+    ?`<button class="chip" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🖨️ Ver / imprimir</button> <button class="chip" title="Avisar al cliente por WhatsApp" onclick="avisarWA(${o.id})">💬</button>`+(i.remito&&!i.factura?` <button class="btn-red" onclick="location.href='comprobante.html?ids=${o.id}'" title="Emitir la Factura C de este remito">🧾 Facturar (ARCA)</button>`:"")
     :`<button class="btn-main" onclick="location.href='admin.html?facturar=${o.id}'">🧾 Facturar</button>`;
    return `<tr data-id="${o.id}" class="${o.id===verId?"hl":""}"><td><input type="checkbox" class="chk" value="${o.id}" ${i.doc?"":"disabled title=\"Primero facturá el pedido\""} style="margin:0"></td><td>${fecha}</td><td>${nroDoc(o)}</td><td>${esc(o.comercio||"Sin nombre")}<div class="muted">Pedido #${o.id}</div></td><td class="num"><b>${money(o.total)}</b></td><td>${cob}</td><td>${acc}</td></tr>`;
   }).join("")+'</tbody></table>'+pager;
