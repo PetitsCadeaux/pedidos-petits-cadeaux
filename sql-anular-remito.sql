@@ -4,6 +4,7 @@
 -- * El remito anulado queda guardado en remitos_anulados (numero, fecha, motivo, quien,
 --   y una copia de los productos tal como salieron). No se borra nunca.
 -- * El numero anulado NO se reutiliza: el proximo remito toma un numero nuevo (secuencia).
+-- * Si el pedido figura como cobrado, primero hay que anular el cobro (en Facturacion).
 -- * Si el pedido tiene factura de ARCA, no se anula por aca (va con nota de credito).
 
 create table if not exists remitos_anulados (
@@ -50,6 +51,9 @@ begin
   end if;
   if v.factura_cae is not null then
     raise exception 'El pedido tiene una factura emitida: se anula con nota de credito, no desde el remito';
+  end if;
+  if v.cobro in ('Efectivo', 'Transferencia', 'Mercado Pago') or (v.estado_pago = 'Mercado Pago' and coalesce(v.pagado, false)) then
+    raise exception 'El pedido figura como cobrado: primero anula el cobro y despues el remito';
   end if;
   if coalesce(trim(p_motivo), '') = '' then
     raise exception 'Falta el motivo de la anulacion';

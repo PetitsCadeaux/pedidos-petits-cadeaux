@@ -888,14 +888,20 @@ function cerrarFac(){$("facModal").style.display="none"}
 function abrirAnularRemito(id){
  const o=orders.find(x=>x.id===id);if(!o||!o.remito_nro)return;
  const nro=fmtNro(o.remito_pto_vta||1,o.remito_nro);
- const cobrado=["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro);
- $("facModalBody").innerHTML=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Anular remito ${nro}</div>
-  <div style="color:var(--muted);font-size:13px;margin:4px 0 12px">${esc(o.comercio||"")} · ${money(o.total)} · Pedido #${o.id}</div>
-  <div style="font-size:13.5px;line-height:1.55;background:#faf5fc;border-radius:12px;padding:11px 13px">
+ const cobrado=["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro)||(o.estado_pago==="Mercado Pago"&&o.pagado);
+ const cab=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Anular remito ${nro}</div>
+  <div style="color:var(--muted);font-size:13px;margin:4px 0 12px">${esc(o.comercio||"")} · ${money(o.total)} · Pedido #${o.id}</div>`;
+ if(cobrado){
+  $("facModalBody").innerHTML=cab+`<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0">
+   Este pedido figura como <b>cobrado${o.cobro?" ("+esc(o.cobro)+")":" con Mercado Pago"}</b>.<br>
+   <b>Primero anulá el cobro</b> (en Facturación, pasá el estado a «Por cobrar») y después anulá el remito.</div>
+   <div class="actions" style="justify-content:flex-end;margin-top:12px"><button class="chip" onclick="cerrarFac()">Cerrar</button><button class="btn-take" style="flex:none" onclick="window.open('facturacion.html?ver=${id}','_blank')">Ir a Facturación</button></div>`;
+  $("facModal").style.display="flex";return;
+ }
+ $("facModalBody").innerHTML=cab+`<div style="font-size:13.5px;line-height:1.55;background:#faf5fc;border-radius:12px;padding:11px 13px">
    El remito queda registrado como <b>anulado</b> (con su número, el motivo y los productos que tenía) y <b>no se reutiliza</b>.<br>
    El pedido vuelve a <b>Pendiente</b>, sin remito, para que lo puedas <b>editar</b> y volver a hacer el remito con un número nuevo.
   </div>
-  ${cobrado?`<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0;margin-top:10px">Este pedido figura como <b>cobrado (${esc(o.cobro)})</b>. Anular el remito no toca el cobro: revisalo en Facturación o en la cuenta corriente.</div>`:""}
   <label style="display:block;margin-top:12px;font-weight:800;font-size:13px;color:#5f4d68">Motivo de la anulación (obligatorio)</label>
   <textarea id="anRemMotivo" rows="3" placeholder="Ej. El cliente cargó mal el pedido y no recibió la mercadería" style="width:100%;margin-top:6px;padding:11px 13px;border:1px solid #ddcfe1;border-radius:14px;font:500 14px Inter,Arial,sans-serif;resize:vertical"></textarea>
   <div id="anRemMsg"></div>
