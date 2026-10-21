@@ -398,7 +398,7 @@ async function cargarPedidos(){
    if(Array.isArray(dra))dra.forEach(x=>{(remitosAnulados[x.pedido_id]=remitosAnulados[x.pedido_id]||[]).push(x)});
   }catch(e){remitosAnulados={}}
   try{
-   const rf=await apiFetch("/rest/v1/facturas_anuladas?select=pedido_id,factura_pto_vta,factura_nro,nc_pto_vta,nc_nro,motivo,anulado_en&order=anulado_en.asc");
+   const rf=await apiFetch("/rest/v1/facturas_anuladas?select=id,pedido_id,factura_pto_vta,factura_nro,nc_pto_vta,nc_nro,motivo,anulado_en&order=anulado_en.asc");
    const drf=await rf.json();facturasAnuladas={};
    if(Array.isArray(drf))drf.forEach(x=>{(facturasAnuladas[x.pedido_id]=facturasAnuladas[x.pedido_id]||[]).push(x)});
   }catch(e){facturasAnuladas={}}
@@ -863,7 +863,7 @@ const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"
 function compBadgeHtml(o){
  const b=[];
  (remitosAnulados[o.id]||[]).forEach(x=>b.push(`<span class="badge" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through" title="Remito anulado el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")}">📄 ${fmtNro(x.remito_pto_vta||1,x.remito_nro)}</span>`));
- (facturasAnuladas[o.id]||[]).forEach(x=>b.push(`<span class="badge" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through" title="Factura anulada con nota de crédito ${fmtNro(x.nc_pto_vta,x.nc_nro)} el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")}">🧾 Factura C ${fmtNro(x.factura_pto_vta,x.factura_nro)}</span>`));
+ (facturasAnuladas[o.id]||[]).forEach(x=>b.push(`<a class="badge" target="_blank" href="comprobante.html?fa=${x.id}" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through;cursor:pointer" title="Factura anulada con nota de crédito ${fmtNro(x.nc_pto_vta,x.nc_nro)} el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")} — tocá para ver o imprimir la factura y la nota de crédito">🧾 Factura C ${fmtNro(x.factura_pto_vta,x.factura_nro)}</a>`));
  if(o.factura_cae)b.push(`<span class="badge" style="background:#e6f7ee;color:#177a4d">🧾 Factura C ${fmtNro(o.factura_pto_vta,o.factura_nro)}</span>`);
  if(o.remito_nro)b.push(`<span class="badge" style="background:#fff1de;color:#a15b00">📄 Remito ${fmtNro(o.remito_pto_vta||1,o.remito_nro)}</span>`);
  if(!o.factura_cae&&!o.remito_nro)b.push(`<span class="badge" style="background:#fde8e8;color:#a13030">Sin facturar</span>`);
@@ -985,7 +985,10 @@ async function confirmarAnularFactura(id,btn){
   }
   const f=d.factura||{};
   const ncNro=fmtNro(d.nc.pto_vta,d.nc.nro),fNro=fmtNro(f.pto_vta,f.nro);
-  (facturasAnuladas[id]=facturasAnuladas[id]||[]).push({pedido_id:id,factura_pto_vta:f.pto_vta,factura_nro:f.nro,nc_pto_vta:d.nc.pto_vta,nc_nro:d.nc.nro,motivo,anulado_en:new Date().toISOString()});
+  try{
+   const rf=await apiFetch("/rest/v1/facturas_anuladas?pedido_id=eq."+id+"&select=id,pedido_id,factura_pto_vta,factura_nro,nc_pto_vta,nc_nro,motivo,anulado_en&order=anulado_en.asc");
+   const drf=await rf.json();if(Array.isArray(drf))facturasAnuladas[id]=drf;
+  }catch(e){}
   ["factura_cae","factura_cae_vencimiento","factura_tipo","factura_pto_vta","factura_nro","factura_cuit_cliente","factura_cliente_razon_social","factura_cliente_domicilio","factura_cliente_condicion_iva","facturado_en","factura_total","nc_cae","nc_cae_vencimiento","nc_tipo","nc_pto_vta","nc_nro","nc_motivo","nc_facturada_en"].forEach(k=>{o[k]=null});
   if(!d.con_remito){o.estado="Pendiente";o.estado_entrega="Pendiente";o.fecha_entrega=null}
   Audit.log(id,"Factura anulada (nota de crédito)","Factura C "+fNro+" anulada con Nota de Crédito C "+ncNro+" · CAE NC "+d.nc.cae+" · Motivo: "+motivo+(d.con_remito?" · Conserva su remito":" · El pedido vuelve a Pendiente"));

@@ -109,6 +109,18 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 
 .loading,.err,.empty{padding:30px;text-align:center;color:#66566c}
 
+
+.factura{position:relative}
+.factura::before{content:"";display:block;height:2mm;margin:-6mm -7mm 4mm;background:linear-gradient(90deg,#542477,#a66ac7)}
+.fa-orig{display:inline-block;margin-top:1.5mm;border:1px solid #111;border-radius:3px;padding:.3mm 2.5mm;font-weight:800;font-size:.85em;letter-spacing:1px}
+.fa-asoc{background:#f6f0f9;border:1px solid #e0cfe8;border-radius:4px;padding:2mm 3mm;margin-bottom:3mm;font-size:.95em}
+.fa-gracias{margin-top:1.5mm;color:#6a5a72;font-size:.9em}
+.fa-sello{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:64px;font-weight:900;letter-spacing:6px;color:rgba(180,40,60,.22);border:6px solid rgba(180,40,60,.22);padding:2mm 8mm;border-radius:8px;pointer-events:none}
+.factura.es-nc .fa-titulo{color:#8a1f30}
+.r-table thead th:nth-child(2){text-align:left}
+.r-head .logo-r{height:13mm;width:auto;display:block;margin:0 auto 1.5mm}
+.r-gracias{text-align:center;font-size:.85em;color:var(--muted);margin-bottom:2mm}
+
 /* --- Modal con los datos fiscales del cliente, antes de facturar --- */
 .fac-overlay{position:fixed;inset:0;background:rgba(30,15,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .fac-modal{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
@@ -203,6 +215,7 @@ const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"curre
 
 const session=JSON.parse(localStorage.getItem("admin_session")||"null");
 const params=new URLSearchParams(location.search);
+const faId=Number(params.get("fa"))||null;
 const ids=(params.get("ids")||"").split(",").map(s=>s.trim()).filter(Boolean);
 
 function fmtFecha(iso){
@@ -231,29 +244,38 @@ const EMISOR={
  condicionIva:"Responsable Monotributo"
 };
 
-function qrArcaUrl(o){
- const fecha=(o.facturado_en||o.created_at||"").slice(0,10);
+const LOGO_URL="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/logo.png";
+// Importe con el que se emitió la factura (si el pedido se tocó después, el comprobante no cambia).
+const impFac=o=>o.factura_total!=null?o.factura_total:o.total;
+
+// tipo: "factura" (Factura C, código 11) o "nc" (Nota de Crédito C, código 13)
+function qrArcaUrl(o,tipo){
+ const nc=tipo==="nc";
  const payload={
   ver:1,
-  fecha:fecha,
+  fecha:((nc?o.nc_facturada_en:o.facturado_en)||o.created_at||"").slice(0,10),
   cuit:Number(EMISOR.cuit),
-  ptoVta:Number(o.factura_pto_vta||0),
-  tipoCmp:Number(o.factura_tipo||11),
-  nroCmp:Number(o.factura_nro||0),
-  importe:Number(o.total||0),
+  ptoVta:Number(nc?o.nc_pto_vta:o.factura_pto_vta)||0,
+  tipoCmp:nc?13:Number(o.factura_tipo||11),
+  nroCmp:Number(nc?o.nc_nro:o.factura_nro)||0,
+  importe:Number(impFac(o)||0),
   moneda:"PES",
   ctz:1,
   tipoDocRec:o.factura_cuit_cliente?80:99,
   nroDocRec:Number(o.factura_cuit_cliente||0),
   tipoCodAut:"E",
-  codAut:Number(o.factura_cae)
+  codAut:Number(nc?o.nc_cae:o.factura_cae)
  };
  const b64=btoa(JSON.stringify(payload));
  const url="https://www.afip.gob.ar/fe/qr/?p="+b64;
  return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(url);
 }
 
-function renderFactura(o){
+function renderFactura(o){return renderCbte(o,"factura")}
+function renderNC(o){return renderCbte(o,"nc")}
+
+function renderCbte(o,tipo){
+ const nc=tipo==="nc";
  const items=(o.productos||[]).map((it,i)=>{
   const tieneDescuento=it.bonif_pct>0&&it.precio_lista!=null;
   const precioBase=tieneDescuento?it.precio_lista:it.precio_unitario;
@@ -270,17 +292,30 @@ function renderFactura(o){
    <td class="fa-num">${money(subtotal)}</td>
   </tr>`;
  }).join("");
- const numero=String(o.id).padStart(4,"0");
- const ptoVta=String(o.factura_pto_vta||0).padStart(4,"0");
- const compNro=String(o.factura_nro||0).padStart(8,"0");
- return `<div class="factura">
+ const ptoVta=String((nc?o.nc_pto_vta:o.factura_pto_vta)||0).padStart(4,"0");
+ const compNro=String((nc?o.nc_nro:o.factura_nro)||0).padStart(8,"0");
+ const fechaEm=nc?o.nc_facturada_en:(o.facturado_en||o.created_at);
+ const cae=nc?o.nc_cae:o.factura_cae;
+ const vto=nc?o.nc_cae_vencimiento:o.factura_cae_vencimiento;
+ const total=impFac(o);
+ const asoc=nc?`<div class="fa-asoc"><b>Comprobante asociado:</b> Factura C ${String(o.factura_pto_vta||0).padStart(4,"0")}-${String(o.factura_nro||0).padStart(8,"0")} del ${fmtFechaCorta(o.facturado_en||o.created_at)}${o.nc_motivo?` &nbsp;·&nbsp; <b>Motivo:</b> ${o.nc_motivo}`:""}</div>`:"";
+ const sello=(o._anulada&&!nc)?`<div class="fa-sello">ANULADA</div>`:"";
+ let accion="";
+ if(!nc&&!o._anulada){
+  accion=o.nc_cae
+   ?`<div class="fa-nc no-print">↩️ Nota de Crédito emitida — N° ${String(o.nc_pto_vta||0).padStart(4,"0")}-${String(o.nc_nro||0).padStart(8,"0")} · CAE ${o.nc_cae}</div>`
+   :`<div class="fa-nc-btn no-print"><button class="btn-nc" data-id="${o.id}" data-total="${total||0}">↩️ Nota de Crédito</button></div>`;
+ }
+ return `<div class="factura${nc?" es-nc":""}">
+  ${sello}
   <div class="fa-top">
-   <div class="fa-logo"><img src="logo.png" alt="${EMISOR.nombreFantasia}" onerror="this.style.display='none'"></div>
-   <div class="fa-tipo"><div class="fa-letra">C</div><div class="fa-cod">COD. 011</div></div>
+   <div class="fa-logo"><img src="${LOGO_URL}" alt="${EMISOR.nombreFantasia}" onerror="this.style.display='none'"></div>
+   <div class="fa-tipo"><div class="fa-letra">C</div><div class="fa-cod">COD. ${nc?"013":"011"}</div></div>
    <div class="fa-meta">
-    <div class="fa-titulo">FACTURA</div>
+    <div class="fa-titulo">${nc?"NOTA DE CRÉDITO":"FACTURA"}</div>
     <div>Punto de Venta: ${ptoVta} &nbsp; Comp. N°: ${compNro}</div>
-    <div>Fecha de Emisión: ${fmtFechaCorta(o.facturado_en||o.created_at)}</div>
+    <div>Fecha de Emisión: ${fmtFechaCorta(fechaEm)}</div>
+    <div class="fa-orig">ORIGINAL</div>
    </div>
   </div>
   <div class="fa-emisor">
@@ -297,27 +332,33 @@ function renderFactura(o){
    <div><span>Condición frente al IVA</span><span>${o.factura_cliente_condicion_iva||(o.factura_cuit_cliente?"A verificar":"Consumidor Final")}</span></div>
    <div><span>Condición de venta</span><span>Contado</span></div>
   </div>
+  ${asoc}
   <table class="fa-table">
    <thead><tr><th>Código</th><th>Producto / Servicio</th><th class="fa-num">Cant.</th><th>U. Medida</th><th class="fa-num">Precio Unit.</th><th class="fa-num">% Bonif</th><th class="fa-num">Imp. Bonif</th><th class="fa-num">Subtotal</th></tr></thead>
    <tbody>${items||'<tr><td colspan="8">Sin productos</td></tr>'}</tbody>
   </table>
   <div class="fa-totales">
-   <div><span>Subtotal</span><span>${money(o.total)}</span></div>
-   <div class="fa-total-final"><span>Importe Total</span><span>${money(o.total)}</span></div>
+   <div><span>Subtotal</span><span>${money(total)}</span></div>
+   <div class="fa-total-final"><span>Importe Total</span><span>${money(total)}</span></div>
   </div>
   <div class="fa-pie">
-   <img class="fa-qr" src="${qrArcaUrl(o)}" alt="QR ARCA">
+   <img class="fa-qr" src="${qrArcaUrl(o,tipo)}" alt="QR ARCA">
    <div class="fa-arca">
     <div class="fa-arca-logo">ARCA — Comprobante Autorizado</div>
-    <div class="fa-cae">CAE N°: ${o.factura_cae}</div>
-    <div>Fecha de Vto. de CAE: ${fmtFechaCorta(o.factura_cae_vencimiento)}</div>
+    <div class="fa-cae">CAE N°: ${cae}</div>
+    <div>Fecha de Vto. de CAE: ${fmtFechaCorta(vto)}</div>
+    <div class="fa-gracias">Régimen de Monotributo · ¡Gracias por tu compra!</div>
    </div>
   </div>
-  ${o.nc_cae
-    ?`<div class="fa-nc no-print">↩️ Nota de Crédito emitida — N° ${String(o.nc_pto_vta||0).padStart(4,"0")}-${String(o.nc_nro||0).padStart(8,"0")} · CAE ${o.nc_cae}</div>`
-    :`<div class="fa-nc-btn no-print"><button class="btn-nc" data-id="${o.id}" data-total="${o.total||0}">↩️ Nota de Crédito</button></div>`
-  }
+  ${accion}
  </div>`;
+}
+
+// Documentos que se imprimen de un pedido: la factura, su nota de crédito (si tiene) o el remito.
+function docsDe(o,size){
+ if(o._soloNC)return [renderNC(o)];
+ if(o.factura_cae)return o.nc_cae?[renderFactura(o),renderNC(o)]:[renderFactura(o)];
+ return [renderRemito(o,size)];
 }
 
 function actualizarOrientacionPagina(size){
@@ -335,11 +376,11 @@ function renderReceipts(orders,size){
  $("sheet").classList.toggle("sheet-apaisada",size==="apaisada");
  if(!orders.length){$("sheet").innerHTML='<div class="empty">No se encontraron pedidos para imprimir.</div>';return}
  if(size==="apaisada"){
-  const cards=orders.map(o=>({o,html:o.factura_cae?renderFactura(o):renderRemito(o,size)}));
+  const cards=orders.flatMap(o=>docsDe(o,size).map(html=>({o,html})));
   let html="";
   let pendientePar=null;
   cards.forEach(c=>{
-   if(c.o.factura_cae){
+   if(c.o.factura_cae||c.o._anulada){
     // Las facturas oficiales van solas, ocupan toda la hoja (son más anchas).
     if(pendientePar){html+=`<div class="page-row pair">${pendientePar}</div>`;pendientePar=null}
     html+=`<div class="page-row pair">${c.html}</div>`;
@@ -355,8 +396,7 @@ function renderReceipts(orders,size){
   return;
  }
  $("sheet").innerHTML=orders.map(o=>{
-  if(o.factura_cae)return renderFactura(o);
-  return renderRemito(o,size);
+  return docsDe(o,size).join("");
  }).join("");
 }
 
@@ -381,6 +421,7 @@ function renderRemito(o,size){
   const numero=String(o.id).padStart(4,"0");
   return `<div class="receipt size-${size}">
    <div class="r-head">
+    <img class="logo-r" src="${LOGO_URL}" alt="" onerror="this.style.display='none'">
     <div class="biz">Distribuidora Petits Cadeaux</div>
     <div class="sub">${o.remito_nro?"Remito · documento no válido como factura · "+fmtFecha(o.remito_en||o.created_at):"Comprobante de pedido · "+fmtFecha(o.created_at)}</div>
     <div class="num">${o.remito_nro?"Remito N° "+String(o.remito_pto_vta||1).padStart(4,"0")+"-"+String(o.remito_nro).padStart(8,"0"):"Pedido N° "+numero}</div>
@@ -400,6 +441,7 @@ function renderRemito(o,size){
    ${o.observaciones?`<div class="r-notes">📝 ${o.observaciones}</div>`:""}
    ${ahorro>0?`<div class="r-ahorro">🏷️ Descuento aplicado: ahorrás ${money(ahorro)}</div>`:""}
    <div class="r-total"><span class="lbl">TOTAL</span><span class="val">${money(o.total)}</span></div>
+   <div class="r-gracias">¡Gracias por tu compra! 🐞</div>
    <div class="r-cae-pend no-print"><button class="btn-facturar" data-id="${o.id}">🧾 Facturar (ARCA)</button></div>
    <div class="r-sign">
     Recibí conforme
@@ -410,8 +452,17 @@ function renderRemito(o,size){
 
 async function cargar(){
  if(!session){$("sheet").innerHTML='<div class="err">Iniciá sesión en el panel primero.</div>';return}
- if(!ids.length){$("sheet").innerHTML='<div class="empty">No se especificaron pedidos para imprimir.</div>';return}
+ if(!ids.length&&!faId){$("sheet").innerHTML='<div class="empty">No se especificaron pedidos para imprimir.</div>';return}
  try{
+  if(faId){
+   const rf=await fetch(SUPABASE_URL+"/rest/v1/facturas_anuladas?id=eq."+faId+"&select=*",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}});
+   const fa=await rf.json();
+   if(!rf.ok||!fa.length){$("sheet").innerHTML='<div class="err">No se encontró la factura anulada.</div>';return}
+   const x=fa[0];
+   window._orders=[{...x,id:x.pedido_id,total:x.factura_total,_anulada:true}];
+   renderReceipts(window._orders,$("sizeSelect").value);
+   return;
+  }
   const filtro=encodeURIComponent("in.("+ids.join(",")+")");
   const r=await fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?id="+filtro+"&select=*",{
    headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}
