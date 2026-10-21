@@ -311,6 +311,7 @@ const money=n=>n==null?"A confirmar":new Intl.NumberFormat("es-AR",{style:"curre
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let orders=[];
 let impresiones={};
+let remitosAnulados={};
 let statusFilter="Todos";
 let canalFilter="Todos";
 
@@ -390,6 +391,11 @@ async function cargarPedidos(){
   const r=await apiFetch("/rest/v1/pedidos_distribuidora?select=*&order=created_at.desc");
   orders=await r.json();
   try{impresiones=await Audit.resumenImpresiones()}catch(e){impresiones={}}
+  try{
+   const ra=await apiFetch("/rest/v1/remitos_anulados?select=*&order=anulado_en.asc");
+   const dra=await ra.json();remitosAnulados={};
+   if(Array.isArray(dra))dra.forEach(x=>{(remitosAnulados[x.pedido_id]=remitosAnulados[x.pedido_id]||[]).push(x)});
+  }catch(e){remitosAnulados={}}
   render();
   const qf=new URLSearchParams(location.search).get("facturar");
   if(qf){history.replaceState(null,"",location.pathname);abrirFacturar(Number(qf))}
@@ -824,6 +830,7 @@ function render(){
     <button type="button" onclick="window.open('comprobante.html?ids=${o.id}','_blank')">🧾 Comprobante</button>
     <button type="button" onclick="verHistorial(${o.id})">📜 Historial</button>
     ${anulado?"":`<button type="button" onclick="abrirEditar(${o.id})">✏️ Editar pedido</button>`}
+    ${(!anulado&&o.remito_nro&&!o.factura_cae&&(!window.Perm||Perm.can("facturar")))?`<button type="button" onclick="abrirAnularRemito(${o.id})">↩️ Anular remito</button>`:""}
     <button type="button" onclick="toggleDescuento(${o.id})">🏷️ Descuento</button>
     <button type="button" onclick="toggleEnvio(${o.id})">🚚 Envío</button>
     ${anulado?"":`<hr><button type="button" class="red" onclick="anularPedido(${o.id})">⛔ Anular pedido</button>`}
@@ -848,9 +855,10 @@ function render(){
 const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"0");
 function compBadgeHtml(o){
  const b=[];
+ (remitosAnulados[o.id]||[]).forEach(x=>b.push(`<span class="badge" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through" title="Remito anulado el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")}">📄 ${fmtNro(x.remito_pto_vta||1,x.remito_nro)}</span>`));
  if(o.factura_cae)b.push(`<span class="badge" style="background:#e6f7ee;color:#177a4d">🧾 Factura C ${fmtNro(o.factura_pto_vta,o.factura_nro)}</span>`);
  if(o.remito_nro)b.push(`<span class="badge" style="background:#fff1de;color:#a15b00">📄 Remito ${fmtNro(o.remito_pto_vta||1,o.remito_nro)}</span>`);
- if(!b.length)b.push(`<span class="badge" style="background:#fde8e8;color:#a13030">Sin facturar</span>`);
+ if(!o.factura_cae&&!o.remito_nro)b.push(`<span class="badge" style="background:#fde8e8;color:#a13030">Sin facturar</span>`);
  return b.join(" ");
 }
 function facBtn(o){
@@ -877,6 +885,70 @@ document.addEventListener("visibilitychange",async()=>{
  }catch(e){}
 });
 function cerrarFac(){$("facModal").style.display="none"}
+function abrirAnularRemito(id){
+ const o=orders.find(x=>x.id===id);if(!o||!o.remito_nro)return;
+ const nro=fmtNro(o.remito_pto_vta||1,o.remito_nro);
+ const cobrado=["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro);
+ $("facModalBody").innerHTML=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Anular remito ${nro}</div>
+  <div style="color:var(--muted);font-size:13px;margin:4px 0 12px">${esc(o.comercio||"")} · ${money(o.total)} · Pedido #${o.id}</div>
+  <div style="font-size:13.5px;line-height:1.55;background:#faf5fc;border-radius:12px;padding:11px 13px">
+   El remito queda registrado como <b>anulado</b> (con su número, el motivo y los productos que tenía) y <b>no se reutiliza</b>.<br>
+   El pedido vuelve a <b>Pendiente</b>, sin remito, para que lo puedas <b>editar</b> y volver a hacer el remito con un número nuevo.
+  </div>
+  ${cobrado?`<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0;margin-top:10px">Este pedido figura como <b>cobrado (${esc(o.cobro)})</b>. Anular el remito no toca el cobro: revisalo en Facturación o en la cuenta corriente.</div>`:""}
+  <label style="display:block;margin-top:12px;font-weight:800;font-size:13px;color:#5f4d68">Motivo de la anulación (obligatorio)</label>
+  <textarea id="anRemMotivo" rows="3" placeholder="Ej. El cliente cargó mal el pedido y no recibió la mercadería" style="width:100%;margin-top:6px;padding:11px 13px;border:1px solid #ddcfe1;border-radius:14px;font:500 14px Inter,Arial,sans-serif;resize:vertical"></textarea>
+  <div id="anRemMsg"></div>
+  <div class="actions" style="justify-content:flex-end;margin-top:12px"><button class="chip" onclick="cerrarFac()">Cancelar</button><button class="btn-take" style="flex:none" id="anRemOk" onclick="confirmarAnularRemito(${id},this)">↩️ Anular remito</button></div>`;
+ $("facModal").style.display="flex";
+}
+async function confirmarAnularRemito(id,btn){
+ const o=orders.find(x=>x.id===id);if(!o)return;
+ const motivo=$("anRemMotivo").value.trim();
+ if(!motivo){$("anRemMsg").innerHTML='<div class="err">Escribí el motivo de la anulación.</div>';return}
+ btn.disabled=true;btn.textContent="Anulando...";
+ try{
+  const nro=fmtNro(o.remito_pto_vta||1,o.remito_nro);
+  const usuario=(window.Perm&&Perm.info&&(Perm.info.nombre||Perm.info.email))||(session&&session.email)||null;
+  const resp=await apiFetch("/rest/v1/rpc/anular_remito",{method:"POST",body:JSON.stringify({p_pedido:id,p_motivo:motivo,p_usuario:usuario})});
+  const d=await resp.json().catch(()=>({}));
+  if(!resp.ok)throw new Error((d&&d.message)||"error "+resp.status);
+  (remitosAnulados[id]=remitosAnulados[id]||[]).push({pedido_id:id,remito_pto_vta:o.remito_pto_vta,remito_nro:o.remito_nro,motivo,anulado_en:new Date().toISOString()});
+  o.remito_nro=null;o.remito_pto_vta=null;o.remito_en=null;o.remito_total=null;
+  o.estado="Pendiente";o.estado_entrega="Pendiente";o.fecha_entrega=null;
+  Audit.log(id,"Remito anulado","Remito "+nro+" · Motivo: "+motivo+" · El pedido vuelve a Pendiente");
+  cerrarFac();render();avisoRapido("Remito "+nro+" anulado: el pedido vuelve a Pendiente");
+ }catch(e){
+  $("anRemMsg").innerHTML='<div class="err">❌ No se pudo anular: '+esc(e.message||"error")+'<br><span style="font-weight:500">¿Ya corriste sql-anular-remito.sql en Supabase?</span></div>';
+  btn.disabled=false;btn.textContent="↩️ Anular remito";
+ }
+}
+async function descontarStock(items,motivo){
+ for(const it of (items||[])){
+  try{
+   const r=await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(it.producto)+"&select=cantidad");
+   const existe=await r.json();
+   const actual=existe.length?existe[0].cantidad:0;
+   const nuevo=Math.max(0,actual-it.cantidad);
+   if(existe.length){
+    await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(it.producto),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({cantidad:nuevo})});
+   }else{
+    await apiFetch("/rest/v1/stock_productos",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({producto:it.producto,cantidad:nuevo})});
+   }
+   await apiFetch("/rest/v1/movimientos_stock",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({producto:it.producto,tipo:"salida",cantidad:it.cantidad,motivo})});
+  }catch(e){/* no bloquea la edición si falla el stock */}
+ }
+}
+// El stock acompaña a los productos del pedido: al editar, solo se mueve la diferencia.
+async function ajustarStockPorEdicion(antes,despues,motivo){
+ const m={};
+ (antes||[]).forEach(it=>{m[it.producto]=(m[it.producto]||0)+(Number(it.cantidad)||0)});
+ (despues||[]).forEach(it=>{m[it.producto]=(m[it.producto]||0)-(Number(it.cantidad)||0)});
+ const repone=[],descuenta=[];
+ Object.keys(m).forEach(p=>{if(m[p]>0)repone.push({producto:p,cantidad:m[p]});else if(m[p]<0)descuenta.push({producto:p,cantidad:-m[p]})});
+ if(repone.length)await reponerStock(repone,motivo);
+ if(descuenta.length)await descontarStock(descuenta,motivo);
+}
 function abrirFacturar(id){
  const o=orders.find(x=>x.id===id);if(!o)return;
  if(o.remito_nro){window.open("comprobante.html?ids="+id,"_blank");return}
@@ -1053,7 +1125,9 @@ async function guardarEdicion(){
    if(!filas.length)throw new Error("la base no actualizó el pedido (sin permiso). Avisame y lo revisamos.");
    if(body.created_at&&fechaLocalISO(filas[0].created_at)!==fechaLocalISO(body.created_at))throw new Error("la base de datos no permite cambiar la fecha del pedido (columna protegida).");
   }
+  const productosAntes=body.productos?(o.productos||[]):null;
   Object.assign(o,body);
+  if(productosAntes)await ajustarStockPorEdicion(productosAntes,body.productos,"Pedido editado #"+editId+" — "+(o.comercio||""));
   if(body.created_at)orders.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   Audit.log(editId,"Pedido editado",detalle.join(" | "));
   $("editarModal").style.display="none";
