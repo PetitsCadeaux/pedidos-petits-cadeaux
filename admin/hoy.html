@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Hoy - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(22px,6vw,32px);font-weight:700}
+header .sub{font-size:13px;color:var(--muted);margin-top:2px}
+main{max-width:1000px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:pointer}
+.btn-main{padding:14px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.loading{text-align:center;padding:30px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:760px){.grid{grid-template-columns:1fr 1fr}}
+.t{background:rgba(255,255,255,.97);border:1px solid var(--line);border-left:6px solid #c9b3d6;border-radius:20px;padding:16px 17px;box-shadow:0 8px 24px rgba(84,36,119,.07);display:flex;flex-direction:column}
+.t.rojo{border-left-color:#d35a6a}.t.ambar{border-left-color:#e0a63a}.t.verde{border-left-color:#3aa774}
+.t h2{margin:0;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.t .num{font-family:"Cormorant Garamond",Georgia,serif;font-size:34px;font-weight:700;color:var(--purple);line-height:1.1;margin-top:3px}
+.t .monto{font-size:14px;color:#5f4d68;font-weight:600}
+.t ul{list-style:none;margin:10px 0 0;padding:0;font-size:13.5px;flex:1}
+.t li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dotted #eee1ef}
+.t li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.t li b{white-space:nowrap}
+.t li .ven{color:#9b3040;font-weight:700}
+.t .ok{color:#177a4d;font-weight:700;font-size:14px;margin-top:10px}
+.t a.ir{margin-top:12px;align-self:flex-start;font-size:13px;font-weight:800;color:#865a8e;text-decoration:none}
+.t a.ir:hover{text-decoration:underline}
+.mes{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mes div{background:#fbf7fc;border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.mes small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.mes b{font-family:"Cormorant Garamond",Georgia,serif;font-size:23px;color:var(--purple)}
+@media(min-width:760px){.mes{grid-template-columns:repeat(4,1fr)}}
+.aviso{background:#fff7e6;color:#8a5a00;border:1px solid #f3dfb0;padding:10px 13px;border-radius:14px;margin-bottom:12px;font-size:13px}
+</style>
+<link rel="stylesheet" href="ancho.css">
+</head>
+<body>
+
+<header>
+ <h1>Hoy</h1>
+ <div class="sub" id="fechaHoy"></div>
+</header>
+<script src="menu.js"></script>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="app" style="display:none">
+ <div id="err"></div>
+ <div id="avisos"></div>
+ <div id="grid" class="grid"><div class="loading" style="grid-column:1/-1">Cargando...</div></div>
+ <div class="card" id="mesWrap" style="margin-top:14px;display:none">
+  <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;color:var(--purple);font-weight:700;margin-bottom:8px" id="mesTitulo"></div>
+  <div class="mes" id="mes"></div>
+ </div>
+</div>
+
+</main>
+
+<script src="permisos.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+const esc=t=>String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const r2=n=>Math.round((Number(n)||0)*100)/100;
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const hoy=new Date(),hoyISO=iso(hoy);
+const dias=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+$("fechaHoy").textContent=dias[hoy.getDay()]+" "+hoy.getDate()+" de "+meses[hoy.getMonth()]+" de "+hoy.getFullYear();
+function fmtF(v){if(!v)return"";const [y,m,d]=String(v).slice(0,10).split("-");return d+"/"+m}
+function diasEntre(a,b){return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000)}
+const puede=k=>!window.Perm||!Perm.can||Perm.can(k);
+
+async function get(path,opcional){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+ const d=await r.json().catch(()=>null);
+ if(!r.ok){if(opcional)return null;throw new Error((d&&(d.message||d.hint))||("Error "+r.status))}
+ return Array.isArray(d)?d:[];
+}
+
+// Misma lógica que Facturación y cobranza.
+function infoPed(o){
+ const factura=!!o.factura_cae,remito=!!o.remito_nro,nc=!!o.nc_cae;
+ const pago=o.cobro||((o.estado_pago==="Mercado Pago"&&o.pagado)?"Mercado Pago":"Pendiente");
+ const cobrado=pago==="Efectivo"||pago==="Transferencia"||pago==="Mercado Pago";
+ return {factura,remito,nc,doc:factura||remito,cobrado,fechaDoc:(o.facturado_en||o.remito_en||o.created_at||"").slice(0,10)};
+}
+const falta=o=>Math.max(0,r2((Number(o.total)||0)-(Number(o.cobrado_monto)||0)));
+
+function tarjeta({titulo,clase,numero,sub,items,link,textoLink,vacio}){
+ const lis=(items||[]).slice(0,5).map(i=>`<li><span>${esc(i[0])}</span><b class="${i[2]||""}">${esc(i[1])}</b></li>`).join("");
+ return `<div class="t ${clase||""}"><h2>${esc(titulo)}</h2><div class="num">${numero}</div>${sub?`<div class="monto">${sub}</div>`:""}`
+  +(lis?`<ul>${lis}</ul>`:(vacio?`<div class="ok">✓ ${esc(vacio)}</div><div style="flex:1"></div>`:""))
+  +(link?`<a class="ir" href="${link}">${esc(textoLink||"Ver todo")} ›</a>`:"")+`</div>`;
+}
+
+async function cargar(){
+ const desdeFact=iso(new Date(Date.now()-60*86400000));
+ const colsP="id,comercio,total,created_at,estado,estado_entrega,estado_pago,pagado,anulado,cobro,cobro_fecha,factura_cae,facturado_en,nc_cae,remito_nro,remito_en,factura_total";
+ const pedir=c=>get("pedidos_distribuidora?select="+c+"&order=created_at.desc&limit=3000",true);
+ let peds=await pedir(colsP+",cobrado_monto");
+ if(peds===null)peds=await pedir(colsP);
+ if(peds===null)throw new Error("No se pudieron leer los pedidos.");
+ const [provs,stock]=await Promise.all([
+  get("facturas_proveedor?select=*&order=fecha.desc&limit=3000",true),
+  get("stock_productos?select=producto,cantidad,stock_minimo",true)
+ ]);
+ return {peds,provs,stock};
+}
+
+function render(D){
+ const out=[],avisos=[];
+ const peds=D.peds.filter(o=>!o.anulado);
+ const sum=a=>a.reduce((s,o)=>s+(Number(o.total)||0),0);
+
+ if(puede("pedidos")){
+  const sinTomar=peds.filter(o=>o.estado!=="Tomado"&&o.estado_entrega!=="Entregado");
+  const porEntregar=peds.filter(o=>o.estado==="Tomado"&&o.estado_entrega!=="Entregado");
+  out.push(tarjeta({titulo:"Pedidos para atender",clase:sinTomar.length?"ambar":"verde",numero:sinTomar.length+porEntregar.length,
+   sub:sinTomar.length+" sin tomar · "+porEntregar.length+" tomados sin entregar",
+   items:sinTomar.concat(porEntregar).sort((a,b)=>String(a.created_at).localeCompare(b.created_at)).map(o=>[(o.comercio||"Sin nombre")+" · "+fmtF(o.created_at),money(o.total)]),
+   link:"admin.html",textoLink:"Ir al panel de pedidos",vacio:"Todo entregado"}));
+ }
+
+ if(puede("facturacion")){
+  const desde=iso(new Date(Date.now()-60*86400000));
+  const porFact=peds.filter(o=>{const i=infoPed(o);return !i.doc&&!i.nc&&(o.created_at||"").slice(0,10)>=desde});
+  out.push(tarjeta({titulo:"Por facturar (últimos 60 días)",clase:porFact.length?"ambar":"verde",numero:porFact.length,sub:money(sum(porFact)),
+   items:porFact.sort((a,b)=>String(a.created_at).localeCompare(b.created_at)).map(o=>[(o.comercio||"Sin nombre")+" · "+fmtF(o.created_at),money(o.total)]),
+   link:"facturacion.html",textoLink:"Ir a facturación",vacio:"Nada pendiente de facturar"}));
+
+  const porCobrar=peds.filter(o=>{const i=infoPed(o);return i.doc&&!i.nc&&!i.cobrado&&falta(o)>0});
+  const viejos=porCobrar.filter(o=>diasEntre(infoPed(o).fechaDoc||hoyISO,hoyISO)>30);
+  const porCliente={};
+  porCobrar.forEach(o=>{const k=o.comercio||"Sin nombre";const c=porCliente[k]||(porCliente[k]={n:k,m:0,viejo:0});c.m+=falta(o);if(viejos.includes(o))c.viejo+=falta(o)});
+  const top=Object.values(porCliente).sort((a,b)=>b.m-a.m);
+  out.push(tarjeta({titulo:"Por cobrar",clase:viejos.length?"rojo":(porCobrar.length?"ambar":"verde"),numero:money(porCobrar.reduce((s,o)=>s+falta(o),0)),
+   sub:porCobrar.length+" pedidos"+(viejos.length?` · <span style="color:#9b3040">${viejos.length} con más de 30 días (${money(viejos.reduce((s,o)=>s+falta(o),0))})</span>`:""),
+   items:top.map(c=>[c.n,money(c.m),c.viejo?"ven":""]),link:"cuenta.html",textoLink:"Ir a cuenta corriente",vacio:"Nada por cobrar"}));
+ }
+
+ if(puede("proveedor")){
+  if(D.provs===null){avisos.push("No se pudieron leer las facturas de proveedores.")}
+  else{
+   const ncPor={};
+   D.provs.forEach(f=>{if(f.factura_asociada_id&&Number(f.importe)<0)ncPor[f.factura_asociada_id]=(ncPor[f.factura_asociada_id]||0)-Number(f.importe)});
+   const saldo=f=>{const imp=Number(f.importe)||0;if(imp<=0||f.pagada||!/^factura/i.test((f.tipo_comprobante||"").trim()))return 0;return Math.max(0,r2(imp-(Number(f.pagado_monto)||0)-(ncPor[f.id]||0)))};
+   const imp=D.provs.filter(f=>saldo(f)>0);
+   const venc=imp.filter(f=>f.fecha_vencimiento&&String(f.fecha_vencimiento).slice(0,10)<hoyISO);
+   const prox=imp.filter(f=>f.fecha_vencimiento&&String(f.fecha_vencimiento).slice(0,10)>=hoyISO&&diasEntre(hoyISO,String(f.fecha_vencimiento).slice(0,10))<=7);
+   const lista=venc.concat(prox).sort((a,b)=>String(a.fecha_vencimiento).localeCompare(b.fecha_vencimiento));
+   const totalDeuda=imp.reduce((s,f)=>s+saldo(f),0);
+   out.push(tarjeta({titulo:"Para pagar a proveedores",clase:venc.length?"rojo":(prox.length?"ambar":"verde"),numero:money(lista.reduce((s,f)=>s+saldo(f),0)),
+    sub:`${venc.length} vencida${venc.length===1?"":"s"} · ${prox.length} vence${prox.length===1?"":"n"} en 7 días · deuda total ${money(totalDeuda)}`,
+    items:lista.map(f=>[(f.proveedor||"Proveedor")+" · "+fmtF(f.fecha_vencimiento),money(saldo(f)),String(f.fecha_vencimiento).slice(0,10)<hoyISO?"ven":""]),
+    link:"cuenta-proveedor.html",textoLink:"Ir a cuenta de proveedores",vacio:"Nada vence esta semana"}));
+  }
+ }
+
+ if(puede("reportes")){
+  if(D.stock===null){avisos.push("No se pudo leer el stock.")}
+  else{
+   const bajos=D.stock.filter(s=>Number(s.cantidad)<=Number(s.stock_minimo==null?5:s.stock_minimo)).sort((a,b)=>a.cantidad-b.cantidad);
+   out.push(tarjeta({titulo:"Stock bajo",clase:bajos.length?"ambar":"verde",numero:bajos.length,sub:bajos.length?"productos en o por debajo del mínimo":"",
+    items:bajos.map(s=>[s.producto,s.cantidad+" u. (mín. "+(s.stock_minimo==null?5:s.stock_minimo)+")"]),link:"stock.html",textoLink:"Ir a stock",vacio:"Stock en orden"}));
+  }
+ }
+
+ $("grid").innerHTML=out.join("")||'<div class="card" style="grid-column:1/-1">No tenés secciones habilitadas para ver acá.</div>';
+ $("avisos").innerHTML=avisos.map(a=>'<div class="aviso">⚠️ '+esc(a)+'</div>').join("");
+
+ // Mes en curso
+ if(puede("facturacion")){
+  const ini=iso(new Date(hoy.getFullYear(),hoy.getMonth(),1));
+  const fMes=peds.filter(o=>o.factura_cae&&!o.nc_cae&&(o.facturado_en||"").slice(0,10)>=ini);
+  const cMes=peds.filter(o=>(o.cobro==="Efectivo"||o.cobro==="Transferencia"||o.cobro==="Mercado Pago")&&(o.cobro_fecha||"").slice(0,10)>=ini);
+  const pedMes=peds.filter(o=>(o.created_at||"").slice(0,10)>=ini);
+  $("mesTitulo").textContent="Lo que va de "+meses[hoy.getMonth()];
+  $("mes").innerHTML=`<div><small>Pedidos</small><b>${pedMes.length}</b></div><div><small>Vendido</small><b>${money(sum(pedMes))}</b></div><div><small>Facturado</small><b>${money(sum(fMes.map(o=>({total:o.factura_total!=null?o.factura_total:o.total}))))}</b></div><div><small>Cobrado</small><b>${money(sum(cMes))}</b></div>`;
+  $("mesWrap").style.display="block";
+ }
+}
+
+(async function(){
+ if(!session)return;
+ try{
+  if(window.Perm&&Perm.ready)await Perm.ready;
+  render(await cargar());
+ }catch(e){
+  $("grid").innerHTML="";$("err").innerHTML='<div class="err">❌ '+esc(e.message||"Error desconocido")+'</div>';
+ }
+})();
+</script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+@media print{.app-copyright{display:none}}
+</style>
+<script src="iconos.js"></script>
+</body>
+</html>

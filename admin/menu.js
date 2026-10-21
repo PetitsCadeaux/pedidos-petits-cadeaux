@@ -4,7 +4,7 @@
  const I=p=>'<svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
  const CATS=[
   {k:"pedidos",t:"Pedidos",i:I('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>'),l:[
-   ["admin.html","Panel de pedidos","pedidos"],["pedido-manual.html","Cargar pedido manual","pedido_manual"],["hoja-ruta.html","Hoja de ruta","pedidos"]]},
+   ["hoy.html","Hoy (resumen del día)",null],["admin.html","Panel de pedidos","pedidos"],["pedido-manual.html","Cargar pedido manual","pedido_manual"],["hoja-ruta.html","Hoja de ruta","pedidos"]]},
   {k:"catalogo",t:"Catálogo",i:I('<path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v8l9 5 9-5V8"/>'),l:[
    ["productos.html","Productos (Tienda y Regalería)","productos"],
    ["sep","Ver publicado"],["../tienda.html","Mi tienda",null,1],["../regaleria.html","Regalería",null,1]]},
