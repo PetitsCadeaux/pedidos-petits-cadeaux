@@ -974,9 +974,9 @@ async function confirmarAnularFactura(id,btn){
  const etiqueta=btn.textContent;
  btn.disabled=true;btn.textContent="Emitiendo en ARCA...";
  try{
-  const r=await fetch("/api/arca-anular-factura",{method:"POST",
+  const r=await fetch("/api/arca-nota-credito",{method:"POST",
    headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},
-   body:JSON.stringify({pedido_id:id,motivo})});
+   body:JSON.stringify({pedido_id:id,motivo,anular:true})});
   const d=await r.json().catch(()=>({ok:false,error:"Respuesta inválida del servidor (¿está publicada la última versión?)"}));
   if(!d.ok){
    $("anFacMsg").innerHTML='<div class="err">❌ '+esc(d.error||"No se pudo anular")+'</div>';

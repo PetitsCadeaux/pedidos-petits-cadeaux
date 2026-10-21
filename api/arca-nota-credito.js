@@ -7,6 +7,7 @@
 // actualizar el pedido directamente, sin depender de la sesión del usuario.
 import { solicitarNotaCredito } from "../lib/arca.js";
 import { requierePermiso } from "../lib/admin-auth.js";
+import { anularFactura } from "../lib/anular-factura.js";
 
 const SUPABASE_URL = "https://stkfdzqwcnzievrmivaj.supabase.co";
 
@@ -51,6 +52,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
+  // Anular factura completa (nota de crédito + devolver el pedido a "Pedido"): ver lib/anular-factura.js
+  if (req.body && req.body.anular) return anularFactura(req, res);
   try {
     if (!(await requierePermiso(req, res, "facturar"))) return;
     const { pedido_id, motivo } = req.body || {};
