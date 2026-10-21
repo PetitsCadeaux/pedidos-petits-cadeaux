@@ -312,6 +312,7 @@ let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let orders=[];
 let impresiones={};
 let remitosAnulados={};
+let facturasAnuladas={};
 let statusFilter="Todos";
 let canalFilter="Todos";
 
@@ -396,6 +397,11 @@ async function cargarPedidos(){
    const dra=await ra.json();remitosAnulados={};
    if(Array.isArray(dra))dra.forEach(x=>{(remitosAnulados[x.pedido_id]=remitosAnulados[x.pedido_id]||[]).push(x)});
   }catch(e){remitosAnulados={}}
+  try{
+   const rf=await apiFetch("/rest/v1/facturas_anuladas?select=pedido_id,factura_pto_vta,factura_nro,nc_pto_vta,nc_nro,motivo,anulado_en&order=anulado_en.asc");
+   const drf=await rf.json();facturasAnuladas={};
+   if(Array.isArray(drf))drf.forEach(x=>{(facturasAnuladas[x.pedido_id]=facturasAnuladas[x.pedido_id]||[]).push(x)});
+  }catch(e){facturasAnuladas={}}
   render();
   const qf=new URLSearchParams(location.search).get("facturar");
   if(qf){history.replaceState(null,"",location.pathname);abrirFacturar(Number(qf))}
@@ -597,7 +603,7 @@ async function reponerStock(items,motivo){
 
 async function anularPedido(id){
  const o=orders.find(x=>x.id===id);if(!o)return;
- if(o.factura_cae&&!o.nc_cae){alert("Este pedido ya tiene Factura C emitida. Para anularlo, primero emití la nota de crédito desde el comprobante.");return}
+ if(o.factura_cae&&!o.nc_cae){alert("Este pedido ya tiene Factura C emitida. Para anularlo, primero usá «Anular factura (nota de crédito)» en el menú ⋮ del pedido (o emití la nota de crédito desde el comprobante).");return}
  if(!confirm("¿Anular el pedido de "+(o.comercio||"este cliente")+"?"+(o.remito_nro?"\n\nTiene un remito emitido: queda registrado como anulado.":"")+"\n\nEl pedido deja de contar en estadísticas, hoja de ruta y facturación, y se repone el stock. Queda guardado y se puede ver en 'Anulados'."))return;
  const motivo=prompt("Motivo de la anulación (opcional):");
  if(motivo===null)return;
@@ -831,6 +837,7 @@ function render(){
     <button type="button" onclick="verHistorial(${o.id})">📜 Historial</button>
     ${anulado?"":`<button type="button" onclick="abrirEditar(${o.id})">✏️ Editar pedido</button>`}
     ${(!anulado&&o.remito_nro&&!o.factura_cae&&(!window.Perm||Perm.can("facturar")))?`<button type="button" onclick="abrirAnularRemito(${o.id})">↩️ Anular remito</button>`:""}
+    ${(!anulado&&o.factura_cae&&(!window.Perm||Perm.can("facturar")))?`<button type="button" onclick="abrirAnularFactura(${o.id})">↩️ Anular factura (nota de crédito)</button>`:""}
     <button type="button" onclick="toggleDescuento(${o.id})">🏷️ Descuento</button>
     <button type="button" onclick="toggleEnvio(${o.id})">🚚 Envío</button>
     ${anulado?"":`<hr><button type="button" class="red" onclick="anularPedido(${o.id})">⛔ Anular pedido</button>`}
@@ -856,6 +863,7 @@ const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"
 function compBadgeHtml(o){
  const b=[];
  (remitosAnulados[o.id]||[]).forEach(x=>b.push(`<span class="badge" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through" title="Remito anulado el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")}">📄 ${fmtNro(x.remito_pto_vta||1,x.remito_nro)}</span>`));
+ (facturasAnuladas[o.id]||[]).forEach(x=>b.push(`<span class="badge" style="background:#f1eef2;color:#8a7d90;text-decoration:line-through" title="Factura anulada con nota de crédito ${fmtNro(x.nc_pto_vta,x.nc_nro)} el ${new Date(x.anulado_en).toLocaleDateString("es-AR")} · ${esc(x.motivo||"")}">🧾 Factura C ${fmtNro(x.factura_pto_vta,x.factura_nro)}</span>`));
  if(o.factura_cae)b.push(`<span class="badge" style="background:#e6f7ee;color:#177a4d">🧾 Factura C ${fmtNro(o.factura_pto_vta,o.factura_nro)}</span>`);
  if(o.remito_nro)b.push(`<span class="badge" style="background:#fff1de;color:#a15b00">📄 Remito ${fmtNro(o.remito_pto_vta||1,o.remito_nro)}</span>`);
  if(!o.factura_cae&&!o.remito_nro)b.push(`<span class="badge" style="background:#fde8e8;color:#a13030">Sin facturar</span>`);
@@ -927,6 +935,64 @@ async function confirmarAnularRemito(id,btn){
  }catch(e){
   $("anRemMsg").innerHTML='<div class="err">❌ No se pudo anular: '+esc(e.message||"error")+'<br><span style="font-weight:500">¿Ya corriste sql-anular-remito.sql en Supabase?</span></div>';
   btn.disabled=false;btn.textContent="↩️ Anular remito";
+ }
+}
+function abrirAnularFactura(id){
+ const o=orders.find(x=>x.id===id);if(!o||!o.factura_cae)return;
+ const nro=fmtNro(o.factura_pto_vta,o.factura_nro);
+ const cobrado=["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro)||(o.estado_pago==="Mercado Pago"&&o.pagado);
+ const monto=o.factura_total!=null?o.factura_total:o.total;
+ const cab=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Anular factura C ${nro}</div>
+  <div style="color:var(--muted);font-size:13px;margin:4px 0 12px">${esc(o.comercio||"")} · ${money(monto)} · Pedido #${o.id}</div>`;
+ if(cobrado){
+  $("facModalBody").innerHTML=cab+`<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0">
+   Este pedido figura como <b>cobrado${o.cobro?" ("+esc(o.cobro)+")":" con Mercado Pago"}</b>.<br>
+   <b>Primero anulá el cobro</b> (en Facturación, pasá el estado a «Por cobrar»; si se cobró con una cobranza de Cuenta corriente, anulá esa cobranza desde ahí) y después anulá la factura.</div>
+   <div class="actions" style="justify-content:flex-end;margin-top:12px"><button class="chip" onclick="cerrarFac()">Cerrar</button><button class="btn-take" style="flex:none" onclick="window.open('facturacion.html?ver=${id}','_blank')">Ir a Facturación</button></div>`;
+  $("facModal").style.display="flex";return;
+ }
+ const yaNC=!!o.nc_cae;
+ $("facModalBody").innerHTML=cab+`<div style="font-size:13.5px;line-height:1.55;background:#faf5fc;border-radius:12px;padding:11px 13px">
+   ${yaNC?`Este pedido <b>ya tiene la nota de crédito ${fmtNro(o.nc_pto_vta,o.nc_nro)}</b> emitida: solo se va a devolver el pedido a <b>Pedido</b>.`
+   :`Se emite en ARCA una <b>Nota de Crédito C por ${money(monto)}</b> (el total de la factura), asociada a la factura ${nro}.`}<br>
+   La factura anulada queda guardada en el historial con su nota de crédito, el motivo y los productos. Sus números <b>no se reutilizan</b>.<br>
+   El pedido vuelve a <b>Pedido</b>${o.remito_nro?" (conserva su remito, que se anula aparte)":" (Pendiente)"} para que lo puedas <b>editar</b> y volver a facturar con una Factura C nueva.
+  </div>
+  ${yaNC?"":`<div style="margin-top:10px;font-size:13px;background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;border-radius:12px;padding:10px 12px"><b>⚠️ La nota de crédito en ARCA no se puede deshacer.</b></div>`}
+  <label style="display:block;margin-top:12px;font-weight:800;font-size:13px;color:#5f4d68">Motivo de la anulación (obligatorio)</label>
+  <textarea id="anFacMotivo" rows="3" placeholder="Ej. El cliente cargó mal el pedido y no recibió la mercadería" style="width:100%;margin-top:6px;padding:11px 13px;border:1px solid #ddcfe1;border-radius:14px;font:500 14px Inter,Arial,sans-serif;resize:vertical"></textarea>
+  ${yaNC?"":`<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px;font-weight:600;color:#5f4d68"><input type="checkbox" id="anFacOk" style="width:auto;margin:3px 0 0"> Confirmo que quiero emitir la nota de crédito por ${money(monto)} a ${esc(o.comercio||"este cliente")}.</label>`}
+  <div id="anFacMsg"></div>
+  <div class="actions" style="justify-content:flex-end;margin-top:12px"><button class="chip" onclick="cerrarFac()">Cancelar</button><button class="btn-take" style="flex:none" id="anFacBtn" onclick="confirmarAnularFactura(${id},this)">↩️ ${yaNC?"Devolver a Pedido":"Emitir nota de crédito y anular"}</button></div>`;
+ $("facModal").style.display="flex";
+}
+async function confirmarAnularFactura(id,btn){
+ const o=orders.find(x=>x.id===id);if(!o)return;
+ const motivo=$("anFacMotivo").value.trim();
+ if(!motivo){$("anFacMsg").innerHTML='<div class="err">Escribí el motivo de la anulación.</div>';return}
+ if($("anFacOk")&&!$("anFacOk").checked){$("anFacMsg").innerHTML='<div class="err">Tildá la confirmación para emitir la nota de crédito.</div>';return}
+ const etiqueta=btn.textContent;
+ btn.disabled=true;btn.textContent="Emitiendo en ARCA...";
+ try{
+  const r=await fetch("/api/arca-anular-factura",{method:"POST",
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},
+   body:JSON.stringify({pedido_id:id,motivo})});
+  const d=await r.json().catch(()=>({ok:false,error:"Respuesta inválida del servidor (¿está publicada la última versión?)"}));
+  if(!d.ok){
+   $("anFacMsg").innerHTML='<div class="err">❌ '+esc(d.error||"No se pudo anular")+'</div>';
+   btn.disabled=false;btn.textContent=d.nc_emitida?"↩️ Reintentar (no emite otra nota de crédito)":etiqueta;
+   return;
+  }
+  const f=d.factura||{};
+  const ncNro=fmtNro(d.nc.pto_vta,d.nc.nro),fNro=fmtNro(f.pto_vta,f.nro);
+  (facturasAnuladas[id]=facturasAnuladas[id]||[]).push({pedido_id:id,factura_pto_vta:f.pto_vta,factura_nro:f.nro,nc_pto_vta:d.nc.pto_vta,nc_nro:d.nc.nro,motivo,anulado_en:new Date().toISOString()});
+  ["factura_cae","factura_cae_vencimiento","factura_tipo","factura_pto_vta","factura_nro","factura_cuit_cliente","factura_cliente_razon_social","factura_cliente_domicilio","factura_cliente_condicion_iva","facturado_en","factura_total","nc_cae","nc_cae_vencimiento","nc_tipo","nc_pto_vta","nc_nro","nc_motivo","nc_facturada_en"].forEach(k=>{o[k]=null});
+  if(!d.con_remito){o.estado="Pendiente";o.estado_entrega="Pendiente";o.fecha_entrega=null}
+  Audit.log(id,"Factura anulada (nota de crédito)","Factura C "+fNro+" anulada con Nota de Crédito C "+ncNro+" · CAE NC "+d.nc.cae+" · Motivo: "+motivo+(d.con_remito?" · Conserva su remito":" · El pedido vuelve a Pendiente"));
+  cerrarFac();render();avisoRapido("Factura "+fNro+" anulada con nota de crédito "+ncNro+(d.con_remito?"":": el pedido vuelve a Pendiente"));
+ }catch(e){
+  $("anFacMsg").innerHTML='<div class="err">❌ '+esc(e.message||"Error de conexión")+'<br><span style="font-weight:500">Antes de reintentar, revisá en Facturación si la nota de crédito llegó a emitirse.</span></div>';
+  btn.disabled=false;btn.textContent=etiqueta;
  }
 }
 async function descontarStock(items,motivo){

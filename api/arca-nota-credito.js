@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
     const motivoTexto = motivo ? String(motivo).trim() : null;
     const resultado = await solicitarNotaCredito({
-      total: Number(pedido.total),
+      total: Number(pedido.factura_total != null ? pedido.factura_total : pedido.total),
       cuitCliente: pedido.factura_cuit_cliente || null,
       cbteAsocPtoVta: pedido.factura_pto_vta,
       cbteAsocNro: pedido.factura_nro

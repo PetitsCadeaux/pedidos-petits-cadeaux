@@ -25,22 +25,27 @@ async function obtenerPedido(id) {
 }
 
 async function guardarFactura(id, datos) {
-  const r = await fetch(SUPABASE_URL + "/rest/v1/pedidos_distribuidora?id=eq." + encodeURIComponent(id), {
+  const base = {
+    factura_cae: datos.cae,
+    factura_cae_vencimiento: formatearFecha(datos.caeVencimiento),
+    factura_tipo: datos.cbteTipo,
+    factura_pto_vta: datos.ptoVta,
+    factura_nro: datos.nro,
+    factura_cuit_cliente: datos.cuitCliente || null,
+    factura_cliente_razon_social: datos.razonSocial || null,
+    factura_cliente_domicilio: datos.domicilioFiscal || null,
+    factura_cliente_condicion_iva: datos.condicionIva || null,
+    facturado_en: datos.facturadoEn
+  };
+  const patch = (body) => fetch(SUPABASE_URL + "/rest/v1/pedidos_distribuidora?id=eq." + encodeURIComponent(id), {
     method: "PATCH",
     headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
-    body: JSON.stringify({
-      factura_cae: datos.cae,
-      factura_cae_vencimiento: formatearFecha(datos.caeVencimiento),
-      factura_tipo: datos.cbteTipo,
-      factura_pto_vta: datos.ptoVta,
-      factura_nro: datos.nro,
-      factura_cuit_cliente: datos.cuitCliente || null,
-      factura_cliente_razon_social: datos.razonSocial || null,
-      factura_cliente_domicilio: datos.domicilioFiscal || null,
-      factura_cliente_condicion_iva: datos.condicionIva || null,
-      facturado_en: datos.facturadoEn
-    })
+    body: JSON.stringify(body)
   });
+  // factura_total (monto facturado, para que la nota de crédito sea siempre por el mismo importe) lo crea
+  // sql-anular-factura.sql. Si todavía no se corrió, se guarda la factura igual, sin ese dato.
+  let r = await patch({ ...base, factura_total: datos.total });
+  if (!r.ok) r = await patch(base);
   if (!r.ok) throw new Error("La factura se autorizó pero no se pudo guardar en el pedido: " + (await r.text()));
 }
 
@@ -96,7 +101,7 @@ export default async function handler(req, res) {
     const resultado = await solicitarCAE({ total: Number(pedido.total), cuitCliente });
     const facturadoEn = new Date().toISOString();
 
-    await guardarFactura(pedido_id, { ...resultado, cuitCliente, razonSocial, domicilioFiscal, condicionIva, facturadoEn });
+    await guardarFactura(pedido_id, { ...resultado, cuitCliente, razonSocial, domicilioFiscal, condicionIva, facturadoEn, total: Number(pedido.total) });
 
     return res.status(200).json({
       ok: true,
