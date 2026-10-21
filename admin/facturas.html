@@ -120,14 +120,43 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
   <div class="row2">
    <label>Tipo de comprobante
     <select id="fTipo">
-     <option value="Factura A">Factura A</option>
-     <option value="Remito">Remito</option>
-     <option value="Compromiso de pago">Compromiso de pago</option>
+     <optgroup label="Facturas">
+      <option value="Factura A">Factura A</option>
+      <option value="Factura B">Factura B</option>
+      <option value="Factura C">Factura C</option>
+     </optgroup>
+     <optgroup label="Notas de crédito (restan)">
+      <option value="Nota de Crédito A">Nota de Crédito A</option>
+      <option value="Nota de Crédito B">Nota de Crédito B</option>
+      <option value="Nota de Crédito C">Nota de Crédito C</option>
+     </optgroup>
+     <optgroup label="Notas de débito (suman)">
+      <option value="Nota de Débito A">Nota de Débito A</option>
+      <option value="Nota de Débito B">Nota de Débito B</option>
+      <option value="Nota de Débito C">Nota de Débito C</option>
+     </optgroup>
+     <optgroup label="Otros">
+      <option value="Remito">Remito</option>
+      <option value="Compromiso de pago">Compromiso de pago</option>
+     </optgroup>
     </select>
    </label>
    <label>Fecha<input id="fFecha" type="date"></label>
   </div>
-  <label>N° de comprobante / descripción (opcional)<input id="fDescripcion" placeholder="Ej. O 57496"></label>
+  <div class="row3">
+   <label>Punto de venta<input id="fPtoVta" inputmode="numeric" maxlength="5" placeholder="Ej. 0004"></label>
+   <label>N° de comprobante<input id="fNumero" inputmode="numeric" maxlength="8" placeholder="Ej. 00012345"></label>
+   <label>Vencimiento (opcional)<input id="fVencimiento" type="date"></label>
+  </div>
+  <label>Descripción / referencia (opcional)<input id="fDescripcion" placeholder="Ej. O 57496 (si no la completás, se arma con punto de venta y número)"></label>
+
+  <div class="item-form" id="ncBox" style="display:none">
+   <strong style="color:var(--purple)">Nota de crédito</strong>
+   <div style="font-size:12px;color:var(--muted);margin:6px 0 2px">Cargá los ítems y montos <b>en positivo</b>: al guardar, la nota resta de la cuenta corriente del proveedor.</div>
+   <label>Factura que corrige (podés asociarla después)<select id="fAsociada"><option value="">Sin asociar por ahora</option></select></label>
+   <label>Motivo (opcional)<input id="fNcMotivo" placeholder="Ej. Devolución de mercadería, error de precio, bonificación"></label>
+   <div class="radio-row" style="margin-top:10px"><label><input type="checkbox" id="fNcStock"> Incluye mercadería devuelta (descuenta el stock)</label></div>
+  </div>
   <label>Foto o PDF de la factura/remito (opcional)<input id="fArchivo" type="file" accept="image/*,application/pdf"></label>
 
   <div class="item-form">
@@ -195,6 +224,7 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
   </div>
  </div>
 
+ <div id="accionProv"></div>
  <div id="facturasList"></div>
 
 </div>
@@ -236,12 +266,17 @@ async function apiFetch(path,options={}){
  return r;
 }
 
-const saldoDe=f=>f.pagada?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0));
-const pagadoDe=f=>f.pagada?(f.importe||0):Math.min(f.importe||0,f.pagado_monto||0);
+// Notas de crédito: se guardan con importe NEGATIVO y restan de la cuenta corriente.
+const esNC=f=>/^nota de cr/i.test(f.tipo_comprobante||"");
+const ncsDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id);
+const ncMontoDe=f=>ncsDe(f).reduce((s,n)=>s+Math.abs(n.importe||0),0);
+const saldoDe=f=>(esNC(f)||f.pagada)?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0)-ncMontoDe(f));
+const pagadoDe=f=>esNC(f)?0:(f.pagada?Math.max(0,(f.importe||0)-ncMontoDe(f)):Math.min(Math.max(0,(f.importe||0)-ncMontoDe(f)),f.pagado_monto||0));
 function renderTotales(){
  const total=facturas.reduce((s,f)=>s+(f.importe||0),0);
  const pagado=facturas.reduce((s,f)=>s+pagadoDe(f),0);
  const pendiente=total-pagado;
+ // total ya descuenta las notas de crédito (importe negativo)
  $("totales").innerHTML=`
   <div class="tot-stat"><div class="tot-label">Total facturado</div><div class="tot-value">${money(total)}</div></div>
   <div class="tot-stat"><div class="tot-label">Total pagado</div><div class="tot-value">${money(pagado)}</div></div>
@@ -412,6 +447,29 @@ $("fTotalFactura").addEventListener("input",()=>actualizarImpuestos());
 
 function quitarItem(i){currentItems.splice(i,1);renderItemsWrap()}
 
+// ---- Tipo de comprobante: nota de crédito ----
+function tipoEsNC(){return /^nota de cr/i.test($("fTipo").value)}
+function llenarAsociadas(){
+ const prov=normP($("fProveedor").value);
+ const opts=facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&prov&&normP(f.proveedor)===prov)
+  .sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))
+  .map(f=>`<option value="${f.id}">${fmtFechaCorta(f.fecha)} · ${(f.tipo_comprobante||"").replace(/</g,"&lt;")} ${(f.descripcion||"").replace(/</g,"&lt;")} · ${money(f.importe)}</option>`).join("");
+ const actual=$("fAsociada").value;
+ $("fAsociada").innerHTML='<option value="">Sin asociar por ahora</option>'+opts;
+ $("fAsociada").value=actual;
+}
+function actualizarTipo(){
+ $("ncBox").style.display=tipoEsNC()?"block":"none";
+ if(tipoEsNC())llenarAsociadas();
+}
+$("fTipo").addEventListener("change",actualizarTipo);
+$("fProveedor").addEventListener("input",()=>{if(tipoEsNC())llenarAsociadas()});
+$("fProveedor").addEventListener("change",()=>{if(tipoEsNC())llenarAsociadas()});
+
+// Si cargan el proveedor desde una factura anterior, traer su CUIT y mostrar errores de columna faltante con claridad
+const MSG_SQL="Falta correr el SQL nuevo en Supabase (sql-proveedores-notas-credito-pagos.sql).";
+const esErrorColumna=m=>/column|schema cache|does not exist|function/i.test(m||"");
+
 async function subirArchivo(file){
  const ext=file.name.split(".").pop();
  const path="factura-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"."+ext;
@@ -450,7 +508,7 @@ async function sumarStock(items,motivo){
    const r=await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(it.producto)+"&select=cantidad");
    const existe=await r.json();
    const actual=existe.length?existe[0].cantidad:0;
-   const nuevo=actual+it.cantidad;
+   const nuevo=Math.max(0,actual+it.cantidad);
    if(existe.length){
     await apiFetch("/rest/v1/stock_productos?producto=eq."+encodeURIComponent(it.producto),{
      method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({cantidad:nuevo})
@@ -462,7 +520,7 @@ async function sumarStock(items,motivo){
    }
    await apiFetch("/rest/v1/movimientos_stock",{
     method:"POST",headers:{"Prefer":"return=minimal"},
-    body:JSON.stringify({producto:it.producto,tipo:"entrada",cantidad:it.cantidad,motivo})
+    body:JSON.stringify({producto:it.producto,tipo:it.cantidad<0?"salida":"entrada",cantidad:Math.abs(it.cantidad),motivo})
    });
   }catch(e){/* no bloquea el guardado de la factura si falla el stock */}
  }
@@ -483,7 +541,19 @@ async function guardarFactura(){
  if(!fecha)return $("facturaMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
  if(!currentItems.length)return $("facturaMsg").innerHTML='<div class="err">Agregá al menos un producto a la factura.</div>';
 
- const importe=currentItems.reduce((s,it)=>s+it.subtotal,0)+percepcion_iva+percepcion_iibb+otros_impuestos;
+ const nc=tipoEsNC();
+ const signo=nc?-1:1;
+ const importePos=currentItems.reduce((s,it)=>s+it.subtotal,0)+percepcion_iva+percepcion_iibb+otros_impuestos;
+ const importe=importePos*signo;
+ // En una nota de crédito todo se guarda en negativo (ítems, IVA y percepciones) para que reste en cuenta corriente y libro IVA.
+ const items=currentItems.map(it=>nc?{...it,cantidad:-it.cantidad,subtotal:-it.subtotal}:it);
+ const ptoVta=$("fPtoVta").value.replace(/\D/g,"").slice(0,5);
+ const numero=$("fNumero").value.replace(/\D/g,"").slice(0,8);
+ const vencimiento=$("fVencimiento").value||null;
+ const descFinal=descripcion||((ptoVta&&numero)?ptoVta.padStart(4,"0")+"-"+numero.padStart(8,"0"):"");
+ const asociada=nc&&$("fAsociada").value?+$("fAsociada").value:null;
+ const ncStock=nc&&$("fNcStock").checked;
+ if(vencimiento&&vencimiento<fecha)return $("facturaMsg").innerHTML='<div class="err">El vencimiento no puede ser anterior a la fecha de la factura.</div>';
 
  $("guardarFacturaBtn").disabled=true;$("guardarFacturaBtn").textContent="Guardando...";
  try{
@@ -494,18 +564,34 @@ async function guardarFactura(){
    archivo_url=await subirArchivo(file);
   }
   $("guardarFacturaBtn").textContent="Guardando...";
-  await apiFetch("/rest/v1/facturas_proveedor",{
-   method:"POST",
-   headers:{"Prefer":"return=minimal"},
-   body:JSON.stringify({proveedor,cuit_proveedor,tipo_comprobante,descripcion:descripcion||null,importe,fecha,pagada:false,archivo_url,items:currentItems,percepcion_iva,percepcion_iibb,otros_impuestos,otros_impuestos_concepto})
-  });
-  $("guardarFacturaBtn").textContent="Actualizando costos...";
-  await actualizarCostos(currentItems);
-  $("guardarFacturaBtn").textContent="Actualizando stock...";
-  await sumarStock(currentItems,"Factura "+proveedor+(descripcion?" · "+descripcion:""));
+  const body={proveedor,cuit_proveedor,tipo_comprobante,descripcion:descFinal||null,importe,fecha,pagada:false,archivo_url,items,
+   percepcion_iva:percepcion_iva*signo,percepcion_iibb:percepcion_iibb*signo,otros_impuestos:otros_impuestos*signo,otros_impuestos_concepto};
+  // Campos nuevos: solo se mandan si se usan, así sigue funcionando antes de correr el SQL.
+  if(ptoVta)body.punto_venta=ptoVta;
+  if(numero)body.numero=numero;
+  if(vencimiento)body.fecha_vencimiento=vencimiento;
+  if(nc){body.nc_motivo=$("fNcMotivo").value.trim()||null;body.nc_afecta_stock=ncStock}
+  const r=await apiFetch("/rest/v1/facturas_proveedor",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify(body)});
+  const creada=await r.json().catch(()=>null);
+  if(!r.ok){const m=(creada&&(creada.message||creada.hint))||"error";throw new Error(esErrorColumna(m)?MSG_SQL:m)}
+  const nuevoId=Array.isArray(creada)?creada[0]&&creada[0].id:creada&&creada.id;
+  if(nc&&asociada&&nuevoId){
+   const ra=await apiFetch("/rest/v1/rpc/asociar_nota_credito",{method:"POST",body:JSON.stringify({p_nc:nuevoId,p_factura:asociada})});
+   if(!ra.ok){const d=await ra.json().catch(()=>({}));throw new Error("La nota se guardó pero no se pudo asociar: "+(esErrorColumna(d.message)?MSG_SQL:d.message||"error"))}
+  }
+  if(!nc){
+   $("guardarFacturaBtn").textContent="Actualizando costos...";
+   await actualizarCostos(currentItems);
+  }
+  if(!nc||ncStock){
+   $("guardarFacturaBtn").textContent="Actualizando stock...";
+   await sumarStock(items,(nc?"Nota de crédito ":"Factura ")+proveedor+(descFinal?" · "+descFinal:""));
+  }
+  try{if(window.Audit)Audit.log(null,nc?"Nota de crédito de proveedor cargada":"Factura de proveedor cargada",tipo_comprobante+" "+(descFinal||"")+" · "+proveedor+" · "+money(importe)+(asociada?" · asociada a factura "+asociada:""))}catch(e){}
 
-  $("facturaMsg").innerHTML='<div class="ok">✅ Factura registrada, costos y stock actualizados.</div>';
+  $("facturaMsg").innerHTML='<div class="ok">✅ '+(nc?"Nota de crédito registrada"+(asociada?" y asociada":"")+(ncStock?", stock descontado.":"."):"Factura registrada, costos y stock actualizados.")+'</div>';
   $("fDescripcion").value="";$("fArchivo").value="";$("fCuitProveedor").value="";
+  $("fPtoVta").value="";$("fNumero").value="";$("fVencimiento").value="";$("fNcMotivo").value="";$("fNcStock").checked=false;$("fAsociada").value="";
   $("fPercepcionIva").value="";$("fPercepcionIibb").value="";$("fOtrosImpuestos").value="";$("fOtrosImpuestosConcepto").value="";
   $("fPercepcionIvaPct").value="";$("fPercepcionIibbPct").value="";$("fTotalFactura").value="";
   currentItems=[];renderItemsWrap();
@@ -517,15 +603,17 @@ async function guardarFactura(){
 }
 
 let sel=new Set();
-const estadoDe=f=>f.pagada?"Pagada":(f.pagado_monto>0?"Parcial":"Pendiente");
+const estadoDe=f=>esNC(f)?(f.factura_asociada_id?"Aplicada":"Sin asociar"):f.pagada?"Pagada":((f.pagado_monto>0||ncMontoDe(f)>0)?"Parcial":"Pendiente");
 function renderFacturas(){
  const visible=facturas.filter(f=>{
   if(provFiltro&&normP(f.proveedor)!==normP(provFiltro))return false;
   if(estadoFilter==="Todas")return true;
+  if(esNC(f))return estadoFilter==="Pendiente"&&!f.factura_asociada_id;
   if(estadoFilter==="Pagada")return f.pagada;
   return !f.pagada;
  });
- sel=new Set([...sel].filter(id=>facturas.some(f=>f.id===id&&!f.pagada)));
+ sel=new Set([...sel].filter(id=>facturas.some(f=>f.id===id&&!f.pagada&&!esNC(f))));
+ renderAccionProveedor();
  $("countLabel").innerHTML=visible.length+" "+(visible.length===1?"factura":"facturas")+(provFiltro?' · <span class="badge tipo" style="margin-left:4px">'+provFiltro.replace(/</g,"&lt;")+' <a href="#" onclick="provFiltro=\'\';history.replaceState(null,\'\',\'facturas.html\');renderFacturas();return false" style="color:inherit;text-decoration:none">✕</a></span>':"");
  const pagina=Pag.page("fprov",visible,$("facturasList"),renderFacturas);
  if(!visible.length){$("facturasList").innerHTML='<div class="empty">No hay facturas para mostrar.</div>';renderSel();return}
@@ -535,23 +623,34 @@ function renderFacturas(){
   const est=estadoDe(f);
   const itemsHtml=(f.items||[]).map(it=>`<tr><td>${it.producto}${it.tipo==="servicio"?' <span class="badge tipo" style="font-size:9px">Servicio</span>':""}</td><td class="num">${it.cantidad}</td><td class="num">${money(it.precioFinal)}</td><td class="num">${money(it.subtotal)}</td></tr>`).join("");
   const saldo=saldoDe(f);
+  const nc=esNC(f);
+  const hoyISO=new Date().toISOString().slice(0,10);
+  const vencida=!nc&&!f.pagada&&f.fecha_vencimiento&&f.fecha_vencimiento<hoyISO;
+  const asoc=nc&&f.factura_asociada_id?facturas.find(x=>x.id===f.factura_asociada_id):null;
+  const ncs=nc?[]:ncsDe(f);
+  const esc=t=>String(t==null?"":t).replace(/</g,"&lt;");
+  const badgeCls=nc?"parcial":est==="Pagada"?"pagada":est==="Parcial"?"parcial":"pendiente";
+  const ncLineas=ncs.map(n=>`<div class="fmeta" style="white-space:normal;color:#a63a50">↩ ${esc(n.tipo_comprobante)} ${esc(n.descripcion||"")} del ${fmtFechaCorta(n.fecha)}: −${money(Math.abs(n.importe))}${n.nc_motivo?" · "+esc(n.nc_motivo):""}</div>`).join("");
   return `<div class="frow ${f.pagada?"pagada":""}" onclick="toggleFactura(${f.id})">
-   ${f.pagada?'<span style="width:20px"></span>':`<input type="checkbox" ${sel.has(f.id)?"checked":""} onclick="event.stopPropagation()" onchange="toggleSel(${f.id},this.checked)">`}
+   ${(f.pagada||nc)?'<span style="width:20px"></span>':`<input type="checkbox" ${sel.has(f.id)?"checked":""} onclick="event.stopPropagation()" onchange="toggleSel(${f.id},this.checked)">`}
    <div class="fmain">
     <div class="fprov">${f.proveedor||"Sin nombre"}</div>
-    <div class="fmeta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+f.descripcion:""}${f.tipo_comprobante?" · "+f.tipo_comprobante:""}</div>
+    <div class="fmeta">📅 ${fmtFechaCorta(f.fecha)}${f.descripcion?" · "+esc(f.descripcion):""}${f.tipo_comprobante?" · "+esc(f.tipo_comprobante):""}${f.fecha_vencimiento&&!nc?` · <span style="${vencida?"color:#9b3040;font-weight:800":""}">vence ${fmtFechaCorta(f.fecha_vencimiento)}${vencida?" (vencida)":""}</span>`:""}</div>
    </div>
    <div class="fright">
-    <div class="fimp">${money(f.importe)}${est==="Parcial"?`<small>Debe ${money(saldo)}</small>`:""}</div>
-    <span class="badge ${est==="Pagada"?"pagada":est==="Parcial"?"parcial":"pendiente"}">${est}</span>
-    ${!f.pagada?`<button class="btn-pagar" onclick="event.stopPropagation();abrirPago([${f.id}])">Pagar</button>`:""}
+    <div class="fimp" ${nc?'style="color:#a63a50"':""}>${money(f.importe)}${est==="Parcial"?`<small>Debe ${money(saldo)}</small>`:""}</div>
+    <span class="badge ${badgeCls}">${est}</span>
+    ${(!f.pagada&&!nc)?`<button class="btn-pagar" onclick="event.stopPropagation();abrirPago([${f.id}])">Pagar</button>`:""}
    </div>
    <div class="fdet ${open?"open":""}" onclick="event.stopPropagation()">
     ${f.cuit_proveedor?`<div class="fmeta" style="white-space:normal">CUIT ${f.cuit_proveedor}</div>`:""}
     ${f.pagada&&f.fecha_pago?`<div class="fmeta" style="white-space:normal">Pagada el ${fmtFechaCorta(f.fecha_pago)}</div>`:""}
+    ${nc?`<div class="fmeta" style="white-space:normal">${asoc?"Asociada a: "+esc(asoc.tipo_comprobante)+" "+esc(asoc.descripcion||"")+" del "+fmtFechaCorta(asoc.fecha)+" ("+money(asoc.importe)+")":"⚠️ Sin factura asociada: queda como saldo a favor del proveedor."}${f.nc_motivo?" · Motivo: "+esc(f.nc_motivo):""}${f.nc_afecta_stock?" · Descontó stock":""}</div>`:""}
+    ${ncLineas}
     ${itemsHtml?`<table><thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table>`:""}
     <div class="actions">
-     <button class="btn-del" onclick="editarImporte(${f.id})">✏️ Editar importe</button>
+     ${nc?`<button class="btn-del" style="color:#542477;border-color:#ddcde4" onclick="abrirAsociar(${f.id})">🔗 ${f.factura_asociada_id?"Cambiar factura asociada":"Asociar a una factura"}</button>`:`<button class="btn-del" onclick="editarImporte(${f.id})">✏️ Editar importe</button>`}
+     ${nc&&f.factura_asociada_id?`<button class="btn-del" onclick="quitarAsociacion(${f.id})">Quitar asociación</button>`:""}
      ${f.archivo_url?`<button class="btn-del" onclick="window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
      <button class="btn-del" onclick="borrarFactura(${f.id})">Borrar</button>
     </div>
@@ -598,6 +697,7 @@ function renderOp(){
    <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cerrar</button>`;
   return;
  }
+ if(st.fifo){renderPagoMonto();return}
  const hoy=new Date().toISOString().slice(0,10);
  $("opBox").innerHTML=`<h2>Orden de pago</h2>
   <div class="fmeta" style="white-space:normal">${st.fs[0].proveedor||""}</div>
@@ -657,6 +757,145 @@ async function confirmarPago(){
  }
 }
 
+// ---------- Barra del proveedor filtrado + pago por monto (imputación a las más antiguas) ----------
+const r2b=n=>Math.round((n+Number.EPSILON)*100)/100;
+function renderAccionProveedor(){
+ const box=$("accionProv");
+ if(!provFiltro){box.innerHTML="";return}
+ const delProv=facturas.filter(f=>normP(f.proveedor)===normP(provFiltro));
+ const saldoFacturas=delProv.filter(f=>!esNC(f)).reduce((s,f)=>s+saldoDe(f),0);
+ const ncLibres=delProv.filter(f=>esNC(f)&&!f.factura_asociada_id).reduce((s,n)=>s+Math.abs(n.importe||0),0);
+ const hoyISO=new Date().toISOString().slice(0,10);
+ const vencido=delProv.filter(f=>!esNC(f)&&!f.pagada&&f.fecha_vencimiento&&f.fecha_vencimiento<hoyISO).reduce((s,f)=>s+saldoDe(f),0);
+ box.innerHTML=`<div class="card" style="margin-top:12px">
+  <div class="topbar"><div>
+   <div style="font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase">Pendiente con ${String(provFiltro).replace(/</g,"&lt;")}</div>
+   <div class="fimp" style="text-align:left;font-size:26px">${money(saldoFacturas)}</div>
+   ${vencido>0?`<div style="font-size:12px;color:#9b3040;font-weight:700">Vencido: ${money(vencido)}</div>`:""}
+   ${ncLibres>0?`<div style="font-size:12px;color:#a63a50;font-weight:700">Notas de crédito sin asociar: ${money(ncLibres)}</div>`:""}
+  </div>
+  <button type="button" class="btn-pagar" style="padding:13px 18px;font-size:14px" onclick="abrirPagoMonto()" ${saldoFacturas>0.005?"":"disabled"}>💸 Registrar pago (a las más antiguas)</button></div>
+ </div>`;
+}
+
+function abrirPagoMonto(){
+ if(!provFiltro)return;
+ const fs=facturas.filter(f=>!esNC(f)&&!f.pagada&&normP(f.proveedor)===normP(provFiltro)&&saldoDe(f)>0.005)
+  .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")||a.id-b.id);
+ if(!fs.length)return;
+ opState={fifo:true,fs,medio:"",done:null,prov:fs[0].proveedor};
+ renderOp();
+ $("opModal").classList.add("open");
+}
+function pmTotalSaldo(){return opState.fs.reduce((s,f)=>s+saldoDe(f),0)}
+function pmRepartir(){
+ let resto=r2b(parseFloat($("pmMonto").value)||0);
+ document.querySelectorAll("[data-fifo]").forEach(inp=>{
+  const f=opState.fs.find(x=>x.id===+inp.dataset.fifo);
+  const aplica=Math.min(resto,saldoDe(f));
+  inp.value=aplica>0?r2b(aplica):"";
+  resto=r2b(resto-aplica);
+ });
+ pmResumen();
+}
+function pmResumen(){
+ const monto=r2b(parseFloat($("pmMonto").value)||0);
+ const aplicado=r2b([...document.querySelectorAll("[data-fifo]")].reduce((s,i)=>s+(parseFloat(i.value)||0),0));
+ const aCuenta=r2b(monto-aplicado);
+ const el=$("pmResumen");
+ if(aCuenta<-0.005){el.innerHTML='<span style="color:#9b3040">Aplicaste '+money(aplicado)+', más que el monto del pago ('+money(monto)+').</span>';return}
+ el.innerHTML='Aplicado a facturas: <strong>'+money(aplicado)+'</strong>'+(aCuenta>0.005?' · <span style="color:#177a4d">A cuenta (saldo a favor): <strong>'+money(aCuenta)+'</strong></span>':"");
+}
+function pmMedio(m){
+ opState.medio=m;
+ document.querySelectorAll(".medio").forEach(b=>b.classList.toggle("sel",b.dataset.m===m));
+}
+function renderPagoMonto(){
+ const st=opState;
+ const hoy=new Date().toISOString().slice(0,10);
+ $("opBox").innerHTML=`<h2>Registrar pago</h2>
+  <div class="fmeta" style="white-space:normal">${String(st.prov).replace(/</g,"&lt;")} · pendiente ${money(pmTotalSaldo())}</div>
+  <label>Monto que pagaste<input id="pmMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 250000" oninput="pmRepartir()"></label>
+  <div style="font-size:12px;color:var(--muted);margin-top:6px">Se aplica a las facturas <b>más antiguas</b> primero. Podés cambiar el reparto a mano.</div>
+  <div style="margin-top:10px">${st.fs.map(f=>`<div class="op-line"><div><strong>${fmtFechaCorta(f.fecha)}</strong> · ${String(f.descripcion||f.tipo_comprobante||"Factura").replace(/</g,"&lt;")}${f.fecha_vencimiento?" · vence "+fmtFechaCorta(f.fecha_vencimiento):""}<br><span style="color:var(--muted)">Saldo ${money(saldoDe(f))}</span></div><input type="number" step="0.01" min="0" data-fifo="${f.id}" placeholder="0" oninput="pmResumen()"></div>`).join("")}</div>
+  <div class="op-total" style="font-size:14px;font-weight:700"><span id="pmResumen">Aplicado a facturas: <strong>$0</strong></span></div>
+  <label>Medio de pago</label>
+  <div class="medios">${MEDIOS.map(m=>`<button type="button" class="medio" data-m="${m}" onclick="pmMedio('${m}')">${m}</button>`).join("")}</div>
+  <div class="row2"><label>Fecha<input id="opFecha" type="date" value="${hoy}"></label>
+  <label>Referencia (opcional)<input id="opRef" placeholder="N° de transferencia, cheque…"></label></div>
+  <label>Nota (opcional)<input id="opNota"></label>
+  <div id="opMsg"></div>
+  <button class="btn-main" id="opGuardar" onclick="confirmarPagoMonto()">Confirmar pago y generar orden</button>
+  <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cancelar</button>`;
+}
+async function confirmarPagoMonto(){
+ const st=opState,msg=$("opMsg");
+ const monto=r2b(parseFloat($("pmMonto").value)||0);
+ const items=[...document.querySelectorAll("[data-fifo]")].map(i=>({factura_id:+i.dataset.fifo,monto:r2b(parseFloat(i.value)||0)})).filter(x=>x.monto>0);
+ const aplicado=r2b(items.reduce((s,i)=>s+i.monto,0));
+ const aCuenta=r2b(monto-aplicado);
+ if(monto<=0){msg.innerHTML='<div class="err">Poné el monto del pago.</div>';return}
+ if(aCuenta<-0.005){msg.innerHTML='<div class="err">Repartiste más que el monto del pago.</div>';return}
+ for(const it of items){
+  const f=st.fs.find(x=>x.id===it.factura_id);
+  if(it.monto>saldoDe(f)+0.005){msg.innerHTML='<div class="err">Un monto supera el saldo de la factura.</div>';return}
+ }
+ if(!st.medio){msg.innerHTML='<div class="err">Elegí el medio de pago.</div>';return}
+ const btn=$("opGuardar");btn.disabled=true;btn.textContent="Generando...";
+ try{
+  const r=await apiFetch("/rest/v1/rpc/generar_orden_pago",{method:"POST",body:JSON.stringify({
+   p_proveedor:st.prov,p_fecha:$("opFecha").value,p_medio:st.medio,
+   p_referencia:$("opRef").value.trim(),p_nota:$("opNota").value.trim(),p_items:items,p_a_cuenta:aCuenta>0.005?aCuenta:0})});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok){const m=(data&&(data.message||data.hint))||"error";throw new Error(esErrorColumna(m)?MSG_SQL:m)}
+  try{if(window.Audit)Audit.log(null,"Orden de pago generada","Orden N° "+data+" · "+st.prov+" · "+money(monto)+" · "+st.medio+(items.length?" · imputado a "+items.length+" factura(s) más antiguas":"")+(aCuenta>0.005?" · a cuenta "+money(aCuenta):""))}catch(e){}
+  opState={done:{id:data,total:monto,prov:st.prov,medio:st.medio},fs:st.fs};
+  renderOp();
+  cargarFacturas();
+ }catch(e){
+  msg.innerHTML='<div class="err">❌ '+(e.message||"No se pudo generar")+'</div>';
+  btn.disabled=false;btn.textContent="Confirmar pago y generar orden";
+ }
+}
+
+// ---------- Asociar nota de crédito a una factura ----------
+function abrirAsociar(id){
+ const n=facturas.find(x=>x.id===id);if(!n)return;
+ const cand=facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&normP(f.proveedor)===normP(n.proveedor)).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+ opState={asociar:id,done:null,fs:[]};
+ $("opBox").innerHTML=`<h2>Asociar nota de crédito</h2>
+  <div class="fmeta" style="white-space:normal">${String(n.tipo_comprobante||"").replace(/</g,"&lt;")} ${String(n.descripcion||"").replace(/</g,"&lt;")} · ${money(Math.abs(n.importe))} · ${String(n.proveedor||"").replace(/</g,"&lt;")}</div>
+  <label>Factura que corrige<select id="asocSel"><option value="">Elegí una factura...</option>${cand.map(f=>`<option value="${f.id}" ${f.id===n.factura_asociada_id?"selected":""}>${fmtFechaCorta(f.fecha)} · ${String(f.tipo_comprobante||"").replace(/</g,"&lt;")} ${String(f.descripcion||"").replace(/</g,"&lt;")} · ${money(f.importe)}${f.pagada?" (pagada)":""}</option>`).join("")}</select></label>
+  <div style="font-size:12px;color:var(--muted);margin-top:8px">La nota resta del saldo de esa factura. Si la factura ya estaba paga, el importe queda como saldo a favor con el proveedor.</div>
+  <div id="opMsg"></div>
+  <button class="btn-main" id="opGuardar" onclick="confirmarAsociar()">Asociar</button>
+  <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cancelar</button>`;
+ $("opModal").classList.add("open");
+}
+async function confirmarAsociar(){
+ const id=opState.asociar,fid=+$("asocSel").value;
+ if(!fid){$("opMsg").innerHTML='<div class="err">Elegí la factura.</div>';return}
+ const btn=$("opGuardar");btn.disabled=true;btn.textContent="Asociando...";
+ try{
+  const r=await apiFetch("/rest/v1/rpc/asociar_nota_credito",{method:"POST",body:JSON.stringify({p_nc:id,p_factura:fid})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(esErrorColumna(d.message)?MSG_SQL:d.message||"error")}
+  try{if(window.Audit)Audit.log(null,"Nota de crédito de proveedor asociada","Nota "+id+" → factura "+fid)}catch(e){}
+  cerrarOp();await cargarFacturas();
+ }catch(e){
+  $("opMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo asociar")+'</div>';
+  btn.disabled=false;btn.textContent="Asociar";
+ }
+}
+async function quitarAsociacion(id){
+ if(!confirm("¿Quitar la asociación? La factura vuelve a mostrar el saldo sin esta nota de crédito."))return;
+ try{
+  const r=await apiFetch("/rest/v1/rpc/asociar_nota_credito",{method:"POST",body:JSON.stringify({p_nc:id,p_factura:null})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||"error")}
+  try{if(window.Audit)Audit.log(null,"Nota de crédito de proveedor desasociada","Nota "+id)}catch(e){}
+  await cargarFacturas();
+ }catch(e){alert("No se pudo quitar: "+(e.message||"error"))}
+}
+
 async function cargarFacturas(){
  $("facturasList").innerHTML='<div class="loading">Cargando...</div>';
  try{
@@ -665,6 +904,8 @@ async function cargarFacturas(){
   renderTotales();
   renderFacturas();
   fillProductoSelect();
+  if(tipoEsNC())llenarAsociadas();
+  if(new URLSearchParams(location.search).get("pagar")&&!window._pagarAbierto){window._pagarAbierto=true;abrirPagoMonto()}
  }catch(e){
   $("facturasList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar facturas")+'</div>';
  }
@@ -693,14 +934,21 @@ async function editarImporte(id){
  if(!nuevo||nuevo<0)return;
  try{
   await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({importe:nuevo})});
-  f.importe=nuevo;renderTotales();renderFacturas();
+  f.importe=nuevo;
+  // recalcula si queda pagada o no con el nuevo importe (si el SQL nuevo todavía no está, no pasa nada)
+  try{await apiFetch("/rest/v1/rpc/recalcular_factura_proveedor",{method:"POST",body:JSON.stringify({p_id:id})});await cargarFacturas()}catch(e){}
+  renderTotales();renderFacturas();
  }catch(e){alert("No se pudo actualizar: "+(e.message||"error desconocido"))}
 }
 
 async function borrarFactura(id){
- if(!confirm("¿Borrar esta factura?"))return;
+ const f=facturas.find(x=>x.id===id);
+ const ncs=f&&!esNC(f)?ncsDe(f):[];
+ if(!confirm(esNC(f||{})?"¿Borrar esta nota de crédito? La factura asociada vuelve a mostrar su saldo completo.":"¿Borrar esta factura?"+(ncs.length?" Sus notas de crédito asociadas quedan sin asociar.":"")))return;
  try{
+  if(ncs.length)await apiFetch("/rest/v1/facturas_proveedor?factura_asociada_id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({factura_asociada_id:null})});
   await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
+  if(f&&esNC(f)&&f.factura_asociada_id){try{await apiFetch("/rest/v1/rpc/recalcular_factura_proveedor",{method:"POST",body:JSON.stringify({p_id:f.factura_asociada_id})})}catch(e){}}
   await cargarFacturas();
  }catch(e){
   alert("No se pudo borrar: "+(e.message||"error desconocido"));

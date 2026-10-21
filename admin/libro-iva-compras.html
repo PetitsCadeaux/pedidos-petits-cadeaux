@@ -145,7 +145,8 @@ async function buscar(){
   if(!r.ok){$("err").innerHTML='<div class="err">❌ '+(data.message||JSON.stringify(data))+'</div>';return}
   // El libro IVA solo lleva comprobantes fiscales (Factura A, B, C...): los remitos y compromisos de pago no.
   Pag.reset("iva");
-  filas=data.filter(f=>/^factura/i.test((f.tipo_comprobante||"").trim()));
+  // Incluye facturas y notas de crédito/débito (las notas de crédito vienen con importes negativos y restan).
+  filas=data.filter(f=>/^(factura|nota)/i.test((f.tipo_comprobante||"").trim()));
   renderTabla();
  }catch(e){
   $("err").innerHTML='<div class="err">❌ '+(e.message||"Error desconocido")+'</div>';
