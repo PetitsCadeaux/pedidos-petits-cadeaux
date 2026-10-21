@@ -894,7 +894,7 @@ function abrirAnularRemito(id){
  if(cobrado){
   $("facModalBody").innerHTML=cab+`<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0">
    Este pedido figura como <b>cobrado${o.cobro?" ("+esc(o.cobro)+")":" con Mercado Pago"}</b>.<br>
-   <b>Primero anulá el cobro</b> (en Facturación, pasá el estado a «Por cobrar») y después anulá el remito.</div>
+   <b>Primero anulá el cobro</b> (en Facturación, pasá el estado a «Por cobrar»; si se cobró con una cobranza de Cuenta corriente, anulá esa cobranza desde ahí) y después anulá el remito.</div>
    <div class="actions" style="justify-content:flex-end;margin-top:12px"><button class="chip" onclick="cerrarFac()">Cerrar</button><button class="btn-take" style="flex:none" onclick="window.open('facturacion.html?ver=${id}','_blank')">Ir a Facturación</button></div>`;
   $("facModal").style.display="flex";return;
  }
