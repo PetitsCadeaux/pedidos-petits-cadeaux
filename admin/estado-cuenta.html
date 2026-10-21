@@ -9,40 +9,56 @@
 :root{--purple:#542477;--ink:#392541;--muted:#66566c;--line:#d9c8db}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9e2ec}
-
-.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,.06);z-index:10}
+.toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,.06);z-index:10}
 .toolbar h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;margin:0;color:var(--purple);flex:1 0 auto}
 .toolbar button{padding:10px 16px;border-radius:12px;border:0;font:800 13px Inter,Arial,sans-serif;cursor:pointer;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.toolbar button.wa{background:#e9f8ef;color:#177a4d;border:1px solid #bfe3cf}
+.toolbar label{font-size:12px;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:6px}
+.toolbar input{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:500 13px Inter,Arial,sans-serif}
 .toolbar a{color:var(--muted);font-size:13px;text-decoration:none;font-weight:700}
-
-.page{max-width:210mm;margin:20px auto;background:#fff;border-radius:8px;padding:14mm;box-shadow:0 4px 20px rgba(0,0,0,.08)}
-.head{text-align:center;border-bottom:2px solid var(--purple);padding-bottom:4mm;margin-bottom:5mm}
-.head .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:28px}
-.head .sub{color:var(--muted);font-size:13px;margin-top:2mm}
-
-.info{display:flex;justify-content:space-between;margin-bottom:6mm;flex-wrap:wrap;gap:4mm}
+.page{max-width:210mm;margin:20px auto;background:#fff;border-radius:8px;padding:0 14mm 12mm;box-shadow:0 4px 20px rgba(0,0,0,.08);overflow:hidden}
+.band{height:3mm;margin:0 -14mm 8mm;background:linear-gradient(90deg,#542477,#a66ac7)}
+.head{display:flex;align-items:center;gap:5mm;border-bottom:2px solid var(--purple);padding-bottom:4mm;margin-bottom:5mm}
+.head img{height:18mm;width:auto}
+.head .biz{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;color:var(--purple);font-size:27px;line-height:1.1}
+.head .sub{color:var(--muted);font-size:12.5px;margin-top:1mm}
+.head .tit{margin-left:auto;text-align:right}
+.head .tit b{display:block;font-size:15px;letter-spacing:1px;color:var(--purple)}
+.info{display:flex;justify-content:space-between;margin-bottom:5mm;flex-wrap:wrap;gap:4mm}
 .info div span{display:block}
 .info .lbl{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}
 .info .val{font-size:15px;font-weight:700}
-
-h3{color:var(--purple);font-size:14px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #eee1ef;padding-bottom:2mm;margin:6mm 0 3mm}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1.5px solid var(--purple);padding:4px 2px}
-th.num,td.num{text-align:right}
-td{padding:6px 2px;border-bottom:1px dotted #eee1ef}
-
-.saldo-box{margin-top:6mm;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;border-radius:8px;padding:5mm 6mm;display:flex;justify-content:space-between;align-items:center}
+.resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin-bottom:5mm}
+.resumen div{border:1px solid #eadcef;border-radius:8px;padding:3mm 4mm;background:#fbf7fc}
+.resumen small{display:block;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.resumen b{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;color:var(--purple)}
+.resumen .deuda b{color:#9b3040}
+.resumen .ok b{color:#177a4d}
+h3{color:var(--purple);font-size:13px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #eee1ef;padding-bottom:2mm;margin:5mm 0 2mm}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1.5px solid var(--purple);padding:4px 3px}
+th.num,td.num{text-align:right;white-space:nowrap}
+td{padding:5px 3px;border-bottom:1px dotted #eee1ef;vertical-align:top}
+tr.pago td{background:#f4fbf7}
+tr.ant td{background:#faf5fc;font-weight:700}
+td.det{color:var(--muted);font-size:11px}
+.pos{color:#177a4d}.neg{color:#9b3040}
+.aging{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.aging div{border:1px solid #eadcef;border-radius:8px;padding:2.5mm 4mm;font-size:12px}
+.aging b{display:block;font-size:15px;color:var(--ink)}
+.aging .v b{color:#9b3040}
+.saldo-box{margin-top:6mm;background:linear-gradient(135deg,#542477,#7d45a9);color:#fff;border-radius:8px;padding:5mm 6mm;display:flex;justify-content:space-between;align-items:center;break-inside:avoid}
 .saldo-box .lbl{font-size:13px}
-.saldo-box .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;font-weight:700}
-
-.foot{margin-top:8mm;font-size:11px;color:var(--muted);text-align:center}
+.saldo-box .val{font-family:"Cormorant Garamond",Georgia,serif;font-size:28px;font-weight:700}
+.foot{margin-top:7mm;font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
 .loading,.err{padding:30px;text-align:center;color:#66566c}
-
 @media print{
  body{background:#fff}
  .toolbar{display:none}
- .page{box-shadow:none;margin:0;padding:0;max-width:none}
- @page{size:A4;margin:15mm}
+ .page{box-shadow:none;margin:0;padding:0;max-width:none;border-radius:0}
+ .band{margin:0 0 6mm}
+ tr{break-inside:avoid}
+ @page{size:A4;margin:12mm}
 }
 </style>
 <link rel="stylesheet" href="ancho.css">
@@ -51,7 +67,9 @@ td{padding:6px 2px;border-bottom:1px dotted #eee1ef}
 
 <div class="toolbar">
  <h1>📄 Estado de Cuenta</h1>
- <button id="printBtn">Descargar / Imprimir</button>
+ <label>Desde <input type="date" id="desde"></label>
+ <button class="wa" id="waBtn" title="Enviar el resumen por WhatsApp">💬 WhatsApp</button>
+ <button id="printBtn">Descargar PDF / Imprimir</button>
  <a href="cuenta.html">← Volver a cuenta corriente</a>
 </div>
 
@@ -61,18 +79,26 @@ td{padding:6px 2px;border-bottom:1px dotted #eee1ef}
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const LOGO_URL=SUPABASE_URL+"/storage/v1/object/public/productos-distribuidora/logo.png";
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
+const r2=n=>Math.round((Number(n)||0)*100)/100;
+const esc=t=>String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const normDom=d=>(d||"").trim().toLowerCase().replace(/\s+/g," ");
+const fmtNro=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"0");
 
 const session=JSON.parse(localStorage.getItem("admin_session")||"null");
 const domicilio=new URLSearchParams(location.search).get("domicilio")||"";
+let datos=null;
 
 function fmtFecha(iso){
  if(!iso)return "-";
- const d=new Date(iso.length===10?iso+"T00:00:00":iso);
+ const d=new Date(String(iso).length===10?iso+"T12:00:00":iso);
  return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
 }
+const dia=v=>String(v||"").slice(0,10);
+const pedidoCobrado=o=>["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro)||(o.estado_pago==="Mercado Pago"&&!!o.pagado);
+const faltaCobrar=o=>(o.total==null||pedidoCobrado(o))?0:Math.max(0,r2(o.total-(Number(o.cobrado_monto)||0)));
 
 async function cargar(){
  if(!session){$("page").innerHTML='<div class="err">Iniciá sesión en el panel primero.</div>';return}
@@ -88,46 +114,94 @@ async function cargar(){
   const allPagos=await rPagos.json();
   const allSaldos=await rSaldos.json();
   const key=normDom(domicilio);
-  const pedidos=allOrders.filter(o=>normDom(o.domicilio)===key);
-  const pagos=allPagos.filter(p=>normDom(p.domicilio)===key);
-  const saldosPrevios=allSaldos.filter(s=>normDom(s.domicilio)===key);
-  const comercios=[...new Set(pedidos.map(o=>o.comercio||"Sin nombre"))];
-  const debe=pedidos.reduce((s,o)=>s+(o.total||0),0)+saldosPrevios.reduce((s,x)=>s+(x.monto||0),0);
-  const haber=pagos.reduce((s,p)=>s+(p.monto||0),0);
-  const saldo=debe-haber;
-
-  const saldosRows=saldosPrevios.map(s=>`<tr><td>${fmtFecha(s.fecha)}</td><td>${s.nota||"Saldo anterior"}</td><td class="num">${money(s.monto)}</td></tr>`).join("");
-  const pedidosRows=(saldosRows+pedidos.map(o=>`<tr><td>${fmtFecha(o.created_at)}</td><td>${o.comercio||"-"}</td><td class="num">${o.total==null?"A confirmar":money(o.total)}</td></tr>`).join(""))||'<tr><td colspan="3">Sin pedidos registrados</td></tr>';
-  const pagosRows=pagos.map(p=>`<tr><td>${fmtFecha(p.fecha)}</td><td>${p.nota||"-"}</td><td class="num">${money(p.monto)}</td></tr>`).join("")||'<tr><td colspan="3">Sin pagos registrados</td></tr>';
-
-  $("page").innerHTML=`
-   <div class="head">
-    <div class="biz">Distribuidora Petits Cadeaux</div>
-    <div class="sub">Estado de cuenta · ${new Date().toLocaleDateString("es-AR")}</div>
-   </div>
-   <div class="info">
-    <div><span class="lbl">Cliente</span><span class="val">${comercios.join(", ")}</span></div>
-    <div><span class="lbl">Domicilio</span><span class="val">${domicilio}</span></div>
-   </div>
-
-   <h3>Pedidos</h3>
-   <table><thead><tr><th>Fecha</th><th>Comercio</th><th class="num">Importe</th></tr></thead><tbody>${pedidosRows}</tbody></table>
-
-   <h3>Pagos registrados</h3>
-   <table><thead><tr><th>Fecha</th><th>Nota</th><th class="num">Monto</th></tr></thead><tbody>${pagosRows}</tbody></table>
-
-   <div class="saldo-box">
-    <span class="lbl">${saldo<=0?"Cuenta al día":"Saldo pendiente"}</span>
-    <span class="val">${money(Math.abs(saldo))}</span>
-   </div>
-   <div class="foot">Distribuidora Petits Cadeaux · WhatsApp 11 2362-7052</div>
-  `;
+  datos={
+   pedidos:allOrders.filter(o=>normDom(o.domicilio)===key),
+   pagos:allPagos.filter(p=>normDom(p.domicilio)===key),
+   saldos:allSaldos.filter(s=>normDom(s.domicilio)===key)
+  };
+  render();
  }catch(e){
   $("page").innerHTML='<div class="err">❌ Error al generar el estado de cuenta.</div>';
  }
 }
 
+function calcular(){
+ const desde=$("desde").value;
+ // Movimientos: debe (pedidos, saldos anteriores) y haber (cobranzas)
+ const mov=[];
+ datos.saldos.forEach(s=>mov.push({f:dia(s.fecha),ord:0,concepto:s.nota||"Saldo anterior",det:"",debe:Number(s.monto)||0,haber:0,tipo:"saldo"}));
+ datos.pedidos.forEach(o=>{
+  const comp=o.factura_cae?"Factura C "+fmtNro(o.factura_pto_vta,o.factura_nro):(o.remito_nro?"Remito "+fmtNro(o.remito_pto_vta||1,o.remito_nro):"Pedido #"+o.id);
+  mov.push({f:dia(o.created_at),ord:1,concepto:comp,det:(o.comercio||"")+(o.factura_cae||o.remito_nro?" · Pedido #"+o.id:""),debe:o.total==null?0:Number(o.total),haber:0,tipo:"pedido",aconfirmar:o.total==null});
+ });
+ datos.pagos.forEach(p=>mov.push({f:dia(p.fecha),ord:2,concepto:"Cobranza"+(p.medio?" · "+p.medio:""),det:[p.referencia,p.nota].filter(Boolean).join(" · "),debe:0,haber:Number(p.monto)||0,tipo:"pago"}));
+ mov.sort((a,b)=>a.f.localeCompare(b.f)||a.ord-b.ord);
+ let saldo=0,apertura=0;const filas=[];
+ mov.forEach(m=>{
+  const antes=desde&&m.f<desde;
+  saldo=r2(saldo+m.debe-m.haber);
+  if(antes){apertura=saldo;return}
+  filas.push({...m,saldo});
+ });
+ const totDebe=r2(filas.reduce((s,m)=>s+m.debe,0)),totHaber=r2(filas.reduce((s,m)=>s+m.haber,0));
+ // Antigüedad de lo pendiente (solo pedidos por cobrar)
+ const hoy=new Date().toISOString().slice(0,10);
+ const edad=o=>Math.round((new Date(hoy+"T12:00:00")-new Date(dia(o.facturado_en||o.remito_en||o.created_at)+"T12:00:00"))/86400000);
+ const ag={a:0,b:0,c:0};
+ datos.pedidos.forEach(o=>{const f=faltaCobrar(o);if(f<=0.005)return;const d=edad(o);if(d<=30)ag.a+=f;else if(d<=60)ag.b+=f;else ag.c+=f});
+ return {filas,apertura:desde?apertura:0,desde,totDebe,totHaber,saldoFinal:saldo,ag};
+}
+
+function render(){
+ if(!datos)return;
+ const R=calcular();
+ const comercios=[...new Set(datos.pedidos.map(o=>o.comercio||"Sin nombre"))];
+ const alDia=R.saldoFinal<=0.5;
+ const rows=(R.desde&&Math.abs(R.apertura)>0.005?`<tr class="ant"><td>${fmtFecha(R.desde)}</td><td colspan="2">Saldo anterior al ${fmtFecha(R.desde)}</td><td class="num"></td><td class="num"></td><td class="num">${money(R.apertura)}</td></tr>`:"")
+  +R.filas.map(m=>`<tr class="${m.tipo==="pago"?"pago":(m.tipo==="saldo"?"ant":"")}"><td>${fmtFecha(m.f)}</td><td>${esc(m.concepto)}</td><td class="det">${esc(m.det)}</td><td class="num">${m.aconfirmar?"A confirmar":(m.debe?money(m.debe):"")}</td><td class="num pos">${m.haber?money(m.haber):""}</td><td class="num ${m.saldo>0.5?"neg":""}">${money(m.saldo)}</td></tr>`).join("");
+ $("page").innerHTML=`
+  <div class="band"></div>
+  <div class="head">
+   <img src="${LOGO_URL}" alt="" onerror="this.style.display='none'">
+   <div><div class="biz">Distribuidora Petits Cadeaux</div><div class="sub">Tarifa Nadia Pamela · CUIT 27-31165871-4</div></div>
+   <div class="tit"><b>ESTADO DE CUENTA</b><span class="sub">Emitido el ${new Date().toLocaleDateString("es-AR")}</span></div>
+  </div>
+  <div class="info">
+   <div><span class="lbl">Cliente</span><span class="val">${esc(comercios.join(", ")||"-")}</span></div>
+   <div><span class="lbl">Domicilio</span><span class="val">${esc(domicilio)}</span></div>
+   ${R.desde?`<div><span class="lbl">Período</span><span class="val">Desde ${fmtFecha(R.desde)}</span></div>`:""}
+  </div>
+  <div class="resumen">
+   <div><small>Total facturado</small><b>${money(R.totDebe)}</b></div>
+   <div><small>Total cobrado</small><b>${money(R.totHaber)}</b></div>
+   <div class="${alDia?"ok":"deuda"}"><small>${alDia?"Cuenta al día":"Saldo pendiente"}</small><b>${money(Math.abs(R.saldoFinal))}</b></div>
+  </div>
+  <h3>Movimientos</h3>
+  <table><thead><tr><th>Fecha</th><th>Concepto</th><th>Detalle</th><th class="num">Debe</th><th class="num">Pagos</th><th class="num">Saldo</th></tr></thead>
+  <tbody>${rows||'<tr><td colspan="6">Sin movimientos</td></tr>'}</tbody></table>
+  ${(R.ag.a+R.ag.b+R.ag.c)>0.5?`<h3>Antigüedad de lo pendiente</h3>
+  <div class="aging"><div>Hasta 30 días<b>${money(R.ag.a)}</b></div><div class="${R.ag.b?"v":""}">31 a 60 días<b>${money(R.ag.b)}</b></div><div class="${R.ag.c?"v":""}">Más de 60 días<b>${money(R.ag.c)}</b></div></div>`:""}
+  <div class="saldo-box"><span class="lbl">${alDia?"Cuenta al día":"Saldo pendiente de pago"}</span><span class="val">${money(Math.abs(R.saldoFinal))}</span></div>
+  <div class="foot">Distribuidora Petits Cadeaux · WhatsApp 11 2362-7052<br>Si ya abonaste, avisanos y lo registramos. ¡Gracias por elegirnos!</div>`;
+}
+
+function enviarWA(){
+ if(!datos)return;
+ const R=calcular();
+ const conTel=[...datos.pedidos].reverse().find(o=>o.whatsapp);
+ const pend=datos.pedidos.filter(o=>faltaCobrar(o)>0.005);
+ const nombre=(datos.pedidos[0]&&datos.pedidos[0].comercio)||"";
+ const msg="Hola"+(nombre?" "+nombre:"")+"! Te paso tu estado de cuenta de Petits Cadeaux 🐞\n"
+  +(R.saldoFinal>0.5?pend.slice(0,12).map(o=>"• "+fmtFecha(o.created_at)+" – "+money(faltaCobrar(o))).join("\n")+"\n*Saldo pendiente: "+money(R.saldoFinal)+"*":"Tu cuenta está al día. ¡Gracias!")
+  +"\n(Te adjunto el PDF.)";
+ let d=String((conTel&&conTel.whatsapp)||"").replace(/\D/g,"").replace(/^0+/,"");
+ if(d.startsWith("54")){if(!d.startsWith("549")&&d.length===12)d="549"+d.slice(2)}else if(d.length===10)d="549"+d;
+ window.open("https://wa.me/"+d+"?text="+encodeURIComponent(msg),"_blank");
+}
+
+$("desde").addEventListener("change",render);
 $("printBtn").addEventListener("click",()=>window.print());
+$("waBtn").addEventListener("click",enviarWA);
 cargar();
 </script>
 <footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
