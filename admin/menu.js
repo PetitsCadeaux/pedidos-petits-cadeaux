@@ -12,7 +12,8 @@
    ["cuenta.html","Cuenta corriente","clientes"]]},
   {k:"facturacion",t:"Facturación",i:I('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),l:[
    ["facturacion.html","Facturación y cobranza","facturacion"],["facturas-emitidas.html","Facturas emitidas","facturacion"],
-   ["libro-iva-compras.html","Libro IVA Compras","facturacion"],["monotributo.html","Control Monotributo","facturacion"]]},
+   ["libro-iva-compras.html","Libro IVA Compras","facturacion"],["monotributo.html","Control Monotributo","facturacion"],
+   ["paquete-contador.html","Paquete para el contador","facturacion"]]},
   {k:"proveedor",t:"Proveedor",i:I('<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>'),l:[
    ["facturas.html","Facturas proveedor","proveedor"],["cuenta-proveedor.html","Cuenta proveedor","proveedor"],["costos.html","Costos y márgenes","proveedor"]]},
   {k:"reportes",t:"Reportes",i:I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),l:[

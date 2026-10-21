@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Paquete para el contador - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--lilac:#a66ac7;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 10% 0%,#fff 0,transparent 30%),linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8;box-shadow:0 7px 24px rgba(84,36,119,.08)}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(20px,6vw,30px);font-weight:700}
+main{max-width:900px;margin:auto;padding:18px 14px 42px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{display:block;margin-top:4px;color:#5f4d68;font-size:14px;font-weight:800}
+input{width:100%;padding:14px 15px;margin-top:7px;border:1px solid #ddcfe1;border-radius:16px;background:#fff;color:var(--ink);font:500 16px Inter,Arial,sans-serif;outline:none}
+input:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(166,106,199,.13)}
+button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-main{padding:14px 18px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;box-shadow:0 8px 20px rgba(113,54,158,.22)}
+.btn-main:disabled{opacity:.6;cursor:wait}
+.btn-sec{padding:14px 18px;background:#fff;border:1px solid #ddcde4;color:#654273}
+.btns-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btns-row button{flex:1;min-width:150px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:9px 14px;border-radius:999px;background:#fff;border:1px solid #ddcde4;color:#654273;font-size:13px}
+.err{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:12px 14px;border-radius:14px;margin-top:12px;font-weight:600;font-size:14px}
+.aviso{background:#fff7e6;color:#8a5a00;border:1px solid #f3dfb0;padding:10px 13px;border-radius:14px;margin-top:10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 15px}
+.stat .l{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.stat .v{font-family:"Cormorant Garamond",Georgia,serif;font-size:25px;font-weight:700;color:var(--purple)}
+.stat .s{font-size:12px;color:var(--muted);margin-top:2px}
+h2{font-family:"Cormorant Garamond",Georgia,serif;color:var(--purple);margin:0 0 6px;font-size:23px}
+ul{margin:8px 0 0;padding-left:20px;color:#5f4d68;font-size:14px;line-height:1.6}
+.neg{color:#9b3040}
+@media(max-width:560px){.row2,.grid{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="ancho.css">
+</head>
+<body>
+
+<header>
+ <h1>Paquete para el contador</h1>
+</header>
+<script src="menu.js"></script>
+
+<main>
+
+<div id="noSession" class="card" style="display:none;text-align:center">
+ <p>Tenés que iniciar sesión primero en el panel de pedidos.</p>
+ <a href="admin.html"><button class="btn-main">Ir a iniciar sesión</button></a>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="card">
+ <h2>Elegí el mes</h2>
+ <div style="color:var(--muted);font-size:14px">Arma un solo Excel con todo lo que tu contador necesita para cerrar el mes.</div>
+ <div class="row2" style="margin-top:10px">
+  <div><label>Mes</label><input type="month" id="mes"></div>
+  <div><label>O un rango</label>
+   <div class="row2" style="gap:6px"><input type="date" id="desde" title="Desde"><input type="date" id="hasta" title="Hasta"></div>
+  </div>
+ </div>
+ <div class="chips" id="atajos"></div>
+ <div class="btns-row">
+  <button class="btn-sec" id="calcBtn">🔍 Ver resumen</button>
+  <button class="btn-main" id="excelBtn">⬇️ Descargar Excel del período</button>
+ </div>
+ <div id="err"></div>
+</div>
+
+<div id="resumen"></div>
+
+<div class="card">
+ <h2>Qué incluye el Excel</h2>
+ <ul>
+  <li><b>Resumen</b>: ventas, notas de crédito, compras, cobros y pagos del período.</li>
+  <li><b>Ventas</b>: Facturas C y Notas de Crédito C emitidas (con CAE), incluidas las facturas que anulaste.</li>
+  <li><b>Compras</b>: facturas y notas de crédito de proveedores con neto, IVA y percepciones.</li>
+  <li><b>Cobranzas</b>: lo cobrado por pedido, con medio y fecha.</li>
+  <li><b>Pagos a proveedores</b>: órdenes de pago con medio y referencia.</li>
+ </ul>
+</div>
+
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="permisos.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(n||0);
+const r2=n=>Math.round((Number(n)||0)*100)/100;
+const esc=t=>String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function fmtFecha(v){if(!v)return"";const [y,m,d]=String(v).slice(0,10).split("-");return d+"/"+m+"/"+y}
+function diaSiguiente(s){const [y,m,d]=s.split("-").map(Number);return iso(new Date(y,m-1,d+1))}
+const nroComp=(pv,n)=>String(pv||0).padStart(4,"0")+"-"+String(n||0).padStart(8,"0");
+
+function setMes(ym){
+ if(!ym)return;
+ const [y,m]=ym.split("-").map(Number);
+ $("mes").value=ym;
+ $("desde").value=iso(new Date(y,m-1,1));
+ $("hasta").value=iso(new Date(y,m,0));
+}
+(function(){
+ const hoy=new Date();
+ const ant=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
+ const act=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+ const ym=d=>d.getFullYear()+"-"+pad(d.getMonth()+1);
+ $("atajos").innerHTML='<button class="chip" data-ym="'+ym(ant)+'">Mes anterior</button><button class="chip" data-ym="'+ym(act)+'">Este mes</button>';
+ $("atajos").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{setMes(b.dataset.ym);calcular()}));
+ setMes(ym(ant));
+})();
+$("mes").addEventListener("change",()=>setMes($("mes").value));
+
+async function get(path,opcional){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token}});
+ const d=await r.json().catch(()=>null);
+ if(!r.ok){
+  if(opcional)return null;
+  throw new Error((d&&(d.message||d.hint))||("Error "+r.status));
+ }
+ return Array.isArray(d)?d:[];
+}
+
+function desglosar(f){
+ let neto=0,iva=0;
+ (f.items||[]).forEach(it=>{
+  const c=Number(it.cantidad)||0,im=Number(it.ivaMonto)||0,st=Number(it.subtotal)||0;
+  iva+=im*c;neto+=st-im*c;
+ });
+ const pIva=Number(f.percepcion_iva)||0,pIibb=Number(f.percepcion_iibb)||0,otros=Number(f.otros_impuestos)||0;
+ const total=f.importe!=null?Number(f.importe):(neto+iva+pIva+pIibb+otros);
+ return {neto,iva,pIva,pIibb,otros,total};
+}
+
+let datos=null,avisos=[];
+
+async function cargar(){
+ const desde=$("desde").value,hasta=$("hasta").value;
+ if(!desde||!hasta)throw new Error("Elegí el mes o ambas fechas.");
+ if(desde>hasta)throw new Error("La fecha «Desde» es posterior a «Hasta».");
+ const sig=diaSiguiente(hasta);
+ const ts=s=>encodeURIComponent(s+"T00:00:00-03:00");
+ const rangoTs=c=>c+"=gte."+ts(desde)+"&"+c+"=lt."+ts(sig);
+ const rangoDia=c=>c+"=gte."+desde+"&"+c+"=lt."+sig;
+ avisos=[];
+ const selPed="id,comercio,total,factura_total,factura_pto_vta,factura_nro,factura_cae,factura_cae_vencimiento,factura_cuit_cliente,factura_cliente_razon_social,facturado_en,nc_pto_vta,nc_nro,nc_cae,nc_cae_vencimiento,nc_motivo,nc_facturada_en";
+ const [facts,ncs,anuladas,compras,cobros,pagosProv,recibos]=await Promise.all([
+  get("pedidos_distribuidora?factura_cae=not.is.null&"+rangoTs("facturado_en")+"&select="+selPed+"&order=facturado_en.asc"),
+  get("pedidos_distribuidora?nc_cae=not.is.null&"+rangoTs("nc_facturada_en")+"&select="+selPed+"&order=nc_facturada_en.asc"),
+  get("facturas_anuladas?select=*&order=anulado_en.asc",true),
+  get("facturas_proveedor?"+rangoDia("fecha")+"&select=*&order=fecha.asc"),
+  get("pedidos_distribuidora?cobro=in.(Efectivo,Transferencia,"+encodeURIComponent('"Mercado Pago"')+")&"+rangoDia("cobro_fecha")+"&select=id,comercio,domicilio,total,cobro,cobro_fecha,cobrado_monto,factura_pto_vta,factura_nro&order=cobro_fecha.asc",true),
+  get("pagos_proveedor?"+rangoDia("fecha")+"&select=*&order=fecha.asc"),
+  get("pagos_clientes?"+rangoDia("fecha")+"&select=*&order=fecha.asc",true)
+ ]);
+ if(anuladas===null)avisos.push("Todavía no corriste sql-anular-factura.sql: las facturas anuladas no figuran en el historial.");
+ if(cobros===null)avisos.push("No se pudieron leer los cobros por pedido (revisá el SQL de cobranzas).");
+
+ // ---- Ventas ----
+ const ventas=[];
+ const desdeMs=new Date(desde+"T00:00:00-03:00").getTime(),hastaMs=new Date(sig+"T00:00:00-03:00").getTime();
+ const enRango=v=>{const t=new Date(v).getTime();return t>=desdeMs&&t<hastaMs};
+ const imp=p=>Number(p.factura_total!=null?p.factura_total:p.total)||0;
+ facts.forEach(p=>ventas.push({fecha:p.facturado_en,tipo:"Factura C",pv:p.factura_pto_vta,nro:p.factura_nro,cliente:p.factura_cliente_razon_social||p.comercio||"Consumidor Final",cuit:p.factura_cuit_cliente||"",importe:imp(p),cae:p.factura_cae,vto:p.factura_cae_vencimiento,pedido:p.id,obs:p.nc_cae?"Anulada con NC "+nroComp(p.nc_pto_vta,p.nc_nro):""}));
+ ncs.forEach(p=>ventas.push({fecha:p.nc_facturada_en,tipo:"Nota de Crédito C",pv:p.nc_pto_vta,nro:p.nc_nro,cliente:p.factura_cliente_razon_social||p.comercio||"Consumidor Final",cuit:p.factura_cuit_cliente||"",importe:-imp(p),cae:p.nc_cae,vto:p.nc_cae_vencimiento,pedido:p.id,obs:"Anula Factura "+nroComp(p.factura_pto_vta,p.factura_nro)+(p.nc_motivo?" · "+p.nc_motivo:"")}));
+ (anuladas||[]).forEach(a=>{
+  const cli=a.factura_cliente_razon_social||a.comercio||"Consumidor Final";
+  if(a.facturado_en&&enRango(a.facturado_en))ventas.push({fecha:a.facturado_en,tipo:"Factura C",pv:a.factura_pto_vta,nro:a.factura_nro,cliente:cli,cuit:a.factura_cuit_cliente||"",importe:Number(a.factura_total)||0,cae:a.factura_cae,vto:a.factura_cae_vencimiento,pedido:a.pedido_id,obs:"Anulada con NC "+nroComp(a.nc_pto_vta,a.nc_nro)});
+  if(a.nc_facturada_en&&enRango(a.nc_facturada_en))ventas.push({fecha:a.nc_facturada_en,tipo:"Nota de Crédito C",pv:a.nc_pto_vta,nro:a.nc_nro,cliente:cli,cuit:a.factura_cuit_cliente||"",importe:-(Number(a.factura_total)||0),cae:a.nc_cae,vto:a.nc_cae_vencimiento,pedido:a.pedido_id,obs:"Anula Factura "+nroComp(a.factura_pto_vta,a.factura_nro)+" · "+(a.motivo||"")});
+ });
+ ventas.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha)||(a.nro||0)-(b.nro||0));
+
+ // ---- Compras ----
+ const comp=compras.filter(f=>/^(factura|nota)/i.test((f.tipo_comprobante||"").trim())).map(f=>({f,d:desglosar(f)}));
+ // ---- Pagos a proveedores (sin anulados) ----
+ const pagosP=pagosProv.filter(p=>!p.anulado);
+ const anuladosP=pagosProv.length-pagosP.length;
+ return {desde,hasta,ventas,comp,cobros:cobros||[],pagosP,anuladosP,recibos:recibos||[]};
+}
+
+function sumPor(arr,kmedio,kmonto){
+ const m={};arr.forEach(x=>{const k=x[kmedio]||"Sin medio";m[k]=r2((m[k]||0)+(Number(x[kmonto])||0))});return m;
+}
+
+function calcTotales(D){
+ const fact=D.ventas.filter(v=>v.tipo==="Factura C"),nc=D.ventas.filter(v=>v.tipo!=="Factura C");
+ const tFact=r2(fact.reduce((s,v)=>s+v.importe,0)),tNC=r2(nc.reduce((s,v)=>s+v.importe,0));
+ const cobroTotal=r2(D.cobros.reduce((s,p)=>s+(Number(p.total)||0),0));
+ const t={cantFact:fact.length,cantNC:nc.length,tFact,tNC,ventasNetas:r2(tFact+tNC),
+  compras:r2(D.comp.reduce((s,x)=>s+x.d.total,0)),
+  cNeto:r2(D.comp.reduce((s,x)=>s+x.d.neto,0)),cIva:r2(D.comp.reduce((s,x)=>s+x.d.iva,0)),
+  cPercIva:r2(D.comp.reduce((s,x)=>s+x.d.pIva,0)),cPercIibb:r2(D.comp.reduce((s,x)=>s+x.d.pIibb,0)),cOtros:r2(D.comp.reduce((s,x)=>s+x.d.otros,0)),
+  cantComp:D.comp.length,cobroTotal,cobroPorMedio:sumPor(D.cobros,"cobro","total"),
+  pagado:r2(D.pagosP.reduce((s,p)=>s+(Number(p.monto)||0),0)),pagadoPorMedio:sumPor(D.pagosP,"medio","monto")};
+ return t;
+}
+
+function renderResumen(D){
+ const t=calcTotales(D);
+ const porMedio=m=>Object.keys(m).length?Object.entries(m).map(([k,v])=>k+": "+money(v)).join(" · "):"—";
+ $("resumen").innerHTML=`
+  ${avisos.map(a=>'<div class="aviso">⚠️ '+esc(a)+'</div>').join("")}
+  <div class="card" style="margin-top:10px">
+   <h2>Resumen del período</h2>
+   <div style="color:var(--muted);font-size:13px;margin-bottom:10px">${fmtFecha(D.desde)} al ${fmtFecha(D.hasta)}</div>
+   <div class="grid">
+    <div class="stat"><div class="l">Facturado</div><div class="v">${money(t.tFact)}</div><div class="s">${t.cantFact} Factura${t.cantFact===1?"":"s"} C</div></div>
+    <div class="stat"><div class="l">Notas de crédito</div><div class="v ${t.tNC<0?"neg":""}">${money(t.tNC)}</div><div class="s">${t.cantNC} emitida${t.cantNC===1?"":"s"}</div></div>
+    <div class="stat"><div class="l">Ventas netas</div><div class="v">${money(t.ventasNetas)}</div><div class="s">Facturas menos notas de crédito</div></div>
+    <div class="stat"><div class="l">Compras</div><div class="v">${money(t.compras)}</div><div class="s">${t.cantComp} comprobante${t.cantComp===1?"":"s"} · IVA ${money(t.cIva)}</div></div>
+    <div class="stat"><div class="l">Cobrado</div><div class="v">${money(t.cobroTotal)}</div><div class="s">${esc(porMedio(t.cobroPorMedio))}</div></div>
+    <div class="stat"><div class="l">Pagado a proveedores</div><div class="v">${money(t.pagado)}</div><div class="s">${esc(porMedio(t.pagadoPorMedio))}</div></div>
+   </div>
+  </div>`;
+}
+
+async function calcular(){
+ $("err").innerHTML="";$("resumen").innerHTML='<div class="card" style="text-align:center;color:var(--muted)">Calculando...</div>';
+ try{datos=await cargar();renderResumen(datos)}
+ catch(e){datos=null;$("resumen").innerHTML="";$("err").innerHTML='<div class="err">❌ '+esc(e.message||"Error desconocido")+'</div>'}
+}
+
+// Aplica formato numérico a las columnas indicadas de una hoja armada con json_to_sheet.
+function formatear(ws,cols,fmt){
+ const ref=XLSX.utils.decode_range(ws["!ref"]||"A1:A1");
+ for(let R=ref.s.r+1;R<=ref.e.r;R++)cols.forEach(C=>{const c=ws[XLSX.utils.encode_cell({r:R,c:C})];if(c&&typeof c.v==="number")c.z=fmt});
+}
+const NUM="#,##0.00;[Red]-#,##0.00";
+
+async function descargar(){
+ $("err").innerHTML="";
+ const btn=$("excelBtn"),et=btn.textContent;btn.disabled=true;btn.textContent="Armando el Excel...";
+ try{
+  datos=await cargar();renderResumen(datos);
+  const D=datos,t=calcTotales(D),wb=XLSX.utils.book_new();
+
+  const aoa=[["Paquete para el contador — Distribuidora Petits Cadeaux"],["Período",fmtFecha(D.desde)+" al "+fmtFecha(D.hasta)],["Generado",new Date().toLocaleString("es-AR")],[],
+   ["VENTAS","Cantidad","Importe"],
+   ["Facturas C emitidas",t.cantFact,t.tFact],["Notas de Crédito C emitidas",t.cantNC,t.tNC],["Ventas netas","",t.ventasNetas],[],
+   ["COMPRAS","Cantidad","Importe"],
+   ["Neto gravado",t.cantComp,t.cNeto],["IVA (crédito fiscal)","",t.cIva],["Percepciones IVA","",t.cPercIva],["Percepciones IIBB","",t.cPercIibb],["Otros impuestos","",t.cOtros],["Total compras","",t.compras],[],
+   ["COBRADO (por medio)","","Importe"],...Object.entries(t.cobroPorMedio).map(([k,v])=>[k,"",v]),["Total cobrado","",t.cobroTotal],[],
+   ["PAGADO A PROVEEDORES (por medio)","","Importe"],...Object.entries(t.pagadoPorMedio).map(([k,v])=>[k,"",v]),["Total pagado","",t.pagado],[],
+   ["Notas: las notas de crédito figuran en negativo. Las compras incluyen notas de crédito de proveedores (negativas). Cobrado = pedidos cobrados en el período, según su fecha de cobro."]];
+  const wsR=XLSX.utils.aoa_to_sheet(aoa);
+  wsR["!cols"]=[{wch:40},{wch:10},{wch:18}];
+  for(let R=0;R<aoa.length;R++){const c=wsR[XLSX.utils.encode_cell({r:R,c:2})];if(c&&typeof c.v==="number")c.z=NUM}
+  XLSX.utils.book_append_sheet(wb,wsR,"Resumen");
+
+  const vRows=D.ventas.map(v=>({"Fecha":fmtFecha(v.fecha),"Tipo":v.tipo,"Pto. Vta":v.pv,"N°":v.nro,"Comprobante":nroComp(v.pv,v.nro),"Cliente":v.cliente,"CUIT Cliente":v.cuit,"Importe":r2(v.importe),"CAE":v.cae||"","Vto. CAE":fmtFecha(v.vto),"Pedido":v.pedido,"Observaciones":v.obs}));
+  const wsV=XLSX.utils.json_to_sheet(vRows.length?vRows:[{"Fecha":"Sin comprobantes en el período"}]);
+  wsV["!cols"]=[{wch:12},{wch:18},{wch:8},{wch:10},{wch:15},{wch:30},{wch:14},{wch:15},{wch:16},{wch:12},{wch:8},{wch:44}];
+  formatear(wsV,[7],NUM);
+  XLSX.utils.book_append_sheet(wb,wsV,"Ventas");
+
+  const cRows=D.comp.map(({f,d})=>({"Fecha":fmtFecha(f.fecha),"Tipo":f.tipo_comprobante||"","Pto. Vta":f.punto_venta||"","N° comprobante":f.numero||f.descripcion||"","Proveedor":f.proveedor||"","CUIT Proveedor":f.cuit_proveedor||"","Neto gravado":r2(d.neto),"IVA":r2(d.iva),"Perc. IVA":r2(d.pIva),"Perc. IIBB":r2(d.pIibb),"Otros imp.":r2(d.otros),"Concepto otros imp.":f.otros_impuestos_concepto||"","Total":r2(d.total),"Vencimiento":fmtFecha(f.fecha_vencimiento)}));
+  const wsC=XLSX.utils.json_to_sheet(cRows.length?cRows:[{"Fecha":"Sin compras en el período"}]);
+  wsC["!cols"]=[{wch:12},{wch:20},{wch:9},{wch:18},{wch:28},{wch:14},{wch:14},{wch:13},{wch:12},{wch:12},{wch:12},{wch:20},{wch:15},{wch:12}];
+  formatear(wsC,[6,7,8,9,10,12],NUM);
+  XLSX.utils.book_append_sheet(wb,wsC,"Compras");
+
+  const kRows=D.cobros.map(p=>({"Fecha de cobro":fmtFecha(p.cobro_fecha),"Pedido":p.id,"Cliente":p.comercio||"","Domicilio":p.domicilio||"","Factura":p.factura_nro?nroComp(p.factura_pto_vta,p.factura_nro):"","Medio":p.cobro,"Importe":r2(p.total)}));
+  const wsK=XLSX.utils.json_to_sheet(kRows.length?kRows:[{"Fecha de cobro":"Sin cobros en el período"}]);
+  wsK["!cols"]=[{wch:14},{wch:8},{wch:30},{wch:30},{wch:15},{wch:15},{wch:15}];
+  formatear(wsK,[6],NUM);
+  XLSX.utils.book_append_sheet(wb,wsK,"Cobranzas");
+
+  const pRows=D.pagosP.map(p=>({"Fecha":fmtFecha(p.fecha),"N° orden de pago":p.id,"Proveedor":p.proveedor||"","Medio":p.medio||"","Referencia":p.referencia||"","Nota":p.nota||"","Importe":r2(p.monto)}));
+  const wsP=XLSX.utils.json_to_sheet(pRows.length?pRows:[{"Fecha":"Sin pagos en el período"}]);
+  wsP["!cols"]=[{wch:12},{wch:16},{wch:28},{wch:15},{wch:20},{wch:30},{wch:15}];
+  formatear(wsP,[6],NUM);
+  XLSX.utils.book_append_sheet(wb,wsP,"Pagos a proveedores");
+
+  XLSX.writeFile(wb,"paquete-contador_"+D.desde+"_a_"+D.hasta+".xlsx");
+ }catch(e){
+  $("err").innerHTML='<div class="err">❌ '+esc(e.message||"Error desconocido")+'</div>';
+ }finally{btn.disabled=false;btn.textContent=et}
+}
+
+$("calcBtn").addEventListener("click",calcular);
+$("excelBtn").addEventListener("click",descargar);
+if(session)calcular();
+</script>
+<footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
+<style>
+.app-copyright{text-align:center;font-size:11px;color:#999;padding:18px 10px 10px;opacity:.75}
+@media print{.app-copyright{display:none}}
+</style>
+<script src="iconos.js"></script>
+</body>
+</html>
