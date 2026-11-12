@@ -156,6 +156,9 @@ let selectedQty=Array(PRODUCTS.length).fill(0);
 let selectedBonif=Array(PRODUCTS.length).fill(0);
 const DIAS_NOMBRES=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
+const ORDEN_CAT=["dulces","hamburguesa","pancho","variedad","gastronomic"];
+function rangoCat(c){const n=String(c||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");const i=ORDEN_CAT.findIndex(k=>n.startsWith(k));return i<0?99:i}
+function ordenarCat(arr,getCat){return arr.map((x,k)=>[x,k]).sort((a,b)=>rangoCat(getCat(a[0]))-rangoCat(getCat(b[0]))||a[1]-b[1]).map(z=>z[0])}
 async function cargarCatalogo(){
  const canal=$("canal").value;
  try{
@@ -163,7 +166,7 @@ async function cargarCatalogo(){
    {headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+((session&&session.access_token)||SUPABASE_KEY)}});
   const d=r.ok?await r.json():[];
   const lista=d.filter(x=>x.precio!=null&&Number(x.precio)>0).map(x=>[x.nombre,Number(x.precio),x.categoria||"Otros",x.foto?(/^https?:/.test(x.foto)?x.foto:BUCKET+x.foto):undefined]);
-  PRODUCTS=lista.length?lista:PRODUCTS_FALLBACK;
+  PRODUCTS=ordenarCat(lista.length?lista:PRODUCTS_FALLBACK,t=>t[2]);
  }catch(e){PRODUCTS=PRODUCTS_FALLBACK}
  selectedQty=Array(PRODUCTS.length).fill(0);
  selectedBonif=Array(PRODUCTS.length).fill(0);
