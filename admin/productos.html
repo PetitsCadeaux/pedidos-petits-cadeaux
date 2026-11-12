@@ -67,6 +67,23 @@ button{border:0;border-radius:13px;font:800 14px Inter,Arial,sans-serif;cursor:p
 <div id="panelView" style="display:none">
 
  <div class="card">
+  <h2 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:24px">📥 Importar desde Excel</h2>
+  <div style="font-size:12.5px;color:var(--muted)">Subí una planilla de lista de precios (columnas <b>Producto</b> y <b>Precio de Venta</b>; <b>Categoría</b> es opcional). Antes de cargar vas a ver qué es nuevo y qué cambia de precio.</div>
+  <label>¿A qué catálogo van?</label>
+  <select id="impNegocio">
+   <option value="tienda">🛒 Tienda (minorista)</option>
+   <option value="comercio">🏪 Comercio (Lista 1)</option>
+   <option value="mayorista">🏭 Mayorista (Lista 2)</option>
+   <option value="regaleria">🎁 Regaleria</option>
+  </select>
+  <label>Archivo (.xlsx, .xls o .csv)</label>
+  <input type="file" id="impArchivo" accept=".xlsx,.xls,.csv">
+  <div style="margin-top:8px"><button type="button" class="btn-sec" id="impModelo">⬇️ Bajar planilla modelo</button></div>
+  <div id="impMsg"></div>
+  <div id="impPreview"></div>
+ </div>
+
+ <div class="card">
   <h2 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:24px" id="formTitle">Nuevo producto</h2>
   <div class="tabs" id="negocioTabs">
    <button type="button" data-n="tienda" class="active">🛒 Tienda</button>
@@ -122,6 +139,7 @@ button{border:0;border-radius:13px;font:800 14px Inter,Arial,sans-serif;cursor:p
 
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="permisos.js"></script>
 <script src="paginacion.js"></script>
 <script>
@@ -407,6 +425,146 @@ $("loginBtn").addEventListener("click",login);
 $("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
 
 if(session){showPanel()}else{showLogin()}
+
+// ================= Importar listas de precios desde Excel =================
+const normTxt=t=>String(t==null?"":t).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const r2=n=>Math.round(n*100)/100;
+// Descuentos por pack de la Tienda (los mismos del catálogo original): 3 packs -5%, 5 packs -12%.
+const DESC_PACK={3:0.95,5:0.88};
+function tiersDesde(p){return [{qty:1,precio:r2(p)},{qty:3,precio:r2(p*3*DESC_PACK[3])},{qty:5,precio:r2(p*5*DESC_PACK[5])}]}
+function precioActual(p){return p.negocio==="tienda"?((p.tiers||[]).find(t=>t.qty===1)||{}).precio:p.precio}
+function parsePrecio(v){
+ if(typeof v==="number")return isFinite(v)?v:null;
+ let s=String(v==null?"":v).replace(/[^\d.,-]/g,"");
+ if(!s)return null;
+ if(s.includes(",")&&s.includes("."))s=s.replace(/\./g,"").replace(",",".");
+ else if(s.includes(","))s=s.replace(",",".");
+ const n=parseFloat(s);return isNaN(n)?null:n;
+}
+let impFilas=[];
+function impLeer(rows){
+ let hi=-1,cN=-1,cP=-1,cC=-1,cL=-1;
+ for(let i=0;i<Math.min(rows.length,15);i++){
+  const r=(rows[i]||[]).map(normTxt);
+  const n=r.findIndex(x=>/^(producto|nombre|articulo|descripcion|detalle)/.test(x));
+  const p=r.findIndex(x=>/precio de venta/.test(x))>=0?r.findIndex(x=>/precio de venta/.test(x)):r.findIndex(x=>/precio|valor|importe/.test(x));
+  if(n>=0&&p>=0){hi=i;cN=n;cP=p;cC=r.findIndex(x=>/categoria|rubro|linea/.test(x));cL=r.findIndex(x=>/lista/.test(x));break}
+ }
+ if(hi<0)return null;
+ const out=[];
+ for(let i=hi+1;i<rows.length;i++){
+  const r=rows[i]||[];
+  const nombre=String(r[cN]==null?"":r[cN]).trim();
+  if(!nombre)continue;
+  out.push({nombre,precio:parsePrecio(r[cP]),categoria:cC>=0?String(r[cC]||"").trim():"",lista:cL>=0?String(r[cL]||"").trim():""});
+ }
+ return out;
+}
+function adivinarCategoria(nombre,negocio){
+ const n=normTxt(nombre);
+ let stem="";
+ if(/hamburg|smash/.test(n))stem="hamburg";
+ else if(/pancho|lomitero/.test(n)&&!/chips/.test(n))stem=/lomitero/.test(n)?"variedad":"pancho";
+ else if(/gastro|x42/.test(n))stem="gastron";
+ else if(/chips|pebete|molde|arabe|pbt|budin|pan dulce|pan de/.test(n))stem="variedad";
+ const existentes=[...new Set(productos.filter(p=>p.negocio===negocio).map(p=>p.categoria))];
+ const m=stem&&existentes.find(c=>normTxt(c).startsWith(stem));
+ return m||"Otros";
+}
+function impArmar(){
+ const negocio=$("impNegocio").value;
+ const filtro=$("impLista")?$("impLista").value:"";
+ const existentes={};
+ productos.filter(p=>p.negocio===negocio).forEach(p=>{existentes[normTxt(p.nombre)]=p});
+ impFilas=[];let sinPrecio=0;
+ const vistos=new Set();
+ impRaw.forEach(r=>{
+  if(filtro&&r.lista!==filtro)return;
+  if(r.precio==null){sinPrecio++;return}
+  const k=normTxt(r.nombre);if(vistos.has(k))return;vistos.add(k);
+  const ex=existentes[k];
+  if(!ex)impFilas.push({estado:"nuevo",nombre:r.nombre,precio:r2(r.precio),categoria:r.categoria||adivinarCategoria(r.nombre,negocio),sel:true});
+  else{
+   const pa=precioActual(ex);
+   if(pa!=null&&Math.abs(pa-r.precio)<0.01)impFilas.push({estado:"igual",nombre:ex.nombre,precio:r2(r.precio),ex,sel:false});
+   else impFilas.push({estado:"cambio",nombre:ex.nombre,precio:r2(r.precio),antes:pa,ex,sel:true});
+  }
+ });
+ impRender(sinPrecio);
+}
+let impRaw=[];
+function impRender(sinPrecio){
+ const neg=$("impNegocio").value;
+ const nuevos=impFilas.filter(f=>f.estado==="nuevo").length,cambios=impFilas.filter(f=>f.estado==="cambio").length,iguales=impFilas.filter(f=>f.estado==="igual").length;
+ const listas=[...new Set(impRaw.map(r=>r.lista).filter(Boolean))];
+ const selLista=listas.length>1?`<label>El archivo trae varias listas, ¿cuál importás?</label><select id="impLista" onchange="impArmar()">${listas.map(l=>`<option value="${l.replace(/"/g,"&quot;")}"${$("impLista")&&$("impLista").value===l?" selected":""}>${l}</option>`).join("")}</select>`:"";
+ const rows=impFilas.map((f,i)=>{
+  const badge=f.estado==="nuevo"?'<span style="background:#e6f7ee;color:#177a4d;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800">Nuevo</span>'
+   :f.estado==="cambio"?'<span style="background:#fff7e6;color:#8a5a00;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800">Cambia precio</span>'
+   :'<span style="background:#f1eef2;color:#8a7d90;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800">Sin cambios</span>';
+  const precio=f.estado==="cambio"?`<span style="color:#8a7d90;text-decoration:line-through">${money(f.antes)}</span> → <b>${money(f.precio)}</b>`:`<b>${money(f.precio)}</b>`;
+  const cat=f.estado==="nuevo"?`<input type="text" value="${(f.categoria||"").replace(/"/g,"&quot;")}" onchange="impFilas[${i}].categoria=this.value.trim()" style="margin:0;padding:6px 8px;font-size:12px;width:130px" list="catList">`:"";
+  return `<tr style="${f.estado==="igual"?"opacity:.55":""}"><td><input type="checkbox" ${f.sel?"checked":""} ${f.estado==="igual"?"disabled":""} onchange="impFilas[${i}].sel=this.checked;impContar()" style="width:auto;margin:0"></td><td style="padding:6px 4px">${f.nombre}<div style="margin-top:3px">${badge}</div></td><td style="white-space:nowrap">${precio}</td><td>${cat}</td></tr>`;
+ }).join("");
+ $("impPreview").innerHTML=`${selLista}
+  <div style="margin-top:12px;font-size:13.5px"><b>${nuevos}</b> nuevos · <b>${cambios}</b> con precio distinto · ${iguales} sin cambios${sinPrecio?` · <span style="color:#8a5a00">${sinPrecio} sin precio (se omiten)</span>`:""}</div>
+  ${neg==="tienda"?'<div style="font-size:12px;color:var(--muted);margin-top:4px">En Tienda, el precio de la planilla es el de 1 unidad; los packs de 3 y 5 se calculan con -5% y -12%, como en el resto del catálogo.</div>':""}
+  <div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase"><th></th><th>Producto</th><th>Precio</th><th>Categoría (nuevos)</th></tr></thead><tbody>${rows||'<tr><td colspan="4">No hay productos para mostrar.</td></tr>'}</tbody></table></div>
+  <button class="btn-main" id="impGo" onclick="impConfirmar()">Importar</button>`;
+ impContar();
+}
+function impContar(){
+ const n=impFilas.filter(f=>f.sel).length;const b=$("impGo");if(!b)return;
+ b.disabled=n===0;b.textContent=n?`Importar ${n} cambio${n===1?"":"s"}`:"Nada para importar";
+}
+async function impConfirmar(){
+ const neg=$("impNegocio").value;
+ const sel=impFilas.filter(f=>f.sel);
+ const msg=$("impMsg");msg.innerHTML="";
+ const sinCat=sel.find(f=>f.estado==="nuevo"&&!f.categoria);
+ if(sinCat){msg.innerHTML='<div class="err">Falta la categoría de «'+sinCat.nombre+'».</div>';return}
+ const btn=$("impGo");btn.disabled=true;btn.textContent="Importando...";
+ try{
+  const nuevos=sel.filter(f=>f.estado==="nuevo").map(f=>({negocio:neg,nombre:f.nombre,categoria:f.categoria,activo:true,
+   ...(neg==="tienda"?{tiers:tiersDesde(f.precio),precio:null}:{precio:f.precio,tiers:null})}));
+  if(nuevos.length){
+   const r=await apiFetch("/rest/v1/productos_catalogo",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(nuevos)});
+   if(!r.ok)throw new Error("No se pudieron agregar los productos nuevos: "+(await r.text()));
+  }
+  let act=0;
+  for(const f of sel.filter(x=>x.estado==="cambio")){
+   const body=neg==="tienda"?{tiers:tiersDesde(f.precio)}:{precio:f.precio};
+   const r=await apiFetch("/rest/v1/productos_catalogo?id=eq."+f.ex.id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(body)});
+   if(!r.ok)throw new Error("No se pudo actualizar «"+f.nombre+"»: "+(await r.text()));
+   act++;
+  }
+  impFilas=[];impRaw=[];$("impPreview").innerHTML="";$("impArchivo").value="";
+  msg.innerHTML=`<div class="ok">✅ Listo: ${nuevos.length} producto${nuevos.length===1?"":"s"} nuevo${nuevos.length===1?"":"s"} y ${act} precio${act===1?"":"s"} actualizado${act===1?"":"s"}. Los productos nuevos quedan sin foto: podés agregarla con ✏️ Editar.</div>`;
+  await cargarProductos();
+ }catch(e){
+  msg.innerHTML='<div class="err">❌ '+(e.message||"Error al importar")+'</div>';
+  btn.disabled=false;impContar();
+ }
+}
+$("impArchivo").addEventListener("change",async e=>{
+ const f=e.target.files[0];const msg=$("impMsg");msg.innerHTML="";$("impPreview").innerHTML="";
+ if(!f)return;
+ try{
+  if(typeof XLSX==="undefined")throw new Error("No se pudo cargar el lector de Excel. Revisá tu conexión y recargá la página.");
+  const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+  const lista=impLeer(rows);
+  if(!lista||!lista.length)throw new Error("No encontré las columnas «Producto» y «Precio de Venta». Bajá la planilla modelo para ver el formato.");
+  impRaw=lista;impArmar();
+ }catch(err){msg.innerHTML='<div class="err">❌ '+(err.message||"No se pudo leer el archivo")+'</div>'}
+});
+$("impNegocio").addEventListener("change",()=>{if(impRaw.length)impArmar()});
+$("impModelo").addEventListener("click",()=>{
+ const ws=XLSX.utils.aoa_to_sheet([["Producto","Categoría","Precio de Venta"],["Hamburguesa Clásica x4","Hamburguesa",2840],["Pancho Corto Clásico x6","Panchos",2380]]);
+ ws["!cols"]=[{wch:36},{wch:18},{wch:16}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Lista");XLSX.writeFile(wb,"planilla-modelo-productos.xlsx");
+});
 </script>
 <footer class="app-copyright">© 2026 Distribuidora Petits Cadeaux. Todos los derechos reservados.</footer>
 <style>
