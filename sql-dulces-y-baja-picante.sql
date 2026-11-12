@@ -1,7 +1,7 @@
--- 1) Budines y Pan dulce pasan a la categoría "Dulces" en todas las listas
+-- 1) Budines, Pan dulce y Panettone pasan a la categoría "Dulces" en todas las listas
 update productos_catalogo
    set categoria = 'Dulces'
- where nombre ilike '%budín%' or nombre ilike '%budin%' or nombre ilike '%pan dulce%';
+ where nombre ilike '%budín%' or nombre ilike '%budin%' or nombre ilike '%pan dulce%' or nombre ilike '%panettone%';
 
 -- 2) Dar de baja el picante (ya no se fabrica) en todas las listas
 update productos_catalogo
