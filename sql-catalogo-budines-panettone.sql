@@ -6,6 +6,9 @@
 -- con estos nombres exactos: budin-banana-dulce-de-leche.jpg, budin-vainilla.jpg, budin-chocolate.jpg, panettone-pazzi.jpg
 -- (el Pan Dulce con chips queda sin foto por ahora).
 --
+-- También saca del catálogo Mayorista las cajas de budín Clásico y Premium (quedan ocultas, no borradas:
+-- si querés eliminarlas del todo, hacelo desde Productos con 🗑️ Borrar).
+--
 -- Tienda: el precio es por unidad; los packs de 3 y 5 llevan -5% y -12% (igual que el resto del catálogo).
 -- Comercio: precio por unidad de venta (el producto "x12 u.", "x6 u.", "x8 u.", como en la Lista 1).
 -- Mayorista: precio por caja (el nombre empieza con "Caja", como el resto de la Lista 2).
@@ -41,3 +44,9 @@ insert into productos_catalogo (negocio,nombre,categoria,foto,tiers,precio)
 select n.negocio,n.nombre,n.categoria,n.foto,n.tiers,n.precio
   from nuevos n
  where not exists (select 1 from productos_catalogo p where p.negocio=n.negocio and p.nombre=n.nombre);
+
+-- Saca (oculta) las cajas de budín Clásico y Premium del catálogo Mayorista.
+update productos_catalogo
+   set activo = false
+ where negocio = 'mayorista'
+   and nombre in ('Caja Budín Clásico (Limón y Vainilla) x12 u.','Caja Budín Premium (Chocolate y Banana) x12 u.');
