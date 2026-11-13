@@ -76,6 +76,15 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
     <option value="Viernes">Viernes</option>
    </select>
   </label>
+  <label>Canal
+   <select id="fCanal">
+    <option value="Todos">Todos los canales</option>
+    <option value="comercio">🏪 Comercio</option>
+    <option value="mayorista">🏭 Mayorista</option>
+    <option value="tienda">🛒 Tienda</option>
+    <option value="regaleria">🎁 Regalería</option>
+   </select>
+  </label>
   <div class="row2">
    <label>Desde<input type="date" id="fDesde"></label>
    <label>Hasta<input type="date" id="fHasta"></label>
@@ -144,20 +153,27 @@ async function cargar(){
  }
 }
 
+const CANAL_NOMBRE={comercio:"Comercio",mayorista:"Mayorista",tienda:"Tienda",regaleria:"Regalería"};
+function canalDe(o){
+ if(CANAL_NOMBRE[o.canal])return o.canal;
+ return o.manual?"comercio":"tienda";
+}
 function aplicarFiltro(){
+ const canal=$("fCanal").value;
  const dia=$("fDia").value;
  const desde=$("fDesde").value;
  const hasta=$("fHasta").value;
 
  currentRows=orders.filter(o=>{
   if(dia!=="Todos"&&o.dia_entrega!==dia)return false;
+  if(canal!=="Todos"&&canalDe(o)!==canal)return false;
   const fecha=fechaOrden(o);
   if(desde&&fecha<desde)return false;
   if(hasta&&fecha>hasta)return false;
   return true;
  });
 
- const subLabel=(dia==="Todos"?"Todos los días":dia)+(desde||hasta?" · "+(desde||"...")+" a "+(hasta||"..."):"");
+ const subLabel=(dia==="Todos"?"Todos los días":dia)+(canal!=="Todos"?" · "+CANAL_NOMBRE[canal]:"")+(desde||hasta?" · "+(desde||"...")+" a "+(hasta||"..."):"");
  $("printSub").textContent=subLabel;
 
  if(!currentRows.length){$("tablaWrap").innerHTML='<div class="empty">No hay pedidos que coincidan con el filtro.</div>';return}
@@ -165,19 +181,20 @@ function aplicarFiltro(){
  const total=currentRows.reduce((s,o)=>s+(o.total||0),0);
 
  $("tablaWrap").innerHTML=`<table>
-  <thead><tr><th>Fecha entrega</th><th>Dirección</th><th class="num">Importe</th><th>Modo de pago</th><th class="chk">Pago</th></tr></thead>
+  <thead><tr><th>Fecha entrega</th><th>Dirección</th><th>Canal</th><th class="num">Importe</th><th>Modo de pago</th><th class="chk">Pago</th></tr></thead>
   <tbody>${currentRows.map(o=>{
    const pago=o.estado_pago||"Pendiente";
    const clase=pago==="Efectivo"?"efectivo":pago==="Transferencia"?"transferencia":pago==="Demorado"?"demorado":"pendiente";
    return `<tr>
     <td>${fmtFechaOrden(o)}</td>
     <td>${o.domicilio||"-"}</td>
+    <td>${CANAL_NOMBRE[canalDe(o)]}</td>
     <td class="num">${o.total==null?"A confirmar":money(o.total)}</td>
     <td><span class="pago-tag ${clase}">${pago}</span></td>
     <td class="chk"><span class="checkbox-print"></span></td>
    </tr>`;
   }).join("")}</tbody>
-  <tfoot><tr><td colspan="2">Total (${currentRows.length} pedidos)</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>
+  <tfoot><tr><td colspan="3">Total (${currentRows.length} pedidos)</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>
  </table>
  <table class="resumen-pago">
   <thead><tr><th>Resumen por modo de pago</th><th class="num">Pedidos</th><th class="num">Importe</th></tr></thead>
@@ -188,9 +205,9 @@ function aplicarFiltro(){
 
 function exportarCSV(){
  if(!currentRows.length){alert("No hay datos para exportar.");return}
- let csv="Fecha entrega,Direccion,Importe,Modo de pago\n";
+ let csv="Fecha entrega,Direccion,Canal,Importe,Modo de pago\n";
  currentRows.forEach(o=>{
-  csv+=`"${fmtFechaOrden(o)}","${o.domicilio||""}",${o.total==null?"A confirmar":o.total},"${o.estado_pago||"Pendiente"}"\n`;
+  csv+=`"${fmtFechaOrden(o)}","${o.domicilio||""}","${CANAL_NOMBRE[canalDe(o)]}",${o.total==null?"A confirmar":o.total},"${o.estado_pago||"Pendiente"}"\n`;
  });
  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
  const url=URL.createObjectURL(blob);
