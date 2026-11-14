@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /tienda.html
+Allow: /regaleria.html
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://pedidos-petits-cadeaux.vercel.app/sitemap.xml

@@ -3,19 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tienda · Distribuidora Petits Cadeaux</title>
-<meta name="description" content="Pedidos online de hamburguesas, panchos y variedades de Distribuidora Petits Cadeaux. Hacé tu pedido fácil y rápido.">
+<title>Petits Cadeaux · Tienda online: hamburguesas, panchos, dulces y más</title>
+<meta name="description" content="Comprá online hamburguesas, panchos, budines, panettone y más. Packs con descuento por cantidad, pagá con Mercado Pago y recibilo en tu casa.">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Tienda · Distribuidora Petits Cadeaux">
-<meta property="og:description" content="Pedidos online de hamburguesas, panchos y variedades. Hacé tu pedido fácil y rápido.">
-<meta property="og:image" content="https://pedidos-petits-cadeaux.vercel.app/icon-512.png">
+<meta property="og:title" content="Petits Cadeaux · Tienda online">
+<meta property="og:site_name" content="Petits Cadeaux">
+<meta property="og:locale" content="es_AR">
+<link rel="canonical" href="https://pedidos-petits-cadeaux.vercel.app/tienda.html">
+<meta property="og:description" content="Hamburguesas, panchos, dulces y más. Packs con descuento, pago con Mercado Pago y envíos.">
+<meta property="og:image" content="https://pedidos-petits-cadeaux.vercel.app/og-tienda.png">
 <meta property="og:url" content="https://pedidos-petits-cadeaux.vercel.app/tienda.html">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Tienda · Distribuidora Petits Cadeaux">
-<meta name="twitter:description" content="Pedidos online de hamburguesas, panchos y variedades. Hacé tu pedido fácil y rápido.">
-<meta name="twitter:image" content="https://pedidos-petits-cadeaux.vercel.app/icon-512.png">
+<meta name="twitter:title" content="Petits Cadeaux · Tienda online">
+<meta name="twitter:description" content="Hamburguesas, panchos, dulces y más. Packs con descuento, pago con Mercado Pago y envíos.">
+<meta name="twitter:image" content="https://pedidos-petits-cadeaux.vercel.app/og-tienda.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="theme-color" content="#542477">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Store","name":"Petits Cadeaux","description":"Tienda online de hamburguesas, panchos, dulces y más, con packs por cantidad y envíos.","url":"https://pedidos-petits-cadeaux.vercel.app/tienda.html","image":"https://pedidos-petits-cadeaux.vercel.app/og-tienda.png","telephone":"+5491123627052","areaServed":"AR","paymentAccepted":"Efectivo, Transferencia, Mercado Pago","currenciesAccepted":"ARS"}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -140,19 +146,58 @@
   #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
   #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;font-size:15px;font-weight:700;text-align:center;padding:18px 14px;}
   #modalMsg.err{display:block;background:#fbe7ea;color:#a3273f;}
+
+  .brand{display:flex;align-items:center;justify-content:center;gap:12px}
+  .brand img{width:54px;height:54px;border-radius:14px;background:#fff;object-fit:contain;padding:3px}
+  .trust{max-width:1180px;margin:14px auto 0;padding:0 14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .trust div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:#5a3d6b;line-height:1.3}
+  .trust b{display:block;font-size:20px;margin-bottom:2px}
+  @media(max-width:640px){.trust{display:flex;overflow-x:auto;gap:8px;margin-top:10px;scrollbar-width:none}.trust::-webkit-scrollbar{display:none}.trust div{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:8px 12px;border-radius:999px}.trust b{display:inline;font-size:14px;margin:0 5px 0 0}}
+  .wa-float{position:fixed;right:14px;bottom:86px;z-index:30;width:54px;height:54px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;font-size:28px;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .site-footer{max-width:1180px;margin:10px auto 0;padding:0 14px 150px}
+  .site-footer h3{font-family:'Cormorant Garamond',Georgia,serif;color:var(--purple);font-size:26px;margin:22px 0 10px}
+  .faq details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+  .faq summary{font-weight:700;font-size:14px;cursor:pointer;color:var(--ink)}
+  .faq p{margin:8px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+  .foot-links{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;margin-top:14px}
+  .foot-links a{color:#6b3a8f;font-weight:600}
+  .share-btn{width:100%;margin-top:8px;padding:12px;border-radius:14px;border:1px solid #ddcde4;background:#fff;color:var(--purple);font:700 14px Poppins,Arial,sans-serif;cursor:pointer}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Distribuidora Petits Cadeaux</h1>
-  <p>Venta al público · packs con descuento por cantidad</p>
+  <div class="brand"><img src="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/logo.png" alt="Petits Cadeaux" onerror="this.style.display='none'"><h1>Petits Cadeaux</h1></div>
+  <p>Tienda online · packs con descuento por cantidad</p>
 </header>
+<section class="trust" aria-label="Por qué comprar con nosotros">
+  <div><b>🔒</b>Pago seguro con Mercado Pago</div>
+  <div><b>🚚</b>Envío a domicilio: calculá el costo antes de pagar</div>
+  <div><b>💬</b>Atención directa por WhatsApp</div>
+  <div><b>🏷️</b>Más unidades, mejor precio</div>
+</section>
 
 <main>
   <div class="filters" id="filters"></div>
   <div id="catalog"></div>
 </main>
+
+<footer class="site-footer">
+  <h3>Preguntas frecuentes</h3>
+  <div class="faq">
+    <details><summary>¿Cómo hago mi pedido?</summary><p>Elegí los productos, tocá «Ver pedido», completá tus datos y elegí cómo querés pagar. Te confirmamos por WhatsApp.</p></details>
+    <details><summary>¿Cómo puedo pagar?</summary><p>Con Mercado Pago (tarjeta, dinero en cuenta u otros medios), transferencia o efectivo.</p></details>
+    <details><summary>¿Cuánto sale el envío?</summary><p>Completá tu dirección y tocá «Calcular costo de envío»: ves las opciones y el precio antes de confirmar el pedido.</p></details>
+    <details><summary>¿Cómo funcionan los packs?</summary><p>En cada producto elegís la cantidad (x1, x3, x5…). Cuantas más unidades llevás, menor es el precio por unidad.</p></details>
+    <details><summary>Tengo una duda o un problema con mi pedido</summary><p>Escribinos por WhatsApp al 11 2362-7052 y te ayudamos.</p></details>
+  </div>
+  <div class="foot-links">
+    <a href="https://wa.me/5491123627052" target="_blank" rel="noopener">💬 WhatsApp 11 2362-7052</a>
+    <a href="https://wa.me/5491123627052?text=Hola%2C%20quiero%20ejercer%20mi%20derecho%20de%20arrepentimiento%20de%20compra." target="_blank" rel="noopener">Botón de arrepentimiento</a>
+    <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor" target="_blank" rel="noopener">Defensa del Consumidor</a>
+  </div>
+</footer>
+<a class="wa-float" href="https://wa.me/5491123627052?text=Hola%2C%20tengo%20una%20consulta%20sobre%20la%20tienda." target="_blank" rel="noopener" aria-label="Consultanos por WhatsApp">💬</a>
 
 <div id="cartBar">
   <div class="info">
@@ -213,6 +258,7 @@
     <h2 id="pmName"></h2>
     <div class="tiers" id="pmTiers"></div>
     <button type="button" class="send-btn" id="pmAddBtn" disabled>Elegí un pack arriba</button>
+    <button type="button" class="share-btn" id="pmShareBtn">🔗 Compartir este producto</button>
   </div>
 </div>
 
@@ -243,6 +289,21 @@ const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
   }
  }catch(e){}
 })();
+// ---- Medición para publicidad (Meta/Instagram y TikTok) ----
+// Pegá acá los IDs de píxel cuando los tengas. Vacíos = no se carga nada.
+const META_PIXEL_ID="";
+const TIKTOK_PIXEL_ID="";
+(function(){
+  if(META_PIXEL_ID){!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',META_PIXEL_ID);fbq('track','PageView');}
+  if(TIKTOK_PIXEL_ID){!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var n="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=n,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=n+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load(TIKTOK_PIXEL_ID);ttq.page()}(window,document,'ttq');}
+})();
+function track(ev,d){
+  d=d||{};
+  try{
+    if(window.fbq){const m={ViewContent:"ViewContent",AddToCart:"AddToCart",InitiateCheckout:"InitiateCheckout",Purchase:"Purchase"}[ev];if(m)fbq('track',m,{content_name:d.name,value:d.value,currency:"ARS"});}
+    if(window.ttq){const m={ViewContent:"ViewContent",AddToCart:"AddToCart",InitiateCheckout:"InitiateCheckout",Purchase:"CompletePayment"}[ev];if(m)ttq.track(m,{content_name:d.name,value:d.value,currency:"ARS"});}
+  }catch(e){}
+}
 const DESTINO_WHATSAPP="5491123627052";
 
 const BUCKET="https://stkfdzqwcnzievrmivaj.supabase.co/storage/v1/object/public/productos-distribuidora/";
@@ -275,6 +336,8 @@ async function cargarProductos(){
   selected=Array(PRODUCTOS.length).fill(null);
   renderFilters();
   renderCatalog();
+  datosEstructurados();
+  abrirProductoDesdeLink();
 }
 
 function categorias(){
@@ -360,6 +423,36 @@ function abrirProducto(i){
   $("pmName").textContent=p.nombre;
   renderTiersModal();
   $("productModalBg").classList.add("open");
+  track("ViewContent",{name:p.nombre});
+}
+function linkProducto(p){return location.origin+location.pathname+"?producto="+encodeURIComponent(p.nombre)+"&utm_source=compartido"}
+$("pmShareBtn").addEventListener("click",async()=>{
+  const p=PRODUCTOS[productoAbierto];if(!p)return;
+  const url=linkProducto(p),texto="Mirá "+p.nombre+" en Petits Cadeaux";
+  try{
+    if(navigator.share){await navigator.share({title:p.nombre,text:texto,url});return}
+    await navigator.clipboard.writeText(url);
+    const b=$("pmShareBtn");b.textContent="✅ Link copiado";setTimeout(()=>b.textContent="🔗 Compartir este producto",2000);
+  }catch(e){}
+});
+function datosEstructurados(){
+  try{
+    const items=PRODUCTOS.map(p=>{
+      const t=Array.isArray(p.tiers)&&p.tiers.length?p.tiers[0]:null;
+      const precio=t?t.precio:p.precio;
+      return {"@type":"Product","name":p.nombre,"category":p.categoria,"image":p.foto?BUCKET+p.foto:undefined,"url":linkProducto(p).split("&")[0],
+        "offers":{"@type":"Offer","priceCurrency":"ARS","price":String(Math.round(precio||0)),"availability":"https://schema.org/InStock"}};
+    }).filter(x=>x.offers.price!=="0");
+    const el=document.createElement("script");el.type="application/ld+json";
+    el.textContent=JSON.stringify({"@context":"https://schema.org","@graph":items});
+    document.head.appendChild(el);
+  }catch(e){}
+}
+function abrirProductoDesdeLink(){
+  const n=new URLSearchParams(location.search).get("producto");
+  if(!n)return;
+  const i=PRODUCTOS.findIndex(p=>p.nombre.toLowerCase()===n.toLowerCase());
+  if(i>=0)abrirProducto(i);
 }
 
 function renderTiersModal(){
@@ -394,6 +487,7 @@ $("closeProductModal").addEventListener("click",cerrarProducto);
 $("productModalBg").addEventListener("click",e=>{if(e.target.id==="productModalBg")cerrarProducto();});
 $("pmAddBtn").addEventListener("click",()=>{
   if(productoAbierto==null||selected[productoAbierto]==null)return;
+  track("AddToCart",{name:PRODUCTOS[productoAbierto].nombre});
   cerrarProducto();
   updateCartBar();
   $("cartBar").scrollIntoView({behavior:"smooth",block:"end"});
@@ -542,6 +636,7 @@ function renderModalCart(){
 }
 
 $("openCheckout").addEventListener("click",()=>{
+  track("InitiateCheckout",{value:totalCarrito()});
   renderModalCart();
   $("modalBg").classList.add("open");
 });
@@ -673,6 +768,7 @@ async function enviarPedido(){
       payLink.style.display="block";
       msg.className="ok";
       msg.textContent="✅ ¡Pedido guardado! Tocá el botón de abajo para pagar.";
+      track("Purchase",{value:total});
       msg.scrollIntoView({behavior:"smooth",block:"center"});
       selected=Array(PRODUCTOS.length).fill(null);
       envioSeleccionado=null;envioOpcionesDisponibles=[];$("envioOpciones").innerHTML="";
@@ -686,6 +782,7 @@ async function enviarPedido(){
     texto+=`\n*Total: ${money(total)}*`;
     if(obs)texto+=`\n\n📝 ${obs}`;
 
+    track("Purchase",{value:total});
     window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(texto),"_blank");
 
     msg.className="ok";
