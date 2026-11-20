@@ -44,6 +44,7 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
  header,.no-print{display:none}
  body{background:#fff}
  .card{box-shadow:none;border:1px solid #ccc}
+ .detalle-row,.prod-row{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
 <link rel="stylesheet" href="ancho.css">
@@ -81,7 +82,8 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
   <div class="btns-row">
    <button class="btn-main" id="aplicarBtn">Aplicar filtro</button>
    <button class="btn-sec" id="exportBtn">⬇️ Exportar CSV</button>
-   <button class="btn-sec" id="printBtn">🖨️ Imprimir</button>
+   <button class="btn-sec" id="printBtn">🖨️ Imprimir resumen</button>
+   <button class="btn-sec" id="printDetBtn">🖨️ Imprimir con detalle</button>
   </div>
  </div>
 
@@ -108,6 +110,7 @@ let costos=[];
 let currentAgg=[];
 let currentFiltrados=[];
 let productoAbierto=null;
+let detalleTodos=false;
 
 async function apiFetch(path,options={}){
  const r=await fetch(SUPABASE_URL+path,{
@@ -196,7 +199,7 @@ function renderTabla(){
   <tbody>${currentAgg.map(p=>{
    const c=costoDe(p.producto);
    const costoTxt=c==null?"Sin costo":money(c*p.cantidad);
-   const abierto=productoAbierto===p.producto;
+   const abierto=detalleTodos||productoAbierto===p.producto;
    // Una fila por cada línea del pedido (un mismo pedido puede traer el producto
    // más de una vez, por ejemplo una línea normal y otra de cambio).
    const quienes=currentFiltrados.flatMap(o=>
@@ -240,6 +243,13 @@ function exportarCSV(){
 $("aplicarBtn").addEventListener("click",aplicarFiltro);
 $("exportBtn").addEventListener("click",exportarCSV);
 $("printBtn").addEventListener("click",()=>window.print());
+// Imprimir con detalle: abre "¿Quién pidió?" de todos los productos, imprime y vuelve a como estaba.
+$("printDetBtn").addEventListener("click",()=>{
+ detalleTodos=true;renderTabla();
+ const volver=()=>{detalleTodos=false;renderTabla();window.removeEventListener("afterprint",volver)};
+ window.addEventListener("afterprint",volver);
+ setTimeout(()=>window.print(),50);
+});
 
 if(session){
  $("content").style.display="block";
