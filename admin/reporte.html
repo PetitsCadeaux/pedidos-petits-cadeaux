@@ -45,6 +45,9 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
  body{background:#fff}
  .card{box-shadow:none;border:1px solid #ccc}
  .detalle-row,.prod-row{break-inside:avoid;page-break-inside:avoid}
+ /* Impresión con detalle: solo cantidades, sin importes */
+ body.solo-cantidades table th:nth-child(n+3),body.solo-cantidades table tr:not(.detalle-row) td:nth-child(n+3){display:none}
+ body.solo-cantidades #resumen > div:nth-child(n+3){display:none}
 }
 </style>
 <link rel="stylesheet" href="ancho.css">
@@ -245,8 +248,8 @@ $("exportBtn").addEventListener("click",exportarCSV);
 $("printBtn").addEventListener("click",()=>window.print());
 // Imprimir con detalle: abre "¿Quién pidió?" de todos los productos, imprime y vuelve a como estaba.
 $("printDetBtn").addEventListener("click",()=>{
- detalleTodos=true;renderTabla();
- const volver=()=>{detalleTodos=false;renderTabla();window.removeEventListener("afterprint",volver)};
+ detalleTodos=true;document.body.classList.add("solo-cantidades");renderTabla();
+ const volver=()=>{detalleTodos=false;document.body.classList.remove("solo-cantidades");renderTabla();window.removeEventListener("afterprint",volver)};
  window.addEventListener("afterprint",volver);
  setTimeout(()=>window.print(),50);
 });
