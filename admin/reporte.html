@@ -197,16 +197,17 @@ function renderTabla(){
    const c=costoDe(p.producto);
    const costoTxt=c==null?"Sin costo":money(c*p.cantidad);
    const abierto=productoAbierto===p.producto;
-   const quienes=currentFiltrados
-    .map(o=>{
-     const it=(o.productos||[]).find(x=>x.producto===p.producto);
-     return it?{comercio:o.comercio||"Sin nombre",cantidad:it.cantidad,cambio:it.cambio}:null;
-    })
-    .filter(Boolean);
+   // Una fila por cada línea del pedido (un mismo pedido puede traer el producto
+   // más de una vez, por ejemplo una línea normal y otra de cambio).
+   const quienes=currentFiltrados.flatMap(o=>
+    (o.productos||[]).filter(x=>x.producto===p.producto)
+     .map(it=>({comercio:o.comercio||"Sin nombre",cantidad:it.cantidad,cambio:it.cambio})));
+   const quienesTotal=quienes.reduce((t,q)=>t+q.cantidad,0);
    const detalleHtml=abierto?`<tr class="detalle-row"><td colspan="4">
      <div class="quien-list">
       <strong>¿Quién pidió "${p.producto}"?</strong>
       ${quienes.map(q=>`<div class="quien-row"><span>${q.comercio}${q.cambio?' <span style="color:#b8862e;font-weight:800">(CAMBIO)</span>':""}</span><span>${q.cantidad} u.</span></div>`).join("")}
+      <div class="quien-row" style="font-weight:800;border-bottom:0"><span>Total</span><span>${quienesTotal} u.</span></div>
      </div>
     </td></tr>`:"";
    return `<tr class="prod-row" onclick="toggleProducto('${p.producto.replace(/'/g,"\\'")}')"><td>${p.producto} <span style="color:var(--muted);font-size:11px">▾</span></td><td class="num">${p.cantidad}</td><td class="num">${p.confirmar?"A confirmar":money(p.importe)}</td><td class="num">${costoTxt}</td></tr>${detalleHtml}`;
