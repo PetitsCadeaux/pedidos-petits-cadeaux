@@ -612,6 +612,7 @@ $("delivery").addEventListener("change",()=>{fechaConfirmada=null});
     lockScreen.style.display="none";
     appContent.style.display="block";
     restaurarDatos();
+    if(window.chatInit)chatInit();
   }
 
   function cerrarSesion(){
@@ -670,5 +671,7 @@ $("delivery").addEventListener("change",()=>{fechaConfirmada=null});
 @media print{.app-copyright{display:none}}
 </style>
 <div class="cf-back" id="cfBack"><div class="cf-box" id="cfBox"></div></div>
+<script src="mascota.js"></script>
+<script src="chat-pedidos.js"></script>
 </body>
 </html>

@@ -607,6 +607,15 @@ async function reponerStock(items,motivo){
  }
 }
 
+async function marcarRevisado(id){
+ const o=orders.find(x=>x.id===id);if(!o)return;
+ const nueva=String(o.observaciones||"").replace(/^🤖[^\n·]*·\s*revisar\s*/,"").trim()||null;
+ try{
+  const r=await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({observaciones:nueva})});
+  if(!r.ok)throw new Error("error "+r.status);
+  o.observaciones=nueva;render();
+ }catch(e){alert("No se pudo marcar: "+(e.message||"error"))}
+}
 async function anularPedido(id){
  const o=orders.find(x=>x.id===id);if(!o)return;
  if(o.factura_cae&&!o.nc_cae){alert("Este pedido ya tiene Factura C emitida. Para anularlo, primero usá «Anular factura (nota de crédito)» en el menú ⋮ del pedido (o emití la nota de crédito desde el comprobante).");return}
@@ -861,7 +870,7 @@ function render(){
   return `<div class="orow ${diaDe(o)?"dia"+colorDia[diaDe(o)]:""} ${anulado?"anulado":""}" data-id="${o.id}">
    <div class="omain" onclick="toggleDet(${o.id},event)">
     <div class="o-chk"><input type="checkbox" class="order-check" data-id="${o.id}"></div>
-    <div class="o-cli"><b>${esc(o.comercio||"Sin nombre")}</b>${o.manual?' <span class="badge tipo" style="font-size:9px">✍️ Manual</span>':""} ${canalBadge(canalDe(o))}</div>
+    <div class="o-cli"><b>${esc(o.comercio||"Sin nombre")}</b>${o.manual?' <span class="badge tipo" style="font-size:9px">✍️ Manual</span>':""} ${canalBadge(canalDe(o))}${String(o.observaciones||"").startsWith("🤖")?` <button type="button" class="badge" style="font-size:10px;background:#fff1c7;color:#8a5a00;border:1px solid #f0d27a;cursor:pointer" title="Pedido tomado por el asistente del chat. Tocá para marcarlo como revisado" onclick="marcarRevisado(${o.id})">🤖 Chat · revisar ✔</button>`:""}</div>
     <div class="o-meta"><span class="o-fec">${fmtFecha(o.created_at)}</span><span class="o-num">#${o.id}</span><span class="o-ent">📅 ${esc(o.dia_entrega||"-")}${o.fecha_entrega?" "+fmtFechaEntrega(o.fecha_entrega):""}</span><span class="o-dir">${dirTxt?"📍 "+esc(dirTxt):""}</span></div>
     <div class="o-est">${anulado?'<span class="badge" style="background:#fde8e8;color:#a13030">Anulado</span>':`<select class="pay-select o-estsel st-${estadoPedido.toLowerCase()}" onchange="cambiarEstadoPedido(${o.id},this)">
      <option value="Pendiente" ${estadoPedido==="Pendiente"?"selected":""}>Pendiente</option>
