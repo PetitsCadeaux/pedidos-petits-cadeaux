@@ -76,7 +76,7 @@
       var d=await r.json();
       esp.remove();
       if(!d.ok){
-        bot(d.apagado||d.limite?"Por ahora no puedo atender por acá. Escribile a Nadia por WhatsApp y te ayuda enseguida.":"No pude responder ahora. Probá de nuevo en un momento o escribile a Eliana por WhatsApp."+(d.diag?"\n("+d.diag+")":""));
+        bot(d.apagado||d.limite?"Por ahora no puedo atender por acá. Escribile a Eliana por WhatsApp (atiende de 10 a 18 hs) y te ayuda.":"No pude responder ahora. Probá de nuevo en un momento o escribile a Eliana por WhatsApp."+(d.diag?"\n("+d.diag+")":""));
         opciones([{t:"Escribirle a Eliana",f:wa}]);
       }else{
         msgs.push({role:"assistant",content:d.texto+(d.accion?" [armé el pedido en el carrito]":"")});
