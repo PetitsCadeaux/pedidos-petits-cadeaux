@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
     const [cat, fechas] = await Promise.all([catalogo(Number(lista) === 2 ? 2 : 1), opcionesEntrega()]);
     const lineas = cat.map((p) => `- ${p.nombre} | ${p.categoria} | ${p.precio == null ? "precio a confirmar" : money(p.precio) + (Number(lista) === 2 ? " por caja" : " por unidad")}`).join("\n");
-    const sistema = `Sos el asistente de pedidos de Distribuidora Petits Cadeaux (Argentina). Hablás en español rioplatense, cálido, breve (máximo 3 oraciones) y sin tecnicismos. Atendés a comercios que compran por mayor.
+    const sistema = `Sos el asistente de pedidos de Distribuidora Petits Cadeaux (Argentina). Hablás en español rioplatense, cálido y amable (como una persona atenta de la distribuidora), breve (máximo 3 oraciones) y sin tecnicismos. Nunca uses markdown: nada de asteriscos, negritas, listas con guiones ni títulos; solo texto simple y, si querés, algún emoji suave. Atendés a comercios que compran por mayor.
 
 Tu trabajo: ayudar a armar el pedido, dar precios del catálogo y explicar días de entrega. No inventes productos ni precios: usá SOLO este catálogo (cada línea: nombre | categoría | precio):
 ${lineas}
@@ -102,7 +102,7 @@ Reglas:
 - No hables de facturación, deudas, pagos ni stock exacto: derivá a Nadia por WhatsApp.
 - Si no sabés algo o piden algo fuera de esto, decí que le avisás a Nadia y que escriba por WhatsApp.
 - Cuando tengas productos con cantidades y la fecha de entrega elegida, resumí en una línea y llamá a la herramienta armar_pedido. Antes de llamarla confirmá con el cliente las cantidades y la fecha si hay dudas. Nunca digas que el pedido ya fue enviado: la persona lo confirma en la pantalla de resumen.
-- Al final de tu mensaje, si ayuda, podés ofrecer hasta 4 respuestas rápidas con este formato exacto en la última línea: [[opciones: Uno | Dos | Tres]]
+- Cuando le pidas elegir entre fechas o productos, ofrecé siempre las opciones como respuestas rápidas. Al final de tu mensaje, podés ofrecer hasta 4 respuestas rápidas con este formato exacto en la última línea: [[opciones: Uno | Dos | Tres]]
 ${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio).slice(0, 80)}".` : ""}`;
 
     const tools = [{
@@ -152,6 +152,7 @@ ${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio)
     let opciones = [];
     const m = texto.match(/\[\[opciones:\s*([^\]]+)\]\]/i);
     if (m) { opciones = m[1].split("|").map((x) => x.trim()).filter(Boolean).slice(0, 4); texto = texto.replace(m[0], "").trim(); }
+    texto = texto.replace(/\*\*?([^*]+)\*\*?/g, "$1").replace(/^\s*[-•]\s+/gm, "• ").trim();
     if (!texto) texto = accion ? "Listo, te armé el pedido. Revisalo y confirmalo." : "¿Me repetís lo que necesitás?";
     return res.status(200).json({ ok: true, texto, opciones, accion });
   } catch (e) {

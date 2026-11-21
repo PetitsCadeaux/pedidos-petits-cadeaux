@@ -28,7 +28,7 @@
 
   function $c(id){return document.getElementById(id)}
   function esc(t){return String(t).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
-  function bot(t){var d=document.createElement("div");d.className="chm chb";d.textContent=t;$c("chLog").appendChild(d);bajar();return d}
+  function bot(t){var d=document.createElement("div");d.className="chm chb";d.textContent=String(t).replace(/\*\*?([^*]+)\*\*?/g,"$1");$c("chLog").appendChild(d);bajar();return d}
   function yo(t){var d=document.createElement("div");d.className="chm chu";d.textContent=t;$c("chLog").appendChild(d);bajar()}
   function bajar(){var l=$c("chLog");l.scrollTop=l.scrollHeight}
   function opciones(arr){
