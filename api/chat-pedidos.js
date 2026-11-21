@@ -8,7 +8,7 @@ const MODELO = process.env.CHAT_MODELO || "claude-haiku-4-5-20251001";
 const TOPE = Number(process.env.CHAT_TOPE_USD || 10);
 const MAX_MSGS = 24;
 const PRECIO_IN = 1 / 1e6, PRECIO_OUT = 5 / 1e6; // USD por token (estimado, Haiku)
-const SB = () => ({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY });
+const SB = () => ({ url: "https://stkfdzqwcnzievrmivaj.supabase.co", key: process.env.SUPABASE_SERVICE_ROLE_KEY });
 const H = () => ({ apikey: SB().key, Authorization: "Bearer " + SB().key, "Content-Type": "application/json" });
 const NOMBRES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
@@ -56,11 +56,11 @@ async function opcionesEntrega() {
 
 async function uso(delta) {
   const mes = ahoraAR().toISOString().slice(0, 7);
-  const g = await fetch(`${SB().url}/rest/v1/chat_uso?mes=eq.${mes}&select=*`, { headers: H() });
-  const fila = g.ok ? (await g.json())[0] : null;
+  let fila = null;
+  try { const g = await fetch(`${SB().url}/rest/v1/chat_uso?mes=eq.${mes}&select=*`, { headers: H() }); fila = g.ok ? (await g.json())[0] : null; } catch {}
   if (!delta) return { mes, costo: Number(fila?.costo_usd || 0), fila };
   const nuevo = { mes, costo_usd: Number(fila?.costo_usd || 0) + delta.costo, mensajes: Number(fila?.mensajes || 0) + 1, pedidos: Number(fila?.pedidos || 0) + (delta.pedido ? 1 : 0), actualizado: new Date().toISOString() };
-  await fetch(`${SB().url}/rest/v1/chat_uso`, { method: "POST", headers: { ...H(), Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(nuevo) });
+  try { await fetch(`${SB().url}/rest/v1/chat_uso`, { method: "POST", headers: { ...H(), Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(nuevo) }); } catch {}
   return { mes, costo: nuevo.costo_usd };
 }
 
@@ -156,6 +156,6 @@ ${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio)
     return res.status(200).json({ ok: true, texto, opciones, accion });
   } catch (e) {
     console.error("chat-pedidos:", e);
-    return res.status(200).json({ ok: false, error: "No pude responder ahora." });
+    return res.status(200).json({ ok: false, error: "No pude responder ahora.", diag: String((e && e.message) || e).slice(0, 160) });
   }
 }
