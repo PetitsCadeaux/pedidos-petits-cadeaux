@@ -147,7 +147,7 @@ header p{font-size:11.5px!important;margin:2px 0 0!important}
 
 <main>
 <div class="card datos-card">
-  <div class="info">📦 <strong>Entregas: miércoles y viernes.</strong> Los pedidos se toman hasta el día anterior.</div>
+  <div class="info">📦 <strong>Entregas: miércoles y viernes.</strong> Los pedidos se toman hasta las 23 hs del día anterior.</div>
   <div class="datos-head"><h2>Datos del comercio</h2><button type="button" id="editarDatos" class="link-btn" style="display:none">Editar</button></div>
   <div id="datosResumen" style="display:none"></div>
   <div id="datosFijos" class="grid2">
@@ -276,24 +276,60 @@ let selectedQty=Array(PRODUCTS.length).fill(0);
 let selectedCambios=Array(PRODUCTS.length).fill(0);
 
 const DIAS_NOMBRES=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-function proximoDia(targetDow){
- const d=new Date();d.setHours(0,0,0,0);
- let diff=(targetDow-d.getDay()+7)%7;
- if(diff===0)diff=7;
- d.setDate(d.getDate()+diff);
- return d;
-}
 function fmtDiaCorto(d){return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})}
-function fmtDiaISO(d){return d.toISOString().slice(0,10)}
+function fmtDiaISO(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 
-const OPCIONES_ENTREGA=[
- {nombre:"Miércoles",fecha:proximoDia(3)},
- {nombre:"Viernes",fecha:proximoDia(5)},
-];
+// Entregas: miércoles y viernes. Se toman pedidos hasta las 23 hs del día anterior.
+// Los feriados / días sin entrega los carga el admin (tabla dias_sin_entrega).
+const DIAS_ENTREGA=[3,5],HORA_CORTE=23,SEMANAS_ADELANTE=5;
+let diasSinEntrega={};
+function calcularOpciones(){
+ const ahora=new Date(),out=[];
+ for(let k=1;k<=SEMANAS_ADELANTE*7;k++){
+  const d=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()+k);
+  if(!DIAS_ENTREGA.includes(d.getDay()))continue;
+  const iso=fmtDiaISO(d);
+  if(diasSinEntrega[iso]!==undefined)continue;
+  const corte=new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,HORA_CORTE,0,0);
+  if(ahora>=corte)continue;
+  out.push({nombre:DIAS_NOMBRES[d.getDay()],fecha:d,iso});
+ }
+ return out;
+}
+let OPCIONES_ENTREGA=calcularOpciones();
 
 function renderOpcionesEntrega(){
- $("delivery").innerHTML='<option value="">Seleccionar día</option>'+
-  OPCIONES_ENTREGA.map(o=>`<option value="${o.nombre}">${o.nombre} ${fmtDiaCorto(o.fecha)}</option>`).join("");
+ const actual=$("delivery").value;
+ OPCIONES_ENTREGA=calcularOpciones();
+ $("delivery").innerHTML=(OPCIONES_ENTREGA.length?'<option value="">Seleccionar día</option>':'<option value="">Sin fechas disponibles, escribinos por WhatsApp</option>')+
+  OPCIONES_ENTREGA.map(o=>`<option value="${o.iso}">${o.nombre} ${fmtDiaCorto(o.fecha)}</option>`).join("");
+ if(actual&&OPCIONES_ENTREGA.some(o=>o.iso===actual))$("delivery").value=actual;
+}
+async function cargarDiasSinEntrega(){
+ try{
+  const hoy=fmtDiaISO(new Date());
+  const r=await fetch(SUPABASE_URL+"/rest/v1/dias_sin_entrega?select=fecha,motivo&fecha=gte."+hoy,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
+  if(!r.ok)return;
+  diasSinEntrega={};(await r.json()).forEach(x=>{diasSinEntrega[x.fecha]=x.motivo||""});
+  renderOpcionesEntrega();
+ }catch(e){}
+}
+
+// Aviso cuando elige una fecha que no es la próxima entrega.
+let fechaConfirmada=null;
+function avisoFecha(primera,elegida){
+ const f=o=>`${o.nombre} ${fmtDiaCorto(o.fecha)}`;
+ const bg=document.createElement("div");
+ bg.style.cssText="position:fixed;inset:0;background:rgba(40,20,50,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px";
+ bg.innerHTML=`<div style="background:#fff;border-radius:22px;max-width:420px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:Inter,Arial,sans-serif;color:#392541">
+  <div style="font-size:30px;text-align:center">🚚</div>
+  <h3 style="margin:6px 0 8px;text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#542477">¿Seguro que querés esa fecha?</h3>
+  <p style="margin:0 0 16px;text-align:center;line-height:1.45;font-size:15px">Nuestra <b>próxima entrega es el ${f(primera)}</b>. Elegiste <b>${f(elegida)}</b>. Si lo necesitás antes, te lo llevamos el ${f(primera)}.</p>
+  <button type="button" id="avA" style="width:100%;padding:13px;border:0;border-radius:14px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff;font:800 15px Inter,Arial,sans-serif;margin-bottom:8px;cursor:pointer">Entregar el ${f(primera)}</button>
+  <button type="button" id="avB" style="width:100%;padding:13px;border:1px solid #ddcde4;border-radius:14px;background:#fff;color:#654273;font:800 15px Inter,Arial,sans-serif;cursor:pointer">Mantener ${f(elegida)}</button></div>`;
+ document.body.appendChild(bg);
+ bg.querySelector("#avA").onclick=()=>{bg.remove();$("delivery").value=primera.iso;fechaConfirmada=primera.iso;enviar()};
+ bg.querySelector("#avB").onclick=()=>{bg.remove();fechaConfirmada=elegida.iso;enviar()};
 }
 
 function renderFilters(){
@@ -401,7 +437,7 @@ function restaurarDatos(){
 ["shop","phone","address"].forEach(id=>$(id).addEventListener("input",guardarDatos));
 $("editarDatos").addEventListener("click",()=>mostrarDatos(true));
 function limpiarFormulario(){
- $("delivery").value="";$("notes").value="";
+ $("delivery").value="";fechaConfirmada=null;$("notes").value="";
  selectedQty.fill(0);selectedCambios.fill(0);$("tieneCambios").checked=false;$("cambiosPanel").style.display="none";
  $("search").value="";activeFilter="Todos";renderFilters();render();
  restaurarDatos();
@@ -459,13 +495,16 @@ function enviar(){
  if(!dia)return show("Seleccioná miércoles o viernes.",false);
  if(!direccion)return show("Ingresá el domicilio de entrega.",false);
  if(!formaPago)return show("Seleccioná la forma de pago.",false);
- const opcionElegida=OPCIONES_ENTREGA.find(o=>o.nombre===dia);
- const fechaEntrega=opcionElegida?fmtDiaISO(opcionElegida.fecha):null;
- const diaConFecha=opcionElegida?`${dia} ${fmtDiaCorto(opcionElegida.fecha)}`:dia;
+ renderOpcionesEntrega();
+ const opcionElegida=OPCIONES_ENTREGA.find(o=>o.iso===dia);
+ if(!opcionElegida)return show("Esa fecha ya no está disponible (se toman pedidos hasta las 23 hs del día anterior). Elegí otra.",false);
+ if(fechaConfirmada!==opcionElegida.iso&&opcionElegida.iso!==OPCIONES_ENTREGA[0].iso)return avisoFecha(OPCIONES_ENTREGA[0],opcionElegida);
+ const fechaEntrega=opcionElegida.iso;
+ const diaConFecha=`${opcionElegida.nombre} ${fmtDiaCorto(opcionElegida.fecha)}`;
  const calc=totalizar(),lista=items();
  if(!lista.length)return show("Seleccioná al menos un producto.",false);
  $("status").className="";$("status").textContent="";
- pedidoPendiente={comercio,dia,wa,obs,direccion,formaPago,fechaEntrega,diaConFecha,calc,lista};
+ pedidoPendiente={comercio,dia:opcionElegida.nombre,wa,obs,direccion,formaPago,fechaEntrega,diaConFecha,calc,lista};
  pedidoGuardado=false;
  mostrarResumen();
 }
@@ -555,7 +594,8 @@ function finalizarPedido(){
 $("send").addEventListener("click",enviar);
 $("buyGo").addEventListener("click",()=>$("send").click());
 $("search").addEventListener("input",render);
-renderOpcionesEntrega();
+renderOpcionesEntrega();cargarDiasSinEntrega();setInterval(renderOpcionesEntrega,300000);
+$("delivery").addEventListener("change",()=>{fechaConfirmada=null});
 
 // --- Acceso por contraseña (cada contraseña habilita su lista de precios) ---
 (async function(){

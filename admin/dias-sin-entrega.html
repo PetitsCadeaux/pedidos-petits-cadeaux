@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Días sin entrega · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(24px,6vw,34px)}
+main{max-width:640px;margin:auto;padding:18px 14px 42px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{font-size:12px;color:var(--muted);font-weight:700;display:block}
+input{width:100%;padding:10px;border:1px solid #ddcfe1;border-radius:12px;font:500 14px Inter,Arial,sans-serif;margin-top:4px}
+button{border:0;border-radius:13px;font:800 13px Inter,Arial,sans-serif;cursor:pointer;padding:11px 16px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.del{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:7px 11px}
+.fila{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dotted #eee1ef}
+.muted{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1.6fr auto;gap:10px;align-items:end}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="ancho.css">
+</head>
+<body>
+<header><h1>Días sin entrega</h1></header>
+<script src="menu.js"></script>
+<main>
+<div id="noSession" class="card" style="display:none;text-align:center"><p>Tenés que iniciar sesión primero en el panel de pedidos.</p><a href="admin.html"><button>Ir a iniciar sesión</button></a></div>
+<div id="app" style="display:none">
+ <div class="card">
+  <p class="muted" style="margin-top:0">Cargá acá los feriados o días en que la panificadora no abre. Esas fechas dejan de ofrecerse a los clientes en la página de pedidos. Si un día lo pasás a cerrado y ya hay pedidos, hay que avisarles a ellos.</p>
+  <div class="grid">
+   <label>Fecha<input type="date" id="fecha"></label>
+   <label>Motivo (opcional)<input id="motivo" placeholder="Ej. Feriado / Panificadora cerrada"></label>
+   <button id="add">Agregar</button>
+  </div>
+  <div id="msg" class="muted" style="margin-top:10px"></div>
+ </div>
+ <div class="card"><b>Próximos días sin entrega</b><div id="lista" class="muted" style="margin-top:8px">Cargando...</div></div>
+</div>
+</main>
+<script src="permisos.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+const H=()=>({apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"});
+const fmt=iso=>{const[y,m,d]=iso.split("-");const dt=new Date(+y,m-1,+d);return dt.toLocaleDateString("es-AR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"})};
+const hoy=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+async function cargar(){
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/dias_sin_entrega?fecha=gte."+hoy()+"&order=fecha.asc",{headers:H()});
+  if(!r.ok)throw new Error(await r.text());
+  const rows=await r.json();
+  $("lista").innerHTML=rows.length?rows.map(x=>`<div class="fila"><div><b style="color:var(--ink)">${esc(fmt(x.fecha))}</b><div class="muted">${esc(x.motivo||"")}</div></div><button class="del" data-f="${x.fecha}">Quitar</button></div>`).join(""):"No hay días cargados.";
+  document.querySelectorAll(".del").forEach(b=>b.onclick=async()=>{
+   await fetch(SUPABASE_URL+"/rest/v1/dias_sin_entrega?fecha=eq."+b.dataset.f,{method:"DELETE",headers:H()});cargar()});
+ }catch(e){$("lista").textContent="No se pudo cargar. ¿Corriste el SQL sql-dias-sin-entrega.sql? ("+e.message.slice(0,120)+")"}
+}
+$("add").onclick=async()=>{
+ const f=$("fecha").value;if(!f){$("msg").textContent="Elegí una fecha.";return}
+ const r=await fetch(SUPABASE_URL+"/rest/v1/dias_sin_entrega",{method:"POST",headers:{...H(),Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({fecha:f,motivo:$("motivo").value.trim()||null})});
+ if(!r.ok){$("msg").textContent="No se pudo guardar: "+(await r.text()).slice(0,140);return}
+ $("msg").textContent="Guardado.";$("fecha").value="";$("motivo").value="";cargar();
+};
+if(session)cargar();
+</script>
+</body>
+</html>
