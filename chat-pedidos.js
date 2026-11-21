@@ -129,8 +129,12 @@
       opciones([{t:"Reintentar",f:confirmar},{t:"Escribirle a Eliana",f:wa}]);
     }
   }
+  var enChat=false;
+  function reiniciar(){msgs=[];enviados=0;var l=$c("chLog");if(l)l.innerHTML="";if(abierto)cerrar()}
+  var finOrig=window.finalizarPedido;
+  window.finalizarPedido=function(){var habia=pedidoGuardado;finOrig();if(habia&&!enChat)reiniciar()};
   function fin(){
-    quitarOpc();finalizarPedido();msgs=[];enviados=0;
+    quitarOpc();enChat=true;try{finalizarPedido()}finally{enChat=false}msgs=[];enviados=0;
     bot("¡Gracias! Si necesitás otro pedido, escribime cuando quieras 🦋");
   }
   function enviar_pedido(){window.enviar()}
