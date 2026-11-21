@@ -741,6 +741,12 @@ function render(){
    if(desde&&f<desde)return false;
    if(hasta&&f>hasta)return false;
    return true;
+  })
+  // Orden por fecha de entrega: la más lejana arriba; sin fecha al final; a igual fecha, el pedido más reciente primero
+  .sort((x,y)=>{
+   const fx=x.fecha_entrega||"",fy=y.fecha_entrega||"";
+   if(fx!==fy){if(!fx)return 1;if(!fy)return -1;return fy<fx?-1:1}
+   return (y.created_at||"")<(x.created_at||"")?-1:((y.created_at||"")>(x.created_at||"")?1:0);
   });
 
  $("countLabel").textContent=todos.length+" "+(todos.length===1?"pedido":"pedidos");
