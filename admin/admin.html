@@ -37,7 +37,13 @@ main{max-width:820px;margin:auto;padding:18px 14px 42px}
 .fil-quick{display:flex;gap:6px;flex-wrap:wrap}
 .olist{display:flex;flex-direction:column;gap:8px}
 .orow{position:relative;background:#fff;border:1px solid #eee1ef;border-radius:16px}
-.orow.anulado{opacity:.6;background:#faf5f5}
+.orow.anulado{opacity:.6;background:#faf5f5!important}
+/* Un color pastel por día de pedido, alternando, para distinguir las tandas */
+.orow.dia0{background:#f4ecfa;border-color:#e3d3f0}
+.orow.dia1{background:#e9f6ef;border-color:#cfe8da}
+.orow.dia2{background:#fff0e4;border-color:#f3dcc6}
+.orow.dia3{background:#e8f1fb;border-color:#cddff2}
+.orow.dia4{background:#fdebf2;border-color:#f2d2df}
 .orow.anulado .o-cli b{text-decoration:line-through}
 .omain{display:grid;grid-template-columns:26px 1fr auto;grid-template-areas:"chk cli est" "chk meta tot" "chk acc acc";gap:5px 10px;padding:11px 13px;cursor:pointer;align-items:center}
 .o-chk{grid-area:chk;align-self:start}.o-chk input{width:18px;height:18px;margin:2px 0 0}
@@ -753,6 +759,10 @@ function render(){
   <button type="button" class="chip" ${paginaActual>=totalPaginas?"disabled":""} onclick="irPagina(${paginaActual+1})">Siguiente ›</button>
  `;
 
+ // Color por día de pedido (se calcula sobre toda la lista filtrada para que no cambie al paginar)
+ const diaDe=o=>o.created_at?new Date(o.created_at).toLocaleDateString("sv-SE"):"";
+ const colorDia={};let nDia=0;
+ todos.forEach(o=>{const d=diaDe(o);if(!(d in colorDia))colorDia[d]=nDia++%5});
  $("ordersList").innerHTML=visible.map(o=>{
   const items=(o.productos||[]).map(it=>{
    const bonif=it.bonif_pct?` <span style="color:#177a4d;font-weight:800">(-${it.bonif_pct}%)</span>`:"";
@@ -842,7 +852,7 @@ function render(){
     <button type="button" onclick="toggleEnvio(${o.id})">🚚 Envío</button>
     ${anulado?"":`<hr><button type="button" class="red" onclick="anularPedido(${o.id})">⛔ Anular pedido</button>`}
    </div></div>`;
-  return `<div class="orow ${anulado?"anulado":""}" data-id="${o.id}">
+  return `<div class="orow dia${colorDia[diaDe(o)]} ${anulado?"anulado":""}" data-id="${o.id}">
    <div class="omain" onclick="toggleDet(${o.id},event)">
     <div class="o-chk"><input type="checkbox" class="order-check" data-id="${o.id}"></div>
     <div class="o-cli"><b>${esc(o.comercio||"Sin nombre")}</b>${o.manual?' <span class="badge tipo" style="font-size:9px">✍️ Manual</span>':""} ${canalBadge(canalDe(o))}</div>

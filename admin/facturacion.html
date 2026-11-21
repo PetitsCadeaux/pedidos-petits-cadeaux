@@ -97,7 +97,7 @@ $("desde").value=verId?"":diaISO(new Date(Date.now()-60*86400000));
 function info(o){
  const factura=!!o.factura_cae,remito=!!o.remito_nro;
  const nc=!!o.nc_cae;
- const fechaDoc=o.facturado_en||o.remito_en||null;
+ const fechaDoc=o.remito_en||o.facturado_en||null; // siempre manda la fecha del remito
  const pago=o.cobro||((o.estado_pago==="Mercado Pago"&&o.pagado)?"Mercado Pago":"Pendiente");
  const cobrado=pago==="Efectivo"||pago==="Transferencia"||pago==="Mercado Pago";
  return {factura,remito,nc,doc:factura||remito,fechaDoc,pago,cobrado};
@@ -138,7 +138,11 @@ async function cargar(){
   if(!r.ok)r=await pedir(cols);
   const d=await r.json();
   if(!r.ok)throw new Error((d.message||JSON.stringify(d))+" (¿ya corriste sql-facturacion.sql y sql-pedidos-v2.sql en Supabase?)");
-  datos=d.filter(o=>!o.anulado);render();
+  datos=d.filter(o=>!o.anulado).sort((a,b)=>{
+   // Orden por la fecha del remito (o factura / pedido si no tiene), no por número de pedido. Más nuevo arriba.
+   const ka=info(a).fechaDoc||a.created_at||"",kb=info(b).fechaDoc||b.created_at||"";
+   return kb<ka?-1:kb>ka?1:(b.id-a.id);
+  });render();
   if(verId){const el=document.querySelector('tr[data-id="'+verId+'"]');if(el)el.scrollIntoView({block:"center"})}
  }catch(e){$("tabla").innerHTML="";$("err").innerHTML='<div class="err">❌ '+esc(e.message)+'</div>'}
 }
