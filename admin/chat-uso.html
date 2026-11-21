@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Asistente de pedidos · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#392541;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#f8edf4,#fffafe 42%,#f8f0fa);min-height:100vh}
+header{padding:16px;text-align:center;background:linear-gradient(180deg,#fff7fb,#f8eaf4);color:var(--purple);border-bottom:1px solid #ead9e8}
+header h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(24px,6vw,34px)}
+main{max-width:760px;margin:auto;padding:18px 14px 42px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 30px rgba(84,36,119,.08)}
+label{font-size:12px;color:var(--muted);font-weight:700;display:block}
+input{width:100%;padding:10px;border:1px solid #ddcfe1;border-radius:12px;font:500 14px Inter,Arial,sans-serif;margin-top:4px}
+button{border:0;border-radius:13px;font:800 13px Inter,Arial,sans-serif;cursor:pointer;padding:11px 16px;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.del{background:#fff0f1;color:#9b3040;border:1px solid #f2ccd2;padding:7px 11px}
+.fila{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dotted #eee1ef}
+.muted{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1.6fr auto;gap:10px;align-items:end}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="ancho.css">
+</head>
+<body>
+<header><h1>Asistente de pedidos</h1></header>
+<script src="menu.js"></script>
+<main>
+<div id="noSession" class="card" style="display:none;text-align:center"><p>Tenés que iniciar sesión primero en el panel de pedidos.</p><a href="admin.html"><button>Ir a iniciar sesión</button></a></div>
+<div id="app" style="display:none">
+ <div class="card">
+  <div class="muted" style="margin-bottom:6px">Gasto de este mes (estimado) · Tope: USD <span id="tope">10</span></div>
+  <div style="font:700 34px 'Cormorant Garamond',Georgia,serif;color:var(--purple)" id="gasto">-</div>
+  <div style="background:#f0e6f4;border-radius:99px;height:12px;margin:8px 0"><div id="barra" style="height:12px;border-radius:99px;background:linear-gradient(90deg,#995ac2,#71369e);width:0"></div></div>
+  <div class="muted" id="estado"></div>
+ </div>
+ <div class="stats" id="stats"></div>
+ <div class="card"><b>Por mes</b><div id="meses" class="muted" style="margin-top:8px">Cargando...</div></div>
+ <div class="card"><b>Pedidos tomados por el asistente</b><div id="pedidos" class="muted" style="margin-top:8px">Cargando...</div></div>
+ <p class="muted">El gasto es una estimación hecha con los mensajes procesados. El dato exacto está en console.anthropic.com. El tope se cambia en Vercel con la variable <b>CHAT_TOPE_USD</b>; al llegar a ese monto el chat deriva a Eliana.</p>
+</div>
+</main>
+<script src="permisos.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const session=JSON.parse(localStorage.getItem("admin_session")||"null");
+if(!session){$("noSession").style.display="block"}else{$("app").style.display="block"}
+const H=()=>({apikey:SUPABASE_KEY,Authorization:"Bearer "+session.access_token});
+const TOPE=10;
+const usd=n=>"USD "+Number(n||0).toFixed(2);
+const money=n=>n==null?"A confirmar":"$ "+Math.round(n).toLocaleString("es-AR");
+const fmtF=iso=>new Date(iso).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const mesAct=()=>{const d=new Date(Date.now()-3*3600000);return d.toISOString().slice(0,7)};
+async function cargar(){
+ try{
+  const [ru,rp]=await Promise.all([
+   fetch(SUPABASE_URL+"/rest/v1/chat_uso?select=*&order=mes.desc&limit=12",{headers:H()}),
+   fetch(SUPABASE_URL+"/rest/v1/pedidos_distribuidora?select=id,comercio,total,created_at,observaciones,anulado&observaciones=like."+encodeURIComponent("🤖*")+"&order=created_at.desc&limit=300",{headers:H()})
+  ]);
+  const uso=ru.ok?await ru.json():[],ped=rp.ok?await rp.json():[];
+  const act=uso.find(x=>x.mes===mesAct())||{costo_usd:0,mensajes:0,pedidos:0};
+  const pct=Math.min(100,Number(act.costo_usd)/TOPE*100);
+  $("tope").textContent=TOPE;$("gasto").textContent=usd(act.costo_usd);$("barra").style.width=pct+"%";
+  $("estado").textContent=pct>=100?"Tope alcanzado: el chat está derivando a Eliana.":Math.round(pct)+"% del tope usado · "+act.mensajes+" mensajes este mes";
+  const validos=ped.filter(x=>!x.anulado),pend=validos.filter(x=>String(x.observaciones).startsWith("🤖 Pedido por chat · revisar"));
+  $("stats").innerHTML=[["Pedidos por chat",validos.length],["Por revisar",pend.length],["Importe vendido",money(validos.reduce((a,x)=>a+(x.total||0),0))]].map(c=>`<div class="card" style="margin:0;text-align:center"><div class="muted">${c[0]}</div><div style="font:700 26px 'Cormorant Garamond',Georgia,serif;color:var(--purple)">${c[1]}</div></div>`).join("");
+  $("stats").style.cssText="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px";
+  $("meses").innerHTML=uso.length?`<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left;color:var(--muted)"><th>Mes</th><th>Gasto</th><th>Mensajes</th><th>Pedidos armados</th></tr>${uso.map(x=>`<tr><td>${esc(x.mes)}</td><td>${usd(x.costo_usd)}</td><td>${x.mensajes}</td><td>${x.pedidos}</td></tr>`).join("")}</table>`:"Todavía no hay uso registrado (¿corriste sql-chat-uso.sql?).";
+  $("pedidos").innerHTML=ped.length?ped.slice(0,25).map(x=>`<div class="fila"><div><b style="color:var(--ink)">${esc(x.comercio||"Sin nombre")}</b> <span class="muted">#${x.id} · ${fmtF(x.created_at)}</span><div class="muted">${x.anulado?"⛔ Anulado":String(x.observaciones).startsWith("🤖 Pedido por chat · revisar")?"🟡 Por revisar":"✔ Revisado"}</div></div><b>${money(x.total)}</b></div>`).join(""):"Todavía no entraron pedidos por el chat.";
+ }catch(e){$("gasto").textContent="Error: "+esc(e.message).slice(0,100)}
+}
+if(session)cargar();
+</script>
+</body>
+</html>
