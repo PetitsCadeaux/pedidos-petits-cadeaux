@@ -93,13 +93,13 @@ function hojaHtml(rh,fs){
   <div class="enc"><div><h1>Petits Cadeaux</h1><small>Distribuidora · Pedido en mano</small></div><div class="lista">${TITULO[$("lista").value]}<br><span style="font-weight:500;color:#76657d">${hoy}</span></div></div>
   <div class="datos"><div>Comercio:</div><div>WhatsApp:</div><div class="full">Domicilio:</div><div>Entrega: mié / vie ___/___</div><div>Pago: efectivo / transf.</div></div>
   <div class="colhead"><div class="ch"><span>Cant.</span><span>Producto</span><span>Precio</span><span>Total</span></div><div class="ch"><span>Cant.</span><span>Producto</span><span>Precio</span><span>Total</span></div></div>
-  <div class="cols"><div class="ejn">Ejemplo:</div><div class="fila ej"><span class="c">2</span><span class="n">Budín limón</span><span class="p">$3.150</span><span class="t">$6.300</span></div>${html}</div>
+  <div class="cols">${html}</div>
   <div class="pie"><div class="tot"><b>SUMA TOTAL $</b><span class="box"></span><b>Obs.</b><span class="l"></span></div>Entregas miércoles y viernes · pedidos hasta las 23 hs del día anterior · WhatsApp 11 2362-7052 · Precios sujetos a cambio</div>
  </div>`;
 }
 function dibujar(){
  // alto de fila para que entren todos los productos en 2 columnas
- const filas=prods.length+new Set(prods.map(p=>p.cat)).size*1.4+3;
+ const filas=prods.length+new Set(prods.map(p=>p.cat)).size*1.4+1;
  const disponible=2*130; // mm de columna útil en A5
  const rh=Math.max(4.4,Math.min(8.2,disponible/filas));
  const fs=Math.max(6.4,Math.min(9,rh*1.5));
