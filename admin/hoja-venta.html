@@ -28,12 +28,19 @@ body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:#f4
 .datos div.full{grid-column:1/-1}
 .cols{flex:1;column-count:2;column-gap:5mm;column-rule:.2mm solid #e4d6e8;overflow:hidden}
 .cat{break-inside:avoid;break-after:avoid;font-weight:800;color:#fff;background:var(--purple);padding:.5mm 1.6mm;margin:1.2mm 0 .3mm;border-radius:.8mm;font-size:.92em;text-transform:uppercase;letter-spacing:.2mm}
-.fila{break-inside:avoid;display:grid;grid-template-columns:minmax(0,1fr) auto 8mm;gap:1.2mm;align-items:center;height:var(--rh);border-bottom:.2mm dotted #cdbbd4}
-.fila .n{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
-.fila .p{font-weight:700;color:var(--purple);text-align:right}
-.fila .c{border:.25mm solid #8a7894;height:calc(var(--rh) - 1mm);border-radius:.6mm}
+.colhead{display:grid;grid-template-columns:1fr 1fr;column-gap:5mm;margin:0 0 .6mm}
+.ch{display:grid;grid-template-columns:9mm minmax(0,1fr) auto 14mm;gap:1.4mm;font-size:6.2pt;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.2mm}
+.ch span:nth-child(1),.ch span:nth-child(3),.ch span:nth-child(4){text-align:center}
+.fila{break-inside:avoid;display:grid;grid-template-columns:9mm minmax(0,1fr) auto 14mm;gap:1.4mm;align-items:center;height:var(--rh);border-bottom:.2mm dotted #cdbbd4}
+.fila .n{overflow:hidden;line-height:1.08;max-height:calc(var(--rh) - .4mm);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.fila .p{font-weight:700;color:var(--purple);text-align:right;white-space:nowrap}
+.fila .c,.fila .t{border:.3mm solid #7e6a8a;height:calc(var(--rh) - 1.2mm);border-radius:.8mm;display:flex;align-items:center;justify-content:center;font-weight:800}
+.ej{background:#f6eefa;border-radius:1mm;margin-bottom:1mm;color:#6f5a7c;font-style:italic}
+.ej .c,.ej .t{border-color:#b9a4c6;color:#6f5a7c;font-style:normal}
+.ejn{font-size:6pt;color:#6f5a7c;margin:0 0 .5mm;font-style:italic}
 .pie{border-top:1.5px solid var(--purple);margin-top:2mm;padding-top:2mm;font-size:7pt;color:var(--muted)}
-.pie .tot{display:flex;gap:4mm;align-items:flex-end;margin-bottom:1.5mm;font-size:8.5pt;font-weight:800;color:var(--ink)}
+.pie .tot{display:flex;gap:3mm;align-items:center;margin-bottom:1.8mm;font-size:9pt;font-weight:800;color:var(--ink)}
+.pie .tot .box{width:42mm;height:9mm;border:.4mm solid #7e6a8a;border-radius:1mm}
 .pie .tot span.l{flex:1;border-bottom:.3mm solid #9c8aa5;height:5mm}
 @media print{
  body{background:#fff}.barra,.ayuda,#menuTop,header,nav{display:none!important}
@@ -70,7 +77,7 @@ async function cargar(){
  try{
   const r=await fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq."+neg+"&activo=eq.true&select=nombre,categoria,precio,tiers&order=nombre.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
   if(!r.ok)throw new Error(r.status);
-  prods=(await r.json()).map(p=>({nombre:p.nombre,cat:p.categoria||"Otros",precio:neg==="tienda"?((p.tiers&&p.tiers[0]&&p.tiers[0].precio)??p.precio):p.precio}));
+  prods=(await r.json()).filter(p=>!nrm(p.categoria).startsWith('gastronomic')).map(p=>({nombre:p.nombre,cat:p.categoria||"Otros",precio:neg==="tienda"?((p.tiers&&p.tiers[0]&&p.tiers[0].precio)??p.precio):p.precio}));
   prods.sort((a,b)=>rango(a.cat)-rango(b.cat)||a.cat.localeCompare(b.cat)||a.nombre.localeCompare(b.nombre));
   dibujar();
  }catch(e){$("hojas").innerHTML='<div style="padding:30px;color:#9b3040">No se pudo cargar el catálogo ('+esc(e.message)+')</div>'}
@@ -79,22 +86,23 @@ function hojaHtml(rh,fs){
  let html="",cat="";
  prods.forEach(p=>{
   if(p.cat!==cat){cat=p.cat;html+=`<div class="cat">${esc(cat)}</div>`}
-  html+=`<div class="fila"><span class="n">${esc(p.nombre)}</span><span class="p">${p.precio==null?"consultar":money(p.precio)}</span><span class="c"></span></div>`;
+  html+=`<div class="fila"><span class="c"></span><span class="n">${esc(p.nombre)}</span><span class="p">${p.precio==null?"consultar":money(p.precio)}</span><span class="t"></span></div>`;
  });
  const hoy=new Date().toLocaleDateString("es-AR");
  return `<div class="hoja" style="--rh:${rh}mm;font-size:${fs}pt">
   <div class="enc"><div><h1>Petits Cadeaux</h1><small>Distribuidora · Pedido en mano</small></div><div class="lista">${TITULO[$("lista").value]}<br><span style="font-weight:500;color:#76657d">${hoy}</span></div></div>
   <div class="datos"><div>Comercio:</div><div>WhatsApp:</div><div class="full">Domicilio:</div><div>Entrega: mié / vie ___/___</div><div>Pago: efectivo / transf.</div></div>
-  <div class="cols">${html}</div>
-  <div class="pie"><div class="tot"><b>TOTAL $</b><span class="l"></span><b>Observaciones</b><span class="l" style="flex:2"></span></div>Entregas miércoles y viernes · pedidos hasta las 23 hs del día anterior · WhatsApp 11 2362-7052 · Precios sujetos a cambio</div>
+  <div class="colhead"><div class="ch"><span>Cant.</span><span>Producto</span><span>Precio</span><span>Total</span></div><div class="ch"><span>Cant.</span><span>Producto</span><span>Precio</span><span>Total</span></div></div>
+  <div class="cols"><div class="ejn">Ejemplo:</div><div class="fila ej"><span class="c">2</span><span class="n">Budín limón</span><span class="p">$3.150</span><span class="t">$6.300</span></div>${html}</div>
+  <div class="pie"><div class="tot"><b>SUMA TOTAL $</b><span class="box"></span><b>Obs.</b><span class="l"></span></div>Entregas miércoles y viernes · pedidos hasta las 23 hs del día anterior · WhatsApp 11 2362-7052 · Precios sujetos a cambio</div>
  </div>`;
 }
 function dibujar(){
  // alto de fila para que entren todos los productos en 2 columnas
- const filas=prods.length+new Set(prods.map(p=>p.cat)).size*1.4+1;
- const disponible=2*134; // mm de columna útil en A5
- const rh=Math.max(3.4,Math.min(6.2,disponible/filas));
- const fs=Math.max(6.2,Math.min(9.5,rh*1.85));
+ const filas=prods.length+new Set(prods.map(p=>p.cat)).size*1.4+3;
+ const disponible=2*130; // mm de columna útil en A5
+ const rh=Math.max(4.4,Math.min(8.2,disponible/filas));
+ const fs=Math.max(6.4,Math.min(9,rh*1.5));
  const h=hojaHtml(rh.toFixed(2),fs.toFixed(1));
  $("hojas").innerHTML=h+h;
 }
