@@ -125,6 +125,17 @@
   #modalMsg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;display:none;}
   #modalMsg.ok{display:block;background:#e6f6ea;color:#1a7a3d;font-size:15px;font-weight:700;text-align:center;padding:18px 14px;}
   #modalMsg.err{display:block;background:#fbe7ea;color:#a3273f;}
+
+  /* Formulario compacto en dos columnas */
+  .modal{padding:16px 16px 20px}
+  .modal h2{margin:0 0 8px;font-size:20px}
+  .modal label{margin:8px 0 3px;font-size:12px}
+  .modal input,.modal textarea,.modal select{padding:9px 11px;font-size:14px}
+  .modal textarea{min-height:0;height:54px}
+  .row2{display:grid;align-items:end;grid-template-columns:1fr 1fr;gap:0 10px}
+  .row2.r-calle{grid-template-columns:1.7fr 1fr}
+  .row2 .fld{min-width:0}
+  .cart-items{margin:8px 0;padding:6px 0}
 </style>
 </head>
 <body>
@@ -158,24 +169,23 @@
     <div class="cart-items" id="cartItems"></div>
     <div class="cart-total"><span>Total</span><span id="modalTotal">$0</span></div>
 
-    <label>Nombre</label>
-    <input type="text" id="fNombre" placeholder="Tu nombre">
-    <label>WhatsApp</label>
-    <input type="tel" id="fWhatsapp" placeholder="11 1234-5678">
-    <label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>
-    <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com">
-    <label>Calle</label>
-    <input type="text" id="fCalle" placeholder="Ej. Av. Mitre">
-    <label>Altura</label>
-    <input type="text" id="fAltura" placeholder="Ej. 1234">
-    <label>Piso / depto <span style="font-weight:400">(si corresponde)</span></label>
-    <input type="text" id="fPisoDepto" placeholder="Ej. 2° A">
-    <label>Localidad</label>
-    <input type="text" id="fLocalidad" placeholder="Ej. Berazategui">
-    <label>Provincia</label>
-    <input type="text" id="fProvincia" placeholder="Ej. Buenos Aires">
-    <label>Código postal</label>
-    <input type="text" id="fCP" placeholder="Ej. 1884">
+    <div class="row2">
+    <div class="fld"><label>Nombre</label>    <input type="text" id="fNombre" placeholder="Tu nombre"></div>
+    <div class="fld"><label>WhatsApp</label>    <input type="tel" id="fWhatsapp" placeholder="11 1234-5678"></div>
+    </div>
+    <div class="fld"><label>Email <span id="lblEmailOpc" style="font-weight:400">(para el comprobante de pago)</span></label>    <input type="email" id="fEmail" placeholder="tuemail@ejemplo.com"></div>
+    <div class="row2 r-calle">
+    <div class="fld"><label>Calle</label>    <input type="text" id="fCalle" placeholder="Ej. Av. Mitre"></div>
+    <div class="fld"><label>Altura</label>    <input type="text" id="fAltura" placeholder="Ej. 1234"></div>
+    </div>
+    <div class="row2">
+    <div class="fld"><label>Piso / depto</label>    <input type="text" id="fPisoDepto" placeholder="Ej. 2° A (opcional)"></div>
+    <div class="fld"><label>Código postal</label>    <input type="text" id="fCP" placeholder="Ej. 1884"></div>
+    </div>
+    <div class="row2">
+    <div class="fld"><label>Localidad</label>    <input type="text" id="fLocalidad" placeholder="Ej. Berazategui"></div>
+    <div class="fld"><label>Provincia</label>    <input type="text" id="fProvincia" placeholder="Ej. Buenos Aires"></div>
+    </div>
 
     <button type="button" class="send-btn" id="cotizarEnvioBtn" style="background:#8a5a89;margin:8px 0">📦 Calcular costo de envío</button>
     <div id="envioOpciones"></div>
