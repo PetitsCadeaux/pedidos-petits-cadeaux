@@ -39,7 +39,7 @@
     $c("chLog").appendChild(d);bajar();
   }
   function quitarOpc(){var o=$c("chOpc");if(o)o.remove()}
-  function wa(){window.open("https://wa.me/"+DESTINO_WHATSAPP,"_blank")}
+  function wa(){var n=($("shop").value||"").trim();window.open("https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent("Hola Eliana! Te escribo desde la página de pedidos"+(n?" ("+n+")":"")+"."),"_blank")}
 
   function armar(){
     var fab=document.createElement("button");fab.id="chFab";fab.type="button";fab.setAttribute("aria-label","Asistente de pedidos");
@@ -59,7 +59,7 @@
     if(!msgs.length&&!$c("chLog").children.length){
       var n=($("shop").value||"").trim();
       bot("¡Hola"+(n?" "+n:"")+"! 👋 Soy el asistente de Petits Cadeaux. ¿Qué necesitás hoy?");
-      opciones(["Quiero hacer un pedido","¿Qué precios tienen?","¿Cuándo entregan?",{t:"Hablar con Nadia",f:wa}]);
+      opciones(["Quiero hacer un pedido","¿Qué precios tienen?","¿Cuándo entregan?",{t:"Hablar con Eliana",f:wa}]);
     }
     setTimeout(function(){$c("chTxt").focus()},50);
   }
@@ -67,7 +67,7 @@
 
   async function enviar(texto){
     if(ocupado)return;
-    if(enviados>=20){bot("Llegamos al máximo de mensajes de esta charla. Para seguir, escribile a Nadia por WhatsApp.");opciones([{t:"Abrir WhatsApp",f:wa}]);return}
+    if(enviados>=20){bot("Llegamos al máximo de mensajes de esta charla. Para seguir, escribile a Eliana por WhatsApp (atiende de 10 a 18 hs).");opciones([{t:"Escribirle a Eliana",f:wa}]);return}
     quitarOpc();yo(texto);msgs.push({role:"user",content:texto});enviados++;
     ocupado=true;$c("chSend").disabled=true;
     var esp=bot("…");
@@ -76,8 +76,8 @@
       var d=await r.json();
       esp.remove();
       if(!d.ok){
-        bot(d.apagado||d.limite?"Por ahora no puedo atender por acá. Escribile a Nadia por WhatsApp y te ayuda enseguida.":"No pude responder ahora. Probá de nuevo en un momento o escribile a Nadia por WhatsApp."+(d.diag?"\n("+d.diag+")":""));
-        opciones([{t:"Abrir WhatsApp",f:wa}]);
+        bot(d.apagado||d.limite?"Por ahora no puedo atender por acá. Escribile a Nadia por WhatsApp y te ayuda enseguida.":"No pude responder ahora. Probá de nuevo en un momento o escribile a Eliana por WhatsApp."+(d.diag?"\n("+d.diag+")":""));
+        opciones([{t:"Escribirle a Eliana",f:wa}]);
       }else{
         msgs.push({role:"assistant",content:d.texto+(d.accion?" [armé el pedido en el carrito]":"")});
         bot(d.texto);
