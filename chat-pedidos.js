@@ -101,13 +101,19 @@
     $("delivery").value=a.fecha_iso;fechaConfirmada=a.fecha_iso;
     var prev=($("notes").value||"").replace(/^🤖[^\n]*\n?/,"").trim();
     $("notes").value=MARCA+(a.nota?"\n"+a.nota:"")+(prev?"\n"+prev:"");
-    var falta=!$("shop").value.trim()||!$("phone").value.trim()||!$("address").value.trim()||!$("paymentMethod").value;
-    cerrar();
-    if(falta){
+    var faltan2=[];
+    if(!$("shop").value.trim())faltan2.push("nombre del comercio");
+    if(!$("phone").value.trim())faltan2.push("WhatsApp");
+    if(!$("address").value.trim())faltan2.push("domicilio de entrega");
+    if(!$("paymentMethod").value)faltan2.push("forma de pago");
+    if(faltan2.length){
       mostrarDatos(true);
-      show("Armé tu pedido. Completá tus datos y tocá «Revisar y enviar pedido».",true);
-      $("shop").scrollIntoView({behavior:"smooth",block:"center"});
-    }else enviar_pedido();
+      bot("Tu pedido ya está cargado ✅ Para poder enviarlo falta que completes en la pantalla: "+faltan2.join(", ")+". Después tocá «Revisar y enviar pedido» y confirmalo.");
+      opciones([{t:"Completar mis datos",f:function(){cerrar();$("shop").scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{$(!$("shop").value.trim()?"shop":!$("phone").value.trim()?"phone":!$("address").value.trim()?"address":"paymentMethod").focus()}catch(e){}},400)}}]);
+    }else{
+      bot("Tu pedido está cargado ✅ Revisalo en la pantalla que se abre y tocá «Confirmar y enviar pedido» para mandarlo.");
+      setTimeout(function(){cerrar();enviar_pedido()},1600);
+    }
   }
   function enviar_pedido(){window.enviar()}
 
