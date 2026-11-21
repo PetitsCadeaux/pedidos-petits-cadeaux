@@ -4,3 +4,16 @@
   main{max-width:1320px!important;padding-left:28px!important;padding-right:28px!important}
   .card:has(> label),.card:has(> .btn-main),.card:has(> .tabs){max-width:820px;margin-left:auto!important;margin-right:auto!important}
 }
+
+/* Celular: tablas anchas como tarjetas (las marca tarjetas.js) */
+@media screen and (max-width:700px){
+  table.tarj{min-width:0!important;width:100%}
+  table.tarj thead{display:none}
+  table.tarj tbody,table.tarj tr,table.tarj td{display:block}
+  table.tarj tr{border:1px solid #eadcef;border-radius:14px;padding:8px 12px;margin:0 0 10px;background:#fff}
+  table.tarj td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0!important;border:0!important;text-align:right!important;white-space:normal!important;font-size:13px}
+  table.tarj td::before{content:attr(data-label);font-size:11px;font-weight:800;text-transform:uppercase;color:#8a7694;text-align:left;flex:0 0 auto}
+  table.tarj td:empty{display:none}
+  table.tarj td:not([data-label])::before{content:none}
+  table.tarj td:first-child{font-weight:700}
+}
