@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Lista de precios · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@500;600;700;800&display=swap');
+:root{--plum:#4a1d6b;--lilac:#c9a0ee;--lilac2:#e7d3f7;--cream:#fffaf4;--ink:#2d1a3a}
+*{box-sizing:border-box}
+body{margin:0;background:#efe4f3;font-family:Poppins,Arial,sans-serif;color:var(--ink)}
+.barra{max-width:820px;margin:0 auto;padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#fff;border-bottom:1px solid #eaddea}
+.barra label{font-size:12px;font-weight:700;color:#76657d;display:block}
+.barra select{padding:9px;border:1px solid #ddcfe1;border-radius:10px;font:600 14px Poppins,Arial,sans-serif;margin-top:3px}
+.barra button{border:0;border-radius:12px;padding:11px 15px;font:700 13px Poppins,Arial,sans-serif;cursor:pointer;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.barra button.sec{background:#fff;color:#654273;border:1px solid #ddcde4}
+.ayuda{max-width:820px;margin:8px auto;padding:0 14px;font-size:12.5px;color:#76657d}
+#escala{transform-origin:top left;margin:10px auto 30px}
+.page{position:relative;width:794px;height:1123px;background:var(--cream);overflow:hidden;box-shadow:0 8px 30px rgba(74,29,107,.18)}
+.blob{position:absolute;border-radius:50%}
+.b1{width:300px;height:260px;left:-110px;top:-90px;background:var(--lilac2)}
+.b1:after{content:"";position:absolute;inset:34px 40px 40px 70px;border-radius:50%;background:var(--lilac);opacity:.75}
+.b2{width:360px;height:300px;right:-130px;bottom:-110px;background:var(--lilac2)}
+.b2:after{content:"";position:absolute;inset:60px 70px 70px 40px;border-radius:50%;background:var(--lilac);opacity:.75}
+.b3{width:210px;height:200px;right:-60px;top:-70px;background:var(--lilac2);opacity:.8}
+.pts{position:absolute;width:90px;height:90px;background-image:radial-gradient(var(--lilac) 2.2px,transparent 2.4px);background-size:15px 15px;opacity:.8}
+.p1{right:30px;top:120px}.p2{left:26px;bottom:150px}
+.tit{position:relative;margin:0;padding-top:30px;text-align:center;font:400 54px Pacifico,cursive;color:var(--plum);line-height:1.1}
+.tit:after{content:"";display:block;width:230px;height:3px;margin:6px auto 0;background:var(--lilac);border-radius:3px}
+.sub{position:relative;text-align:center;margin-top:10px}
+.sub span{display:inline-block;background:var(--plum);color:#fff;font:700 13px Poppins;letter-spacing:1.4px;padding:6px 20px;border-radius:99px;text-transform:uppercase}
+.logo{position:relative;display:block;height:108px;margin:6px auto 0}
+.grid{position:relative;display:flex;gap:24px;align-items:flex-start;padding:0 38px;margin-top:26px;font-size:var(--fs,14px)}.col{flex:1;min-width:0}
+.card{margin:0 0 26px;border:1.6px solid var(--lilac);border-radius:18px;background:rgba(255,255,255,.92);padding:24px 16px 10px;position:relative}
+.rib{position:absolute;left:50%;top:-15px;transform:translateX(-50%);white-space:nowrap;background:linear-gradient(135deg,#d8b4f3,#bb86e5);color:#35154f;font:800 .92em Poppins;padding:5px 22px;border-radius:13px 9px 14px 10px;text-transform:uppercase;letter-spacing:.3px;box-shadow:0 2px 0 rgba(74,29,107,.15)}
+.rib:before,.rib:after{content:"";position:absolute;top:50%;width:8px;height:2px;background:var(--plum);border-radius:2px}
+.rib:before{left:-13px;transform:rotate(-24deg)}.rib:after{right:-13px;transform:rotate(24deg)}
+.f{display:flex;align-items:baseline;gap:6px;padding:4px 0;line-height:1.2}
+.f .n{font-weight:500}
+.f .d{flex:1;border-bottom:1.6px dotted var(--lilac);transform:translateY(-3px);min-width:10px}
+.f .p{font-weight:800;color:var(--plum);white-space:nowrap}
+.pie{position:absolute;left:38px;right:38px;bottom:20px;text-align:center;font-size:11px;color:#5b4668;line-height:1.5}
+.pie b{color:var(--plum)}
+@page{size:A4;margin:0}
+@media print{
+ body{background:#fff}.barra,.ayuda,#menuTop,header,nav{display:none!important}
+ #escala{transform:none!important;margin:0!important;height:auto!important}
+ .page{box-shadow:none;width:210mm;height:297mm}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<script src="menu.js"></script>
+<div class="barra">
+ <div><label>Lista de precios</label><select id="lista"><option value="mayorista">Mayorista (por caja)</option><option value="comercio">Comercio (por unidad)</option></select></div>
+ <button id="imp">🖨️ Imprimir / PDF</button>
+ <button id="png" class="sec">🖼️ Descargar imagen</button>
+</div>
+<div class="ayuda">Los precios salen del catálogo actual y la lista se acomoda sola en una hoja A4. Para mandarla por WhatsApp usá "Descargar imagen". Para PDF, en Imprimir elegí "Guardar como PDF" (A4, sin márgenes).</div>
+<div id="escala"><div class="page" id="page">
+ <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="pts p1"></div><div class="pts p2"></div>
+ <h1 class="tit">Lista de precios</h1>
+ <div class="sub"><span id="subt">Mayorista · precios por caja</span></div>
+ <img class="logo" src="../logo-petits-cadeaux.png" alt="Petits Cadeaux" crossorigin="anonymous">
+ <div class="grid" id="grid"></div>
+ <div class="pie" id="pie"></div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ORDEN_CAT=["dulces","hamburguesa","pancho","variedad","gastronomic"];
+const nrm=c=>String(c||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const rango=c=>{const n=nrm(c);const i=ORDEN_CAT.findIndex(k=>n.startsWith(k));return i<0?99:i};
+const money=n=>"$"+Math.round(n).toLocaleString("es-AR")+".-";
+const SUB={mayorista:"Mayorista · precios por caja",comercio:"Comercio · precios por unidad"};
+const TIT_CAT={dulces:"Dulces",hamburguesa:"Pan para hamburguesas",pancho:"Pan para panchos",variedad:"Variedad",gastronomic:"Gastronómicos"};
+const tituloCat=c=>{const n=nrm(c);const k=ORDEN_CAT.find(x=>n.startsWith(x));return k?TIT_CAT[k]:c};
+async function cargar(){
+ const neg=$("lista").value;
+ $("subt").textContent=SUB[neg];
+ $("grid").innerHTML='<div style="padding:30px;text-align:center;color:#76657d">Cargando…</div>';
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq."+neg+"&activo=eq.true&select=nombre,categoria,precio&order=nombre.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
+  if(!r.ok)throw new Error(r.status);
+  const ps=(await r.json()).filter(p=>p.precio!=null);
+  const cats={};ps.forEach(p=>{(cats[p.categoria||"Otros"]=cats[p.categoria||"Otros"]||[]).push(p)});
+  const orden=Object.keys(cats).sort((a,b)=>rango(a)-rango(b)||a.localeCompare(b));
+  const tarj=orden.map(c=>({n:cats[c].length+3,h:`<div class="card"><div class="rib">${esc(tituloCat(c))}</div>${cats[c].map(p=>`<div class="f"><span class="n">${esc(p.nombre)}</span><span class="d"></span><span class="p">${money(p.precio)}</span></div>`).join("")}</div>`}));
+  const cols=[[],[]],alt=[0,0];
+  tarj.forEach(t=>{const i=alt[0]<=alt[1]?0:1;cols[i].push(t.h);alt[i]+=t.n});
+  $("grid").innerHTML=cols.map(c=>'<div class="col">'+c.join("")+'</div>').join("");
+  const hoy=new Date().toLocaleDateString("es-AR");
+  $("pie").innerHTML=`<b>Entregas miércoles y viernes</b> · Pedidos hasta las 23 hs del día anterior · WhatsApp <b>11 2362-7052</b><br>Precios vigentes al ${hoy}, sujetos a modificación sin previo aviso`;
+  ajustar();
+ }catch(e){$("grid").innerHTML='<div style="padding:30px;color:#9b3040;text-align:center">No se pudo cargar el catálogo ('+esc(e.message)+')</div>'}
+}
+function ajustar(){
+ const g=$("grid"),page=$("page");
+ const tope=1123-70-g.offsetTop;
+ let fs=19;g.style.setProperty("--fs",fs+"px");
+ while(g.offsetHeight>tope&&fs>8){fs-=.25;g.style.setProperty("--fs",fs+"px")}
+ escalar();
+}
+function escalar(){
+ const e=$("escala"),w=Math.min(window.innerWidth-16,794),k=w/794;
+ e.style.transform="scale("+k+")";e.style.width="794px";e.style.height=(1123*k)+"px";
+ e.style.marginLeft=Math.max(8,(window.innerWidth-794*k)/2)+"px";
+}
+window.addEventListener("resize",escalar);
+$("lista").onchange=cargar;
+$("imp").onclick=()=>window.print();
+$("png").onclick=async()=>{
+ const e=$("escala"),t=e.style.transform;e.style.transform="none";
+ try{
+  const c=await html2canvas($("page"),{scale:2,useCORS:true,backgroundColor:"#fffaf4"});
+  const a=document.createElement("a");a.download="lista-precios-"+$("lista").value+".png";a.href=c.toDataURL("image/png");a.click();
+ }catch(err){alert("No se pudo generar la imagen. Probá con Imprimir / PDF.")}
+ e.style.transform=t;
+};
+cargar();
+</script>
+</body>
+</html>

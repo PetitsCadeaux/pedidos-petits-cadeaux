@@ -5,7 +5,7 @@
 (function(){
  const PAGINAS={
   "admin.html":"pedidos","pedido-imprimir.html":"pedidos","pedido-manual.html":"pedido_manual","hoja-ruta.html":"pedidos","hoja-venta.html":"pedidos",
-  "productos.html":"productos","cuenta.html":"clientes","estado-cuenta.html":"clientes",
+  "productos.html":"productos","lista-precios.html":"productos","cuenta.html":"clientes","estado-cuenta.html":"clientes",
   "facturacion.html":"facturacion","facturas-emitidas.html":"facturacion","libro-iva-compras.html":"facturacion","monotributo.html":"facturacion",
   "facturas.html":"proveedor","orden-pago.html":"proveedor","cuenta-proveedor.html":"proveedor","costos.html":"proveedor",
   "reporte.html":"reportes","dashboard.html":"reportes","stock.html":"reportes","visitas.html":"reportes",
