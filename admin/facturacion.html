@@ -35,6 +35,24 @@ table{width:100%;border-collapse:collapse;min-width:860px}
 th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--purple);padding:8px 6px;white-space:nowrap}
 td{padding:9px 6px;border-bottom:1px dotted #eee1ef;font-size:13px;vertical-align:middle}
 tr.hl td{background:#fff8d9}
+@media(max-width:700px){
+ table{min-width:0}
+ thead{display:none}
+ tbody,tr,td{display:block}
+ tr{display:grid;grid-template-columns:26px 1fr auto;grid-template-areas:"chk cli tot" ". fec fec" ". cob cob" ". acc acc";gap:4px 10px;padding:10px 4px;border-bottom:1px solid #eadcef;align-items:center}
+ td{padding:0;border:0}
+ td:nth-child(1){grid-area:chk}
+ td:nth-child(2){grid-area:fec;font-size:12.5px;color:var(--muted)}
+ td:nth-child(3){grid-area:fec;justify-self:end}
+ td:nth-child(4){grid-area:cli;font-weight:700;font-size:14px;line-height:1.25}
+ td:nth-child(5){grid-area:tot;font-size:15px}
+ td:nth-child(6){grid-area:cob}
+ td:nth-child(7){grid-area:acc;display:flex;flex-wrap:wrap;gap:6px}
+ td:nth-child(7) button{padding:7px 10px;font-size:12px}
+ .pay{width:100%;min-width:0}
+ tr.hl{background:#fff8d9}
+ tr.hl td{background:transparent}
+}
 td.num,th.num{text-align:right;white-space:nowrap}
 .tag{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:800;font-size:11.5px;white-space:nowrap}
 .tag.fac{background:#e6f7ee;color:#177a4d}.tag.rem{background:#fff1de;color:#a15b00}.tag.sin{background:#fde8e8;color:#a13030}.tag.nc{background:#ede6fb;color:#5a2f8a}
