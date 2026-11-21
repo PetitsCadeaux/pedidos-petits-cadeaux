@@ -140,7 +140,7 @@
   function enviar_pedido(){window.enviar()}
 
   window.chatInit=function(){if(iniciado)return;
-    try{if(/[?&]chat=1/.test(location.search))localStorage.setItem('chat_activo','1');if(/[?&]chat=0/.test(location.search))localStorage.removeItem('chat_activo');if(localStorage.getItem('chat_activo')!=='1')return}catch(e){return}
+    try{if(/[?&]chat=0/.test(location.search))localStorage.setItem('chat_activo','0');if(/[?&]chat=1/.test(location.search))localStorage.removeItem('chat_activo');if(localStorage.getItem('chat_activo')==='0')return}catch(e){}
     iniciado=true;armar()};
   var ac=document.getElementById("appContent");
   if(ac&&getComputedStyle(ac).display!=="none")window.chatInit();
