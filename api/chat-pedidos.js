@@ -105,7 +105,9 @@ Reglas:
 - Si no sabés algo o piden algo fuera de esto, decí que Eliana le contesta por WhatsApp.
 - Cuando tengas productos con cantidades y la fecha elegida, resumí en una línea y preguntá "¿Está bien así?". Apenas el cliente confirme (sí, ok, perfecto, dale, etc.), llamá a la herramienta armar_pedido EN ESE MISMO MENSAJE, junto con una sola frase corta tipo "Te armé el pedido." Está PROHIBIDO decir "listo", "acá va tu pedido" o "tu pedido está listo" sin haber llamado a la herramienta: sin la herramienta no se arma nada. Nunca digas que el pedido ya fue enviado ni agradezcas la compra: el cliente todavía tiene que revisar y confirmar en la pantalla de la página (completando sus datos si faltan). Eso se lo explica la página, vos no lo repitas.
 - Cuando le pidas elegir entre fechas o productos, ofrecé siempre las opciones como respuestas rápidas. Al final de tu mensaje, podés ofrecer hasta 4 respuestas rápidas con este formato exacto en la última línea: [[opciones: Uno | Dos | Tres]]
-${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio).slice(0, 80)}".` : ""}`;
+
+Datos del comercio para el pedido. Ya cargados: ${[cliente && cliente.comercio ? `nombre del comercio "${String(cliente.comercio).slice(0, 80)}"` : "", cliente && cliente.whatsapp ? `WhatsApp "${String(cliente.whatsapp).slice(0, 30)}"` : "", cliente && cliente.domicilio ? `domicilio "${String(cliente.domicilio).slice(0, 120)}"` : "", cliente && cliente.forma_pago ? `forma de pago "${String(cliente.forma_pago).slice(0, 30)}"` : ""].filter(Boolean).join("; ") || "ninguno"}.
+Antes de llamar a armar_pedido tenés que tener los cuatro datos: nombre del comercio, WhatsApp, domicilio de entrega y forma de pago (solo Efectivo o Transferencia). Pedí SOLO los que falten, de a uno por mensaje, con una frase corta; para la forma de pago ofrecé las dos opciones como respuestas rápidas. Si ya están cargados, no los vuelvas a pedir. Cuando llamás a armar_pedido incluí los cuatro datos.`;
 
     const tools = [{
       name: "armar_pedido",
@@ -116,8 +118,12 @@ ${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio)
           items: { type: "array", items: { type: "object", properties: { producto: { type: "string", description: "Nombre exacto del catálogo" }, cantidad: { type: "integer", minimum: 1, maximum: 999 } }, required: ["producto", "cantidad"] } },
           fecha_iso: { type: "string", description: "Fecha de entrega AAAA-MM-DD, una de las disponibles" },
           nota: { type: "string", description: "Aclaración del cliente, opcional" },
+          comercio: { type: "string", description: "Nombre del comercio" },
+          whatsapp: { type: "string", description: "WhatsApp del comercio" },
+          domicilio: { type: "string", description: "Domicilio de entrega" },
+          forma_pago: { type: "string", enum: ["Efectivo", "Transferencia"] },
         },
-        required: ["items", "fecha_iso"],
+        required: ["items", "fecha_iso", "comercio", "whatsapp", "domicilio", "forma_pago"],
       },
     }];
 
@@ -146,8 +152,14 @@ ${cliente && cliente.comercio ? `El cliente se llama "${String(cliente.comercio)
       }
       if (!items.length && !errores.length) errores.push("no hay productos");
       if (!fechas.some((f) => f.iso === tu.input.fecha_iso)) errores.push("esa fecha no está disponible");
-      if (!errores.length) { accion = { tipo: "armar_pedido", items, fecha_iso: tu.input.fecha_iso, nota: String(tu.input.nota || "").slice(0, 200) }; break; }
-      msgs = [...msgs, { role: "assistant", content: partes }, { role: "user", content: [{ type: "tool_result", tool_use_id: tu.id, is_error: true, content: "No se pudo armar: " + errores.join("; ") + ". Corregí con el cliente o con el catálogo." }] }];
+      const lim = (v, n) => String(v || "").trim().slice(0, n);
+      const datos = { comercio: lim(tu.input.comercio, 80), whatsapp: lim(tu.input.whatsapp, 30), domicilio: lim(tu.input.domicilio, 150), forma_pago: ["Efectivo", "Transferencia"].includes(tu.input.forma_pago) ? tu.input.forma_pago : "" };
+      if (datos.comercio.length < 2) errores.push("falta el nombre del comercio");
+      if (datos.whatsapp.replace(/\D/g, "").length < 8) errores.push("falta un WhatsApp válido");
+      if (datos.domicilio.length < 5) errores.push("falta el domicilio de entrega");
+      if (!datos.forma_pago) errores.push("falta la forma de pago (Efectivo o Transferencia)");
+      if (!errores.length) { accion = { tipo: "armar_pedido", items, fecha_iso: tu.input.fecha_iso, nota: String(tu.input.nota || "").slice(0, 200), ...datos }; break; }
+      msgs = [...msgs, { role: "assistant", content: partes }, { role: "user", content: [{ type: "tool_result", tool_use_id: tu.id, is_error: true, content: "No se pudo armar: " + errores.join("; ") + ". Pedile al cliente lo que falte (de a uno) o corregí con el catálogo." }] }];
     }
     await uso({ costo, pedido: !!accion });
 

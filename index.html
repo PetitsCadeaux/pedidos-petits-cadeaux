@@ -525,7 +525,7 @@ function mostrarResumen(){
   <div id="cfErr"></div>
   <button class="cf-btn cf-pri" id="cfOk">Confirmar y enviar pedido</button>
   <button class="cf-btn cf-sec" id="cfEdit">Volver a editar</button>`;
- $("cfBack").style.display="flex";
+ if(!window.__chatSilent)$("cfBack").style.display="flex";
  $("cfOk").addEventListener("click",confirmarEnvio);
  $("cfEdit").addEventListener("click",()=>{$("cfBack").style.display="none"});
 }

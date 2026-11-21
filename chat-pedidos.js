@@ -72,7 +72,7 @@
     ocupado=true;$c("chSend").disabled=true;
     var esp=bot("…");
     try{
-      var r=await fetch("/api/chat-pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:msgs,lista:listaActiva,cliente:{comercio:($("shop").value||"").trim()}})});
+      var r=await fetch("/api/chat-pedidos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:msgs,lista:listaActiva,cliente:{comercio:($("shop").value||"").trim(),whatsapp:($("phone").value||"").trim(),domicilio:($("address").value||"").trim(),forma_pago:$("paymentMethod").value}})});
       var d=await r.json();
       esp.remove();
       if(!d.ok){
@@ -101,19 +101,37 @@
     $("delivery").value=a.fecha_iso;fechaConfirmada=a.fecha_iso;
     var prev=($("notes").value||"").replace(/^🤖[^\n]*\n?/,"").trim();
     $("notes").value=MARCA+(a.nota?"\n"+a.nota:"")+(prev?"\n"+prev:"");
-    var faltan2=[];
-    if(!$("shop").value.trim())faltan2.push("nombre del comercio");
-    if(!$("phone").value.trim())faltan2.push("WhatsApp");
-    if(!$("address").value.trim())faltan2.push("domicilio de entrega");
-    if(!$("paymentMethod").value)faltan2.push("forma de pago");
-    if(faltan2.length){
-      mostrarDatos(true);
-      bot("Tu pedido ya está cargado ✅ Para poder enviarlo falta que completes en la pantalla: "+faltan2.join(", ")+". Después tocá «Revisar y enviar pedido» y confirmalo.");
-      opciones([{t:"Completar mis datos",f:function(){cerrar();$("shop").scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{$(!$("shop").value.trim()?"shop":!$("phone").value.trim()?"phone":!$("address").value.trim()?"address":"paymentMethod").focus()}catch(e){}},400)}}]);
+    // datos que el cliente dio en la charla
+    if(a.comercio)$("shop").value=a.comercio;
+    if(a.whatsapp)$("phone").value=a.whatsapp;
+    if(a.domicilio)$("address").value=a.domicilio;
+    if(a.forma_pago)$("paymentMethod").value=a.forma_pago;
+    guardarDatos();mostrarDatos(false);
+    window.__chatSilent=true;
+    try{window.enviar()}finally{window.__chatSilent=false}
+    if(!pedidoPendiente){bot($("status").textContent||"Algo no cerró con tu pedido. Probá de nuevo.");return}
+    var q=pedidoPendiente;
+    var filas=q.lista.map(function(x){return "• "+x.cantidad+" × "+x.producto+" — "+(x.precio_unitario==null?"a confirmar":money(x.cantidad*x.precio_unitario))}).join("\n");
+    bot("Revisá tu pedido:\n"+filas+"\n\nEntrega: "+q.diaConFecha+"\nDomicilio: "+q.direccion+"\nPago: "+q.formaPago+"\nTotal: "+(q.calc.confirmar?money(q.calc.total)+" + a confirmar":money(q.calc.total)));
+    opciones([{t:"✔ Confirmar y enviar",f:confirmar},{t:"Cambiar algo",f:function(){enviar("Quiero cambiar algo del pedido")}}]);
+  }
+  async function confirmar(){
+    if(ocupado)return;ocupado=true;quitarOpc();
+    var esp=bot("Enviando tu pedido…");
+    try{await window.confirmarEnvio()}catch(e){}
+    esp.remove();ocupado=false;
+    if(pedidoGuardado){
+      var url="https://wa.me/"+DESTINO_WHATSAPP+"?text="+encodeURIComponent(mensajeWhatsApp());
+      bot("¡Tu pedido fue enviado! ✅ Ya lo recibimos.\nÚltimo paso: tocá el botón y mandá el mensaje por WhatsApp para confirmar la recepción. Si no lo mandás, igual lo tenemos.");
+      opciones([{t:"Abrir WhatsApp y confirmar",f:function(){window.open(url,"_blank");fin()}},{t:"Listo, gracias",f:fin}]);
     }else{
-      bot("Tu pedido está cargado ✅ Revisalo en la pantalla que se abre y tocá «Confirmar y enviar pedido» para mandarlo.");
-      setTimeout(function(){cerrar();enviar_pedido()},1600);
+      bot("No pude enviar el pedido. Probá de nuevo.");
+      opciones([{t:"Reintentar",f:confirmar},{t:"Escribirle a Eliana",f:wa}]);
     }
+  }
+  function fin(){
+    quitarOpc();finalizarPedido();msgs=[];enviados=0;
+    bot("¡Gracias! Si necesitás otro pedido, escribime cuando quieras 🦋");
   }
   function enviar_pedido(){window.enviar()}
 
