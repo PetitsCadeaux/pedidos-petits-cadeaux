@@ -412,7 +412,20 @@ function setCambio(i,v){
  if(isNaN(n)||n<0)n=0;
  selectedCambios[i]=n;
 }
-function show(msg,ok){$("status").className=ok?"ok":"err";$("status").textContent=msg}
+function show(msg,ok){$("status").className=ok?"ok":"err";$("status").textContent=msg;if(!ok&&msg)toastAviso(msg)}
+let toastT;
+function toastAviso(msg){
+ let t=document.getElementById("toastAviso");
+ if(!t){t=document.createElement("div");t.id="toastAviso";t.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:96px;max-width:min(92vw,420px);background:#9b3040;color:#fff;font:700 14px Poppins,Inter,Arial,sans-serif;padding:12px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:950;text-align:center;line-height:1.35";document.body.appendChild(t)}
+ t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>{t.style.display="none"},4200);
+}
+// Lleva al campo que falta (abre los datos si están resumidos) y lo marca.
+function irACampo(id,msg){
+ mostrarDatos(true);
+ const el=$(id);
+ if(el){el.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>{try{el.focus()}catch(e){}},350);el.style.boxShadow="0 0 0 3px rgba(155,48,64,.35)";setTimeout(()=>{el.style.boxShadow=""},2500)}
+ return show(msg,false);
+}
 // Los datos del comercio se recuerdan en este dispositivo para no tipearlos en cada pedido.
 const DATOS_KEY="pedidos_datos_comercio";
 function guardarDatos(){
@@ -491,10 +504,10 @@ function escH(t){return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;",
 // Paso 1: validar y mostrar el resumen para que el cliente confirme o vuelva a editar.
 function enviar(){
  const comercio=$("shop").value.trim(),dia=$("delivery").value,wa=$("phone").value.trim(),obs=$("notes").value.trim(),direccion=$("address").value.trim(),formaPago=$("paymentMethod").value;
- if(!comercio)return show("Ingresá el nombre del comercio.",false);
- if(!dia)return show("Seleccioná miércoles o viernes.",false);
- if(!direccion)return show("Ingresá el domicilio de entrega.",false);
- if(!formaPago)return show("Seleccioná la forma de pago.",false);
+ if(!comercio)return irACampo("shop","Falta el nombre del comercio.");
+ if(!dia)return irACampo("delivery","Elegí el día de entrega (miércoles o viernes).");
+ if(!direccion)return irACampo("address","Falta el domicilio de entrega.");
+ if(!formaPago)return irACampo("paymentMethod","Elegí la forma de pago.");
  renderOpcionesEntrega();
  const opcionElegida=OPCIONES_ENTREGA.find(o=>o.iso===dia);
  if(!opcionElegida)return show("Esa fecha ya no está disponible (se toman pedidos hasta las 23 hs del día anterior). Elegí otra.",false);
