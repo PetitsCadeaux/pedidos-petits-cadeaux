@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#35265f">
+<title>Hoja de venta · Panel Admin - Petits Cadeaux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--purple:#542477;--ink:#2a1f31;--muted:#76657d;--line:#eaddea}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:Inter,Arial,sans-serif;background:#f4ecf5}
+.barra{max-width:760px;margin:0 auto;padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line)}
+.barra label{font-size:12px;font-weight:700;color:var(--muted);display:block}
+.barra select{padding:9px;border:1px solid #ddcfe1;border-radius:10px;font:600 14px Inter,Arial,sans-serif;margin-top:3px}
+.barra button{border:0;border-radius:12px;padding:11px 15px;font:800 13px Inter,Arial,sans-serif;cursor:pointer;background:linear-gradient(135deg,#995ac2,#71369e);color:#fff}
+.barra button.sec{background:#fff;color:#654273;border:1px solid #ddcde4}
+.ayuda{max-width:760px;margin:10px auto;padding:0 14px;font-size:12.5px;color:var(--muted)}
+.hojas{display:flex;gap:6mm;justify-content:center;flex-wrap:wrap;padding:14px}
+.hoja{width:148mm;height:210mm;background:#fff;box-shadow:0 6px 24px rgba(84,36,119,.15);padding:7mm 8mm;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.una .hoja+.hoja{display:none}
+.enc{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid var(--purple);padding-bottom:2.5mm}
+.enc h1{margin:0;font:700 17pt 'Cormorant Garamond',Georgia,serif;color:var(--purple);line-height:1}
+.enc small{font-size:7pt;color:var(--muted);display:block;margin-top:1mm}
+.lista{font-size:8pt;font-weight:800;color:var(--purple);text-align:right}
+.datos{display:grid;grid-template-columns:1.3fr 1fr;gap:1.6mm 4mm;margin:3mm 0 2mm;font-size:7.5pt}
+.datos div{border-bottom:.3mm solid #9c8aa5;height:5.2mm;display:flex;align-items:flex-end;color:var(--muted)}
+.datos div.full{grid-column:1/-1}
+.cols{flex:1;column-count:2;column-gap:5mm;column-rule:.2mm solid #e4d6e8;overflow:hidden}
+.cat{break-inside:avoid;break-after:avoid;font-weight:800;color:#fff;background:var(--purple);padding:.5mm 1.6mm;margin:1.2mm 0 .3mm;border-radius:.8mm;font-size:.92em;text-transform:uppercase;letter-spacing:.2mm}
+.fila{break-inside:avoid;display:grid;grid-template-columns:minmax(0,1fr) auto 8mm;gap:1.2mm;align-items:center;height:var(--rh);border-bottom:.2mm dotted #cdbbd4}
+.fila .n{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.fila .p{font-weight:700;color:var(--purple);text-align:right}
+.fila .c{border:.25mm solid #8a7894;height:calc(var(--rh) - 1mm);border-radius:.6mm}
+.pie{border-top:1.5px solid var(--purple);margin-top:2mm;padding-top:2mm;font-size:7pt;color:var(--muted)}
+.pie .tot{display:flex;gap:4mm;align-items:flex-end;margin-bottom:1.5mm;font-size:8.5pt;font-weight:800;color:var(--ink)}
+.pie .tot span.l{flex:1;border-bottom:.3mm solid #9c8aa5;height:5mm}
+@media print{
+ body{background:#fff}.barra,.ayuda,#menuTop,header,nav{display:none!important}
+ .hojas{padding:0;gap:0;display:flex;flex-wrap:nowrap;justify-content:flex-start}
+ .hoja{box-shadow:none;margin:0;page-break-after:always;break-after:page}
+ .una .hoja{break-after:page}
+}
+</style>
+</head>
+<body>
+<script src="menu.js"></script>
+<div class="barra">
+ <div><label>Lista de precios</label><select id="lista"><option value="comercio">Comercio (por unidad)</option><option value="mayorista">Mayorista (por caja)</option><option value="tienda">Tienda (precio x1)</option></select></div>
+ <div><label>Tamaño</label><select id="modo"><option value="dos">2 hojas A5 en una A4</option><option value="una">1 hoja A5</option></select></div>
+ <button id="imp">🖨️ Imprimir</button>
+</div>
+<div class="ayuda">Al imprimir elegí <b>papel A4 horizontal</b> (para 2 por hoja) o <b>A5</b> (1 por hoja), escala 100% y sin márgenes. Después cortás la A4 por la mitad. Los precios salen del catálogo actual: si cambiás un precio en el sistema, la hoja se actualiza sola. Para guardarla como PDF elegí "Guardar como PDF" en la impresora.</div>
+<div class="hojas dos" id="hojas"></div>
+<style id="pg">@page{size:A4 landscape;margin:0}</style>
+<script>
+const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ORDEN_CAT=["dulces","hamburguesa","pancho","variedad","gastronomic"];
+const nrm=c=>String(c||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const rango=c=>{const n=nrm(c);const i=ORDEN_CAT.findIndex(k=>n.startsWith(k));return i<0?99:i};
+const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
+const TITULO={comercio:"Lista de precios · por unidad",mayorista:"Lista de precios · por caja",tienda:"Lista de precios"};
+let prods=[];
+async function cargar(){
+ const neg=$("lista").value;
+ $("hojas").innerHTML='<div style="padding:30px;color:#76657d">Cargando productos…</div>';
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/productos_catalogo?negocio=eq."+neg+"&activo=eq.true&select=nombre,categoria,precio,tiers&order=nombre.asc",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
+  if(!r.ok)throw new Error(r.status);
+  prods=(await r.json()).map(p=>({nombre:p.nombre,cat:p.categoria||"Otros",precio:neg==="tienda"?((p.tiers&&p.tiers[0]&&p.tiers[0].precio)??p.precio):p.precio}));
+  prods.sort((a,b)=>rango(a.cat)-rango(b.cat)||a.cat.localeCompare(b.cat)||a.nombre.localeCompare(b.nombre));
+  dibujar();
+ }catch(e){$("hojas").innerHTML='<div style="padding:30px;color:#9b3040">No se pudo cargar el catálogo ('+esc(e.message)+')</div>'}
+}
+function hojaHtml(rh,fs){
+ let html="",cat="";
+ prods.forEach(p=>{
+  if(p.cat!==cat){cat=p.cat;html+=`<div class="cat">${esc(cat)}</div>`}
+  html+=`<div class="fila"><span class="n">${esc(p.nombre)}</span><span class="p">${p.precio==null?"consultar":money(p.precio)}</span><span class="c"></span></div>`;
+ });
+ const hoy=new Date().toLocaleDateString("es-AR");
+ return `<div class="hoja" style="--rh:${rh}mm;font-size:${fs}pt">
+  <div class="enc"><div><h1>Petits Cadeaux</h1><small>Distribuidora · Pedido en mano</small></div><div class="lista">${TITULO[$("lista").value]}<br><span style="font-weight:500;color:#76657d">${hoy}</span></div></div>
+  <div class="datos"><div>Comercio:</div><div>WhatsApp:</div><div class="full">Domicilio:</div><div>Entrega: mié / vie ___/___</div><div>Pago: efectivo / transf.</div></div>
+  <div class="cols">${html}</div>
+  <div class="pie"><div class="tot"><b>TOTAL $</b><span class="l"></span><b>Observaciones</b><span class="l" style="flex:2"></span></div>Entregas miércoles y viernes · pedidos hasta las 23 hs del día anterior · WhatsApp 11 2362-7052 · Precios sujetos a cambio</div>
+ </div>`;
+}
+function dibujar(){
+ // alto de fila para que entren todos los productos en 2 columnas
+ const filas=prods.length+new Set(prods.map(p=>p.cat)).size*1.4+1;
+ const disponible=2*134; // mm de columna útil en A5
+ const rh=Math.max(3.4,Math.min(6.2,disponible/filas));
+ const fs=Math.max(6.2,Math.min(9.5,rh*1.85));
+ const h=hojaHtml(rh.toFixed(2),fs.toFixed(1));
+ $("hojas").innerHTML=h+h;
+}
+function modo(){
+ const un=$("modo").value==="una";
+ $("hojas").className="hojas "+(un?"una":"dos");
+ $("pg").textContent=un?"@page{size:A5 portrait;margin:0}":"@page{size:A4 landscape;margin:0}";
+}
+$("lista").onchange=cargar;$("modo").onchange=modo;
+$("imp").onclick=()=>{modo();window.print()};
+modo();cargar();
+</script>
+</body>
+</html>
