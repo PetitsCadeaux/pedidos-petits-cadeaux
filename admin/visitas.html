@@ -125,8 +125,9 @@ async function cargarVisitas(){
   // Trae solo lo de los últimos 90 días (alcanza para el resumen de abajo)
   const desde=new Date(Date.now()-90*24*60*60*1000).toISOString();
   const H={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token};
-  let r=await fetch(SUPABASE_URL+"/rest/v1/visitas?select=pagina,creado_en,origen,medio,campania&creado_en=gte."+desde+"&order=creado_en.asc",{headers:H});
+  let r=await fetch(SUPABASE_URL+"/rest/v1/visitas?select=pagina,creado_en,origen,medio,campania,evento&creado_en=gte."+desde+"&order=creado_en.asc",{headers:H});
   // Si todavía no se corrió sql-visitas-origen.sql, carga sin el origen.
+  if(r.status===400)r=await fetch(SUPABASE_URL+"/rest/v1/visitas?select=pagina,creado_en,origen,medio,campania&creado_en=gte."+desde+"&order=creado_en.asc",{headers:H});
   if(r.status===400)r=await fetch(SUPABASE_URL+"/rest/v1/visitas?select=pagina,creado_en&creado_en=gte."+desde+"&order=creado_en.asc",{headers:H});
   if(r.status===401){logout();throw new Error("Sesión vencida, ingresá de nuevo.")}
   visitas=await r.json();
@@ -137,9 +138,25 @@ async function cargarVisitas(){
  }
 }
 
+const PASOS=[["ViewContent","Vieron un producto"],["AddToCart","Agregaron al carrito"],["InitiateCheckout","Abrieron el pedido"],["CotizoEnvio","Calcularon el envío"],["Purchase","Terminaron el pedido"]];
+function embudoHTML(esAd){
+ const ev=visitas.filter(v=>v.evento&&v.pagina==="tienda"&&(origenFiltro==="anuncio"?esAd(v):origenFiltro==="otros"?!esAd(v):true));
+ if(!ev.length)return '<div class="cat-title">Recorrido de compra (tienda)</div><div style="font-size:13px;color:#76657d;padding:6px 0 12px">Todavía no hay datos del recorrido. Se empiezan a registrar desde que se corre sql-visitas-embudo.sql.</div>';
+ const base=soloVisitasTienda(esAd);
+ const filas=[["Entraron a la tienda",base]].concat(PASOS.map(([k,t])=>[t,ev.filter(v=>v.evento===k).length]));
+ const max=Math.max(1,...filas.map(f=>f[1]));
+ return '<div class="cat-title">Recorrido de compra (tienda)</div><div class="bars">'+filas.map(([t,n],i)=>{
+  const pct=i>0&&filas[i-1][1]?Math.round(n/filas[i-1][1]*100)+"%":"";
+  return `<div class="bar-row" style="grid-template-columns:118px 1fr 78px"><div class="bar-date" style="font-size:12.5px">${t}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,n/max*100)}%"></div></div><div class="bar-val" style="text-align:right">${n}${pct?` <span style="font-size:10px;color:#76657d;font-weight:500">${pct}</span>`:""}</div></div>`;
+ }).join("")+'</div>';
+}
+function soloVisitasTienda(esAd){
+ return visitas.filter(v=>!v.evento&&v.pagina==="tienda"&&(origenFiltro==="anuncio"?esAd(v):origenFiltro==="otros"?!esAd(v):true)).length;
+}
 function render(){
  const esAd=v=>v.medio==="paid"||(v.origen&&v.medio!=="organic"&&v.medio!=="bio");
- let datos=paginaFiltro?visitas.filter(v=>v.pagina===paginaFiltro):visitas;
+ const soloVisitas=visitas.filter(v=>!v.evento);
+ let datos=paginaFiltro?soloVisitas.filter(v=>v.pagina===paginaFiltro):soloVisitas;
  const nAd=datos.filter(esAd).length;
  if(origenFiltro==="anuncio")datos=datos.filter(esAd);
  else if(origenFiltro==="otros")datos=datos.filter(v=>!esAd(v));
@@ -176,7 +193,8 @@ function render(){
    <div class="stat"><div class="stat-num">${total30}</div><div class="stat-label">Últimos 30 días</div></div>
    <div class="stat"><div class="stat-num">${totalGeneral}</div><div class="stat-label">Últimos 90 días</div></div>
   </div>
-  <div class="cat-title">De anuncios en los últimos 90 días: ${nAd} de ${visitas.filter(v=>!paginaFiltro||v.pagina===paginaFiltro).length}</div>
+  <div class="cat-title">De anuncios en los últimos 90 días: ${nAd} de ${soloVisitas.filter(v=>!paginaFiltro||v.pagina===paginaFiltro).length}</div>
+  ${embudoHTML(esAd)}
   <div class="cat-title">Visitas por día (últimos 14 días)</div>
   <div class="bars">
    ${Object.entries(porDia).map(([fecha,n])=>`

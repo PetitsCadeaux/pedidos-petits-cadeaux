@@ -322,8 +322,20 @@ const TIKTOK_PIXEL_ID="";
   if(META_PIXEL_ID){!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',META_PIXEL_ID);fbq('track','PageView');}
   if(TIKTOK_PIXEL_ID){!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var n="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=n,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=n+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load(TIKTOK_PIXEL_ID);ttq.page()}(window,document,'ttq');}
 })();
+// Embudo propio: cuenta una vez por sesión cada paso (ver producto, agregar, abrir pedido,
+// calcular envío, comprar) para ver en admin/visitas.html dónde se frena la gente.
+function logEvento(ev){
+  try{
+    const k="ev_"+ev;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1");
+    let u=null;try{u=JSON.parse(sessionStorage.getItem("utm_visita")||"null")}catch(e){}
+    if(!u){const q=new URLSearchParams(location.search);u={origen:(q.get("utm_source")||"").slice(0,40),medio:(q.get("utm_medium")||"").slice(0,40),campania:(q.get("utm_campaign")||"").slice(0,60)};if(u.origen)sessionStorage.setItem("utm_visita",JSON.stringify(u));}
+    const body={pagina:"tienda",evento:ev};if(u.origen){body.origen=u.origen;body.medio=u.medio;body.campania=u.campania;}
+    fetch(SUPABASE_URL+"/rest/v1/visitas",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body),keepalive:true}).catch(()=>{});
+  }catch(e){}
+}
 function track(ev,d){
   d=d||{};
+  logEvento(ev);
   try{
     if(window.fbq){const m={ViewContent:"ViewContent",AddToCart:"AddToCart",InitiateCheckout:"InitiateCheckout",Purchase:"Purchase"}[ev];if(m)fbq('track',m,{content_name:d.name,value:d.value,currency:"ARS"});}
     if(window.ttq){const m={ViewContent:"ViewContent",AddToCart:"AddToCart",InitiateCheckout:"InitiateCheckout",Purchase:"CompletePayment"}[ev];if(m)ttq.track(m,{content_name:d.name,value:d.value,currency:"ARS"});}
@@ -613,6 +625,7 @@ async function cotizarEnvio(){
     }
     const opciones=Array.isArray(data.opciones)?data.opciones:[];
     envioOpcionesDisponibles=opciones;
+    track("CotizoEnvio",{});
   }catch(e){
     envioOpcionesDisponibles=[];
     cont.innerHTML='<div class="cart-item" style="color:#b3261e">No se pudo calcular el envío automático: '+(e.message||"error desconocido")+'</div>';
