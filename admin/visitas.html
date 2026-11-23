@@ -138,7 +138,7 @@ async function cargarVisitas(){
  }
 }
 
-const PASOS=[["ViewContent","Vieron un producto"],["AddToCart","Agregaron al carrito"],["InitiateCheckout","Abrieron el pedido"],["CotizoEnvio","Calcularon el envío"],["Purchase","Terminaron el pedido"]];
+const PASOS=[["Toque","Tocaron la pantalla"],["Permanece10s","Se quedaron 10 segundos"],["Scroll","Bajaron por la página"],["ViewContent","Vieron un producto"],["AddToCart","Agregaron al carrito"],["InitiateCheckout","Abrieron el pedido"],["CotizoEnvio","Calcularon el envío"],["Purchase","Terminaron el pedido"]];
 function embudoHTML(esAd){
  const ev=visitas.filter(v=>v.evento&&v.pagina==="tienda"&&(origenFiltro==="anuncio"?esAd(v):origenFiltro==="otros"?!esAd(v):true));
  if(!ev.length)return '<div class="cat-title">Recorrido de compra (tienda)</div><div style="font-size:13px;color:#76657d;padding:6px 0 12px">Todavía no hay datos del recorrido. Se empiezan a registrar desde que se corre sql-visitas-embudo.sql.</div>';
