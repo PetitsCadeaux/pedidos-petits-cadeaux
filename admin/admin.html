@@ -278,6 +278,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
    <label>WhatsApp<input id="edWhatsapp" inputmode="tel"></label>
    <label class="ed-full">Domicilio<input id="edDomicilio"></label>
    <label>Fecha del pedido<input id="edFecha" type="date"></label>
+   <label>Fecha de entrega<input id="edFechaEntrega" type="date"></label>
    <label>Día de entrega<select id="edDia"><option>Miércoles</option><option>Viernes</option></select></label>
    <label>Observaciones<input id="edObs"></label>
   </div>
@@ -1113,6 +1114,7 @@ function abrirEditar(id){
  const sel=$("edDia");
  if(![...sel.options].some(op=>op.value===dia)){const op=document.createElement("option");op.textContent=dia;sel.appendChild(op)}
  sel.value=dia;
+ $("edFechaEntrega").value=(o.fecha_entrega||"").slice(0,10);
  $("editarAviso").innerHTML=editBloqueado?'<div class="err" style="background:#fff7e6;color:#8a5a00;border-color:#f3dfb0">Este pedido ya tiene un comprobante emitido ('+(o.factura_cae?"factura":"remito")+'). Podés corregir los datos de contacto y entrega, pero no los productos ni el importe.</div>':"";
  $("edAgregar").style.display=editBloqueado?"none":"flex";
  $("editarMsg").innerHTML="";
@@ -1185,6 +1187,25 @@ function editAgregarEnvio(){
  renderEditItems();
  const f=$("edItems").querySelectorAll(".ed-row");const inp=f[f.length-1]&&f[f.length-1].querySelectorAll("input")[1];if(inp&&precio==null)inp.focus();
 }
+const DIAS_SEM=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function diaDeIso(iso){const [y,m,d]=iso.split("-").map(Number);return DIAS_SEM[new Date(y,m-1,d).getDay()]}
+// Cambiar la fecha de entrega ajusta el día; cambiar el día mueve la fecha al próximo de ese día.
+document.addEventListener("change",e=>{
+ if(e.target&&e.target.id==="edFechaEntrega"){
+  const v=e.target.value;if(!v)return;
+  const n=diaDeIso(v),sel=$("edDia");
+  if(![...sel.options].some(op=>op.value===n)){const op=document.createElement("option");op.textContent=n;sel.appendChild(op)}
+  sel.value=n;
+ }else if(e.target&&e.target.id==="edDia"){
+  const idx=DIAS_SEM.indexOf(e.target.value);if(idx<0)return;
+  const base=new Date();base.setHours(0,0,0,0);
+  const actual=$("edFechaEntrega").value;
+  if(actual&&diaDeIso(actual)===e.target.value)return;
+  while(base.getDay()!==idx)base.setDate(base.getDate()+1);
+  $("edFechaEntrega").value=isoLocal(base);
+ }
+});
 async function guardarEdicion(){
  const o=orders.find(x=>x.id===editId);
  if(!o)return;
@@ -1196,6 +1217,13 @@ async function guardarEdicion(){
  const detalle=[];
  Object.keys(cambios).forEach(k=>{if((o[k]||null)!==(cambios[k]||null))detalle.push(nombres[k]+": "+(o[k]||"vacío")+" → "+(cambios[k]||"vacío"))});
  const body={...cambios};
+ const feNueva=$("edFechaEntrega").value||null;
+ const feAnt=(o.fecha_entrega||"").slice(0,10)||null;
+ if(feNueva!==feAnt){
+  body.fecha_entrega=feNueva;
+  if(feNueva)body.dia_entrega=diaDeIso(feNueva);
+  detalle.push("Fecha de entrega: "+(feAnt?feAnt.split("-").reverse().join("/"):"sin fecha")+" → "+(feNueva?feNueva.split("-").reverse().join("/"):"sin fecha"));
+ }
  const fechaNueva=$("edFecha").value;
  if(fechaNueva&&fechaNueva!==fechaLocalISO(o.created_at)){
   // se cambia el día y se conserva la hora original del pedido
