@@ -107,7 +107,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  <div class="card">
   <div class="topbar">
    <strong id="countLabel">0 clientes</strong>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-top primary" id="abrirCobranzaBtn">Registrar cobranza</button><button type="button" class="btn-top" id="abrirSaldoBtn">Cargar saldo anterior</button></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn-top primary" id="abrirCobranzaBtn">Registrar cobranza</button><button type="button" class="btn-top" id="abrirSaldoBtn">Cargar saldo anterior</button><button type="button" class="btn-top" id="abrirUnifBtn">Unificar clientes</button></div>
    <button class="logout" id="exportExcelBtn" style="padding:9px 15px;background:#fff;border:1px solid #ddcde4;color:#654273;border-radius:15px;font:800 13px Inter,Arial,sans-serif;cursor:pointer">⬇️ Exportar Excel</button>
   </div>
   <input id="searchClients" class="search" placeholder="🔎 Buscar por domicilio o comercio...">
@@ -144,6 +144,22 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  </div>
  </div>
 
+ <div class="modal-bg" id="mUnif">
+ <div class="card" style="max-width:min(980px,96vw)!important">
+  <button type="button" class="modal-x" data-close>✕</button>
+  <h2 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Unificar clientes</h2>
+  <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Cuando un mismo cliente quedó cargado dos veces (nombre distinto, dirección mal escrita), se juntan en uno solo: pedidos, cobranzas y saldo. <b>No se borra nada</b> y se puede separar de nuevo.</p>
+  <div id="unifMsg"></div>
+  <h4 style="margin:12px 0 6px">Posibles duplicados</h4>
+  <div id="unifSug"></div>
+  <h4 style="margin:16px 0 6px">Unir a mano</h4>
+  <div class="row2"><label>Cliente que queda<select id="unifA"></select></label><label>Cliente que se une a ese<select id="unifB"></select></label></div>
+  <button class="btn-main" id="unifManualBtn" style="margin-top:10px">Unir estos dos clientes</button>
+  <h4 style="margin:16px 0 6px">Clientes ya unificados</h4>
+  <div id="unifLista"></div>
+ </div>
+ </div>
+
  <div class="modal-bg" id="mSaldo">
  <div class="card">
   <button type="button" class="modal-x" data-close>✕</button>
@@ -173,6 +189,8 @@ const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0);
 const normDom=d=>(d||"").trim().toLowerCase().replace(/\s+/g," ");
+let unif={}; // domicilios unificados: origen -> destino (tabla clientes_unificados)
+const canon=d=>{const k=normDom(d);return unif[k]||k};
 
 let session=JSON.parse(localStorage.getItem("admin_session")||"null");
 let orders=[];
@@ -266,32 +284,35 @@ async function apiFetch(path,options={}){
 }
 
 function buildClients(){
- const map={};
+ const map={},orig={};
+ [...orders,...pagos,...saldosIniciales].forEach(x=>{if(x.domicilio&&!orig[normDom(x.domicilio)])orig[normDom(x.domicilio)]=x.domicilio});
+ const nuevo=(key,dom)=>({key,domicilio:orig[key]||dom,comercios:new Set(),alias:new Set(),pedidos:[],debe:0,confirmar:false});
  orders.forEach(o=>{
   if(!o.domicilio)return;
-  const key=normDom(o.domicilio);
-  if(!map[key])map[key]={key,domicilio:o.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  const key=canon(o.domicilio);
+  if(!map[key])map[key]=nuevo(key,o.domicilio);
   map[key].comercios.add(o.comercio||"Sin nombre");
+  if(normDom(o.domicilio)!==key)map[key].alias.add(o.domicilio);
   map[key].pedidos.push(o);
   if(o.total==null)map[key].confirmar=true;
   else map[key].debe+=o.total;
  });
  pagos.forEach(p=>{
-  const key=normDom(p.domicilio);
-  if(!map[key])map[key]={key,domicilio:p.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  const key=canon(p.domicilio);
+  if(!map[key])map[key]=nuevo(key,p.domicilio);
   if(!map[key].pagos)map[key].pagos=[];
   map[key].pagos.push(p);
  });
  saldosIniciales.forEach(s=>{
-  const key=normDom(s.domicilio);
-  if(!map[key])map[key]={key,domicilio:s.domicilio,comercios:new Set(),pedidos:[],debe:0,confirmar:false};
+  const key=canon(s.domicilio);
+  if(!map[key])map[key]=nuevo(key,s.domicilio);
   if(!map[key].saldos)map[key].saldos=[];
   map[key].saldos.push(s);
   map[key].debe+=(s.monto||0);
  });
  clients=Object.values(map).map(c=>{
   const haber=(c.pagos||[]).reduce((s,p)=>s+(p.monto||0),0);
-  return {...c,comercios:[...c.comercios],pagos:c.pagos||[],saldos:c.saldos||[],haber,saldo:c.debe-haber};
+  return {...c,comercios:[...c.comercios],alias:[...c.alias],pagos:c.pagos||[],saldos:c.saldos||[],haber,saldo:c.debe-haber};
  }).sort((a,b)=>b.saldo-a.saldo);
 }
 
@@ -350,7 +371,7 @@ function renderClients(){
    <div class="client-top">
     <div>
      <div class="client-addr">📍 ${c.domicilio}</div>
-     <div class="client-shops">${c.comercios.join(", ")} · ${c.pedidos.length} pedido${c.pedidos.length===1?"":"s"}</div>
+     <div class="client-shops">${c.comercios.join(", ")} · ${c.pedidos.length} pedido${c.pedidos.length===1?"":"s"}${c.alias&&c.alias.length?` · <span title="${esc(c.alias.join(" | "))}">🔗 unificado (${c.alias.length})</span>`:""}</div>
     </div>
     <div class="client-right">
      <div class="client-cols"><div><span>Facturado</span>${money(c.debe)}</div><div><span>Cobrado</span>${money(c.haber)}</div></div>
@@ -387,6 +408,7 @@ async function cargarTodo(){
    apiFetch("/rest/v1/saldos_iniciales?select=*&order=fecha.desc"),
    apiFetch("/rest/v1/pagos_clientes_pedidos?select=pago_id,pedido_id,monto")
   ]);
+  unif={};try{const ru=await apiFetch("/rest/v1/clientes_unificados?select=origen,destino");if(ru.ok){(await ru.json()).forEach(u=>unif[u.origen]=u.destino)}}catch(e){}
   orders=(await rOrders.json()).filter(o=>!o.anulado);
   pagos=await rPagos.json();
   saldosIniciales=await rSaldos.json();
@@ -403,7 +425,7 @@ async function cargarTodo(){
 }
 
 // ---- Registrar cobranza: se reparte entre los pedidos más antiguos sin cobrar ----
-function clienteDelModal(){const d=$("pagoDomicilio").value;return d?clients.find(x=>x.key===normDom(d)):null}
+function clienteDelModal(){const d=$("pagoDomicilio").value;return d?clients.find(x=>x.key===canon(d)):null}
 function renderRepartoCobro(){
  const c=clienteDelModal(),box=$("cobroReparto"),info=$("cobroInfo");
  if(!c){box.innerHTML="";info.textContent="";return}
@@ -562,6 +584,77 @@ function abrirCobranza(key){
  abrirModal("mCobranza");
  setTimeout(()=>(c?$("pagoMonto"):$("pagoDomicilio")).focus(),50);
 }
+// ---- Unificar clientes duplicados ----
+const firma=t=>String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\b(av|avda|avenida|calle|pasaje|pje)\b/g,"").replace(/[^a-z0-9]/g,"");
+function lev(a,b){
+ if(a===b)return 0;if(!a.length)return b.length;if(!b.length)return a.length;
+ let prev=Array.from({length:b.length+1},(_,i)=>i);
+ for(let i=1;i<=a.length;i++){const cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}
+ return prev[b.length];
+}
+const parecidos=(a,b,min)=>{
+ if(!a||!b)return false;
+ if(a===b)return true;
+ const c=a.length<b.length?a:b,l=a.length<b.length?b:a;
+ if(c.length>=6&&l.includes(c))return true;
+ return a.length>=5&&b.length>=5&&1-lev(a,b)/Math.max(a.length,b.length)>=min;
+};
+function telsDe(c){return new Set(c.pedidos.map(o=>String(o.whatsapp||"").replace(/\D/g,"").slice(-8)).filter(x=>x.length===8))}
+function sugerencias(){
+ const info=clients.map(c=>({c,dom:firma(c.domicilio),shops:c.comercios.map(firma).filter(Boolean),tels:telsDe(c)}));
+ const out=[];
+ for(let i=0;i<info.length;i++)for(let j=i+1;j<info.length;j++){
+  const a=info[i],b=info[j],why=[];
+  if(a.shops.some(x=>b.shops.some(y=>parecidos(x,y,.84))))why.push("comercio parecido");
+  if(parecidos(a.dom,b.dom,.88))why.push("dirección parecida");
+  if([...a.tels].some(t=>b.tels.has(t)))why.push("mismo WhatsApp");
+  if(why.length)out.push({a:a.c,b:b.c,why});
+ }
+ return out.sort((x,y)=>y.why.length-x.why.length).slice(0,40);
+}
+function cardCli(c){return `<div style="flex:1;min-width:200px"><strong>${esc(c.domicilio)}</strong><br><span style="font-size:12px;color:var(--muted)">${esc(c.comercios.join(", "))} · ${c.pedidos.length} pedido${c.pedidos.length===1?"":"s"} · ${c.saldo>0?"debe "+money(c.saldo):"al día"}</span></div>`}
+function renderUnif(){
+ const sug=sugerencias();
+ $("unifSug").innerHTML=sug.length?sug.map((x,i)=>{
+  const aPrincipal=x.a.pedidos.length>=x.b.pedidos.length,p=aPrincipal?x.a:x.b,q=aPrincipal?x.b:x.a;
+  return `<div style="border:1px solid #eadcef;border-radius:14px;padding:10px 12px;margin-bottom:8px;background:#fbf7fc">
+   <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">${cardCli(p)}<span style="align-self:center">⇄</span>${cardCli(q)}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><span style="font-size:12px;color:#a15b00">${x.why.join(" · ")}</span>
+   <button type="button" class="btn-top primary" style="margin-left:auto" onclick="unirClientes(${JSON.stringify(q.key).replace(/"/g,"&quot;")},${JSON.stringify(p.key).replace(/"/g,"&quot;")})">Unir (queda el de la izquierda)</button>
+   <button type="button" class="btn-top" onclick="unirClientes(${JSON.stringify(p.key).replace(/"/g,"&quot;")},${JSON.stringify(q.key).replace(/"/g,"&quot;")})">Que quede el otro</button></div></div>`}).join(""):'<div class="empty" style="margin:0">No encontré clientes que parezcan repetidos.</div>';
+ const opts=clients.slice().sort((a,b)=>a.domicilio.localeCompare(b.domicilio)).map(c=>`<option value="${esc(c.key)}">${esc(c.domicilio)} · ${esc(c.comercios.join(", "))}</option>`).join("");
+ $("unifA").innerHTML='<option value="">Elegir…</option>'+opts;$("unifB").innerHTML='<option value="">Elegir…</option>'+opts;
+ const ids=Object.keys(unif);
+ $("unifLista").innerHTML=ids.length?ids.map(o=>`<div class="mini-row"><span>${esc(o)} → <b>${esc(unif[o])}</b></span><span><button class="del-pago" style="font-size:13px" onclick="separarCliente(${JSON.stringify(o).replace(/"/g,"&quot;")})">Separar</button></span></div>`).join(""):'<div class="mini-row"><span>Todavía no unificaste ninguno.</span></div>';
+}
+async function rpcUnif(fn,body,okMsg){
+ $("unifMsg").innerHTML="";
+ try{
+  const r=await apiFetch("/rest/v1/rpc/"+fn,{method:"POST",body:JSON.stringify(body)});
+  if(!r.ok){const d=await r.json().catch(()=>({}));const m=d.message||"error";throw new Error(/function|schema cache|does not exist|clientes_unificados/i.test(m)?"Falta correr el SQL sql-unificar-clientes.sql en Supabase.":m)}
+  try{if(window.Audit)Audit.log(null,"Clientes: "+okMsg,JSON.stringify(body))}catch(e){}
+  await cargarTodo();renderUnif();
+  $("unifMsg").innerHTML='<div class="ok">✅ '+okMsg+'.</div>';
+ }catch(e){$("unifMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo")+'</div>'}
+}
+function unirClientes(origen,destino){
+ const o=clients.find(c=>c.key===origen),d=clients.find(c=>c.key===destino);
+ if(!o||!d)return;
+ if(!confirm("¿Unir estos clientes?\n\n"+o.domicilio+" ("+o.comercios.join(", ")+")\n→ pasa a ser parte de →\n"+d.domicilio+" ("+d.comercios.join(", ")+")\n\nNo se borra nada y se puede separar después."))return;
+ rpcUnif("unificar_clientes",{p_origen:origen,p_destino:destino},"Clientes unificados");
+}
+function separarCliente(origen){
+ if(!confirm("¿Separar este cliente? Vuelve a mostrarse por su cuenta."))return;
+ rpcUnif("separar_cliente",{p_origen:origen},"Cliente separado");
+}
+$("abrirUnifBtn").addEventListener("click",()=>{$("unifMsg").innerHTML="";renderUnif();abrirModal("mUnif")});
+$("unifManualBtn").addEventListener("click",()=>{
+ const a=$("unifA").value,b=$("unifB").value;
+ if(!a||!b)return $("unifMsg").innerHTML='<div class="err">Elegí los dos clientes.</div>';
+ if(a===b)return $("unifMsg").innerHTML='<div class="err">Elegiste el mismo cliente dos veces.</div>';
+ unirClientes(b,a);
+});
+
 $("abrirCobranzaBtn").addEventListener("click",()=>abrirCobranza(null));
 $("abrirSaldoBtn").addEventListener("click",()=>{$("saldoMsg").innerHTML="";abrirModal("mSaldo")});
 document.querySelectorAll(".modal-bg").forEach(m=>m.addEventListener("click",e=>{if(e.target===m||e.target.hasAttribute("data-close"))cerrarModales()}));
