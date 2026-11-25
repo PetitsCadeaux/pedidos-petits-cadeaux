@@ -39,6 +39,7 @@
  +'.admin-menu-drop a:hover{background:#f8edf4;color:#542477}'
  +'.admin-menu-drop a.actual{background:#f4eaf9;color:#542477;font-weight:700}'
  +'.menu-sep{padding:8px 11px 3px;font:800 10px Inter,Arial,sans-serif;color:#76657d;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid #eaddea;margin-top:5px}'
+ +'@media(max-width:700px){.admin-menu{gap:6px!important;margin-top:8px}.admin-menu-cat{position:static}.admin-menu-btn{padding:8px 11px;font-size:13px;gap:6px;border-radius:11px}.admin-menu-btn .mi{width:15px;height:15px}.admin-menu-drop,.admin-menu-drop.right{left:0!important;right:0!important;min-width:0;max-height:70vh;overflow:auto}.admin-menu-drop a{padding:12px 14px}}'
  +'@media print{.admin-menu{display:none}}';
  const esc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
  function build(){
