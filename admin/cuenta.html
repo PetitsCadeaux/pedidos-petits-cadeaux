@@ -210,7 +210,7 @@ function recordatorioWA(key){
  const lineas=pend.slice(0,12).map(o=>"• "+fmtFechaCorta(o.created_at)+" – "+money(faltaCobrar(o))).join("\n");
  const resto=pend.length>12?"\n• y "+(pend.length-12)+" pedido"+(pend.length-12===1?"":"s")+" más":"";
  const saldoAnt=(c.saldos||[]).reduce((s,x)=>s+(x.monto||0),0);
- const msg="Hola"+(nombre?" "+nombre:"")+"! Te escribimos de Petits Cadeaux 🐞\n"
+ const msg="Hola"+(nombre?" "+nombre:"")+"! Te escribimos de Petits Cadeaux\n"
   +"Te pasamos el detalle de tu cuenta:\n"+(lineas?lineas+resto+"\n":"")
   +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
   +"*Total a pagar: "+money(c.saldo)+"*\n"

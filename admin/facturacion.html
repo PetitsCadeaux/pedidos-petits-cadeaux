@@ -143,7 +143,7 @@ function avisarWA(id){
  const i=info(o);
  const doc=i.factura?"Factura C "+fmtNro(o.factura_pto_vta,o.factura_nro):"Remito "+fmtNro(o.remito_pto_vta||1,o.remito_nro);
  const msg="Hola"+(o.comercio?" "+o.comercio:"")+"! Te enviamos tu "+doc+" por "+money(o.total)+" (pedido #"+o.id+").\n"
-  +(i.cobrado?"Ya figura abonado. ¡Gracias!":"Cuando puedas, avisanos el pago. ¡Gracias por tu compra!")+" 🐞";
+  +(i.cobrado?"Ya figura abonado. ¡Gracias!":"Cuando puedas, avisanos el pago. ¡Gracias por tu compra!")+"";
  window.open("https://wa.me/"+waNumero(o.whatsapp)+"?text="+encodeURIComponent(msg),"_blank");
 }
 async function cargar(){
