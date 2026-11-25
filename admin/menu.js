@@ -39,7 +39,24 @@
  +'.admin-menu-drop a:hover{background:#f8edf4;color:#542477}'
  +'.admin-menu-drop a.actual{background:#f4eaf9;color:#542477;font-weight:700}'
  +'.menu-sep{padding:8px 11px 3px;font:800 10px Inter,Arial,sans-serif;color:#76657d;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid #eaddea;margin-top:5px}'
- +'@media(max-width:700px){.admin-menu{gap:6px!important;margin-top:8px}.admin-menu-cat{position:static}.admin-menu-btn{padding:8px 11px;font-size:13px;gap:6px;border-radius:11px}.admin-menu-btn .mi{width:15px;height:15px}.admin-menu-drop,.admin-menu-drop.right{left:0!important;right:0!important;min-width:0;max-height:70vh;overflow:auto}.admin-menu-drop a{padding:12px 14px}}'
+ +'.admin-menu-toggle,.admin-menu-back,.admin-menu-head{display:none}'
+ +'@media(max-width:700px){'
+ +'.admin-menu-toggle{display:flex;position:fixed;top:10px;left:10px;z-index:900;width:44px;height:44px;border-radius:14px;border:1px solid #ead9e8;background:#fff;color:#542477;box-shadow:0 6px 18px rgba(84,36,119,.22);align-items:center;justify-content:center;cursor:pointer;padding:0}'
+ +'.admin-menu-toggle svg{width:22px;height:22px}'
+ +'.admin-menu-back{display:block;position:fixed;inset:0;background:rgba(40,16,56,.45);z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s}'
+ +'.admin-menu-back.on{opacity:1;pointer-events:auto}'
+ +'.admin-menu{position:fixed!important;top:0;left:0;bottom:0;width:min(84vw,330px);margin:0!important;z-index:1001;background:#fff;display:flex!important;flex-direction:column;flex-wrap:nowrap!important;justify-content:flex-start!important;gap:4px!important;padding:12px 12px 24px;overflow-y:auto;transform:translateX(-105%);transition:transform .22s ease;box-shadow:8px 0 30px rgba(84,36,119,.25)}'
+ +'.admin-menu.drawer-open{transform:none}'
+ +'.admin-menu-head{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 10px;font:700 18px Cormorant Garamond,Georgia,serif;color:#542477;border-bottom:1px solid #f0e4f1;margin-bottom:6px}'
+ +'.admin-menu-head button{border:none;background:#f5e9f6;color:#542477;width:34px;height:34px;border-radius:10px;font-size:18px;cursor:pointer}'
+ +'.admin-menu-cat{position:static;width:100%}'
+ +'.admin-menu-btn{width:100%;justify-content:flex-start;padding:13px 12px;font-size:15px;gap:10px;border-radius:12px;border-color:transparent;background:#faf4fb}'
+ +'.admin-menu-btn .car{margin-left:auto}'
+ +'.admin-menu-btn.open .car{transform:rotate(225deg) translate(-2px,-2px)}'
+ +'.admin-menu-drop,.admin-menu-drop.right{position:static;min-width:0;box-shadow:none;border:none;padding:2px 0 6px 10px;margin:0;background:transparent;left:auto!important;right:auto!important}'
+ +'.admin-menu-drop a{padding:12px 14px;font-size:15px}'
+ +'header{padding-top:58px}'
+ +'}'
  +'@media print{.admin-menu{display:none}}';
  const esc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
  function build(){
@@ -57,6 +74,16 @@
     +'</div></div>';
   }).join("");
   header.appendChild(nav);
+  const head=document.createElement("div");head.className="admin-menu-head";head.innerHTML='<span>Menú</span><button type="button" aria-label="Cerrar menú">✕</button>';nav.insertBefore(head,nav.firstChild);
+  const toggle=document.createElement("button");toggle.type="button";toggle.className="admin-menu-toggle";toggle.setAttribute("aria-label","Abrir menú");
+  toggle.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  const back=document.createElement("div");back.className="admin-menu-back";
+  document.body.appendChild(toggle);document.body.appendChild(back);
+  const abrirDrawer=()=>{nav.classList.add("drawer-open");back.classList.add("on");
+   if(!nav.querySelector(".admin-menu-drop.open")){const b=nav.querySelector(".admin-menu-btn.actual");if(b){b.classList.add("open");nav.querySelector('.admin-menu-drop[data-drop="'+b.dataset.cat+'"]').classList.add("open")}}};
+  const cerrarDrawer=()=>{nav.classList.remove("drawer-open");back.classList.remove("on")};
+  toggle.addEventListener("click",e=>{e.stopPropagation();abrirDrawer()});
+  back.addEventListener("click",cerrarDrawer);head.querySelector("button").addEventListener("click",cerrarDrawer);
   nav.querySelectorAll(".admin-menu-btn").forEach(btn=>btn.addEventListener("click",e=>{
    e.stopPropagation();
    const drop=nav.querySelector('.admin-menu-drop[data-drop="'+btn.dataset.cat+'"]');
