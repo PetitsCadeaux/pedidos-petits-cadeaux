@@ -1,0 +1,40 @@
+name: Respaldo semanal de datos
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # lunes 04:00 hora Argentina
+  workflow_dispatch: {}    # también se puede correr a mano
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar tablas de Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -u
+          mkdir out; fallos=""
+          for t in pedidos_distribuidora productos_catalogo stock_productos movimientos_stock costos_productos \
+            facturas_proveedor pagos_proveedor pagos_proveedor_facturas nc_aplicaciones pagos_clientes pagos_clientes_pedidos \
+            saldos_iniciales clientes_unificados auditoria_eventos usuarios_admin visitas dias_sin_entrega \
+            facturas_anuladas remitos_anulados; do
+            : > out/$t.json; ok=1; off=0
+            echo "[" > out/$t.json; first=1
+            while :; do
+              curl -sf -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                -H "Range-Unit: items" -H "Range: $off-$((off+999))" \
+                "$SUPABASE_URL/rest/v1/$t?select=*" -o page.json || { ok=0; break; }
+              n=$(python3 -c "import json;print(len(json.load(open('page.json'))))")
+              [ "$n" -gt 0 ] && { [ $first = 0 ] && echo "," >> out/$t.json; python3 -c "import json;print(json.dumps(json.load(open('page.json')))[1:-1])" >> out/$t.json; first=0; }
+              [ "$n" -lt 1000 ] && break; off=$((off+1000))
+            done
+            echo "]" >> out/$t.json
+            [ $ok = 0 ] && { fallos="$fallos $t"; rm -f out/$t.json; }
+            echo "$t ok=$ok"
+          done
+          echo "Fallaron:$fallos" | tee out/_resumen.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: out/
+          retention-days: 90
