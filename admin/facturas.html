@@ -502,6 +502,17 @@ async function leerConIA(){
   msg.innerHTML='<span style="color:#9b3040">❌ '+String(e.message||e).replace(/</g,"&lt;")+'</span>';
  }finally{btn.disabled=false;btn.textContent="✨ Leer con IA"}
 }
+// Detecta una factura ya cargada: mismo proveedor + mismo tipo + mismo punto de venta y número (o, sin número, misma fecha e importe).
+function buscarRepetida(proveedor,tipo,ptoVta,numero,fecha,importe){
+ const prov=normP(proveedor),n=String(numero||"").replace(/\D/g,"").replace(/^0+/,""),pv=String(ptoVta||"").replace(/\D/g,"").replace(/^0+/,"");
+ return facturas.find(f=>{
+  if(normP(f.proveedor)!==prov||(f.tipo_comprobante||"")!==tipo)return false;
+  const fn=String(f.numero||"").replace(/\D/g,"").replace(/^0+/,""),fp=String(f.punto_venta||"").replace(/\D/g,"").replace(/^0+/,"");
+  if(n&&fn)return fn===n&&(!pv||!fp||pv===fp);
+  return f.fecha===fecha&&Math.abs((f.importe||0)-importe)<0.01;
+ })||null;
+}
+function textoRepetida(f){return (f.tipo_comprobante||"")+" "+(f.descripcion||"")+" del "+fmtFechaCorta(f.fecha)+" por "+money(f.importe)}
 function aplicarLecturaIA(x){
  const set=(id,v)=>{if(v!==null&&v!==undefined&&v!=="")$(id).value=v};
  set("fProveedor",x.proveedor_existente||x.proveedor);
@@ -532,6 +543,11 @@ function aplicarLecturaIA(x){
   (tipoEsNC()?'<div style="margin-top:6px">Nota de crédito: solo resta el monto de la cuenta del proveedor, <b>no mueve stock</b>. Elegí la factura asociada abajo para descontarla de esa factura.</div>':'')+
   (av.length?'<ul style="margin:6px 0 0 18px;padding:0">'+av.map(a=>'<li>'+String(a).replace(/</g,"&lt;")+'</li>').join("")+'</ul>':"")+'</div>';
  $("fProveedor").dispatchEvent(new Event("change"));
+ try{
+  const sg=currentItems.reduce((t,it)=>t+it.subtotal,0)+(+x.percepcion_iva||0)+(+x.percepcion_iibb||0)+(+x.otros_impuestos||0);
+  const rep=buscarRepetida($("fProveedor").value,$("fTipo").value,$("fPtoVta").value,$("fNumero").value,$("fFecha").value,sg);
+  if(rep)$("iaMsg").insertAdjacentHTML("afterbegin",'<div style="background:#fdecef;border:1px solid #f0b9c2;border-radius:12px;padding:10px 12px;color:#9b3040;margin-bottom:8px"><b>⚠️ Posible factura repetida:</b> ya hay cargada '+textoRepetida(rep).replace(/</g,"&lt;")+'.</div>');
+ }catch(e){}
 }
 $("iaBtn").addEventListener("click",leerConIA);
 
@@ -642,6 +658,8 @@ async function guardarFactura(){
  const descFinal=descripcion||((ptoVta&&numero)?ptoVta.padStart(4,"0")+"-"+numero.padStart(8,"0"):"");
  const asociada=nc&&$("fAsociada").value?+$("fAsociada").value:null;
  const ncStock=nc&&$("fNcStock").checked;
+ const repetida=buscarRepetida(proveedor,tipo_comprobante,ptoVta,numero,fecha,Math.abs(importe));
+ if(repetida&&!confirm("⚠️ Parece que esta factura ya está cargada:\n"+textoRepetida(repetida)+"\n\n¿Cargarla igual?"))return;
  if(vencimiento&&vencimiento<fecha)return $("facturaMsg").innerHTML='<div class="err">El vencimiento no puede ser anterior a la fecha de la factura.</div>';
 
  $("guardarFacturaBtn").disabled=true;$("guardarFacturaBtn").textContent="Guardando...";
