@@ -125,7 +125,8 @@ async function cargar(){
   get("facturas_proveedor?select=*&order=fecha.desc&limit=3000",true),
   get("stock_productos?select=producto,cantidad,stock_minimo",true)
  ]);
- return {peds,provs,stock};
+ const ncApl=await get("nc_aplicaciones?select=factura_id,monto&limit=5000",true);
+ return {peds,provs,stock,ncApl:ncApl||[]};
 }
 
 function render(D){
@@ -164,6 +165,7 @@ function render(D){
   else{
    const ncPor={};
    D.provs.forEach(f=>{if(f.factura_asociada_id&&Number(f.importe)<0)ncPor[f.factura_asociada_id]=(ncPor[f.factura_asociada_id]||0)-Number(f.importe)});
+   (D.ncApl||[]).forEach(a=>{ncPor[a.factura_id]=(ncPor[a.factura_id]||0)+Number(a.monto||0)});
    const saldo=f=>{const imp=Number(f.importe)||0;if(imp<=0||f.pagada||!/^factura/i.test((f.tipo_comprobante||"").trim()))return 0;return Math.max(0,r2(imp-(Number(f.pagado_monto)||0)-(ncPor[f.id]||0)))};
    const imp=D.provs.filter(f=>saldo(f)>0);
    const venc=imp.filter(f=>f.fecha_vencimiento&&String(f.fecha_vencimiento).slice(0,10)<hoyISO);

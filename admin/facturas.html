@@ -275,7 +275,12 @@ async function apiFetch(path,options={}){
 // Notas de crédito: se guardan con importe NEGATIVO y restan de la cuenta corriente.
 const esNC=f=>/^nota de cr/i.test(f.tipo_comprobante||"");
 const ncsDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id);
-const ncMontoDe=f=>ncsDe(f).reduce((s,n)=>s+Math.abs(n.importe||0),0);
+let ncApl=[]; // aplicaciones de una nota de crédito a varias facturas (tabla nc_aplicaciones)
+const aplDeFactura=f=>ncApl.filter(a=>a.factura_id===f.id);
+const aplDeNC=n=>ncApl.filter(a=>a.nc_id===n.id);
+const ncMontoDe=f=>ncsDe(f).reduce((s,n)=>s+Math.abs(n.importe||0),0)+aplDeFactura(f).reduce((s,a)=>s+(+a.monto||0),0);
+// Lo que le queda por repartir a una nota de crédito (si ya está asociada a una factura, está toda usada).
+const ncDisp=n=>(!esNC(n)||n.factura_asociada_id)?0:Math.max(0,Math.round((Math.abs(n.importe||0)-aplDeNC(n).reduce((s,a)=>s+(+a.monto||0),0))*100)/100);
 const saldoDe=f=>(esNC(f)||f.pagada)?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0)-ncMontoDe(f));
 const pagadoDe=f=>esNC(f)?0:(f.pagada?Math.max(0,(f.importe||0)-ncMontoDe(f)):Math.min(Math.max(0,(f.importe||0)-ncMontoDe(f)),f.pagado_monto||0));
 function renderTotales(){
@@ -712,12 +717,12 @@ async function guardarFactura(){
 }
 
 let sel=new Set();
-const estadoDe=f=>esNC(f)?(f.factura_asociada_id?"Aplicada":"Sin asociar"):f.pagada?"Pagada":((f.pagado_monto>0||ncMontoDe(f)>0)?"Parcial":"Pendiente");
+const estadoDe=f=>esNC(f)?(f.factura_asociada_id?"Aplicada":(aplDeNC(f).length?(ncDisp(f)>0.005?"Parcial":"Aplicada"):"Sin asociar")):f.pagada?"Pagada":((f.pagado_monto>0||ncMontoDe(f)>0)?"Parcial":"Pendiente");
 function renderFacturas(){
  const visible=facturas.filter(f=>{
   if(provFiltro&&normP(f.proveedor)!==normP(provFiltro))return false;
   if(estadoFilter==="Todas")return true;
-  if(esNC(f))return estadoFilter==="Pendiente"&&!f.factura_asociada_id;
+  if(esNC(f))return estadoFilter==="Pendiente"&&ncDisp(f)>0.005;
   if(estadoFilter==="Pagada")return f.pagada;
   return !f.pagada;
  });
@@ -739,6 +744,8 @@ function renderFacturas(){
   const ncs=nc?[]:ncsDe(f);
   const esc=t=>String(t==null?"":t).replace(/</g,"&lt;");
   const badgeCls=nc?"parcial":est==="Pagada"?"pagada":est==="Parcial"?"parcial":"pendiente";
+  const nombreDe=id=>{const x=facturas.find(y=>y.id===id);return x?fmtFechaCorta(x.fecha)+" "+esc(x.tipo_comprobante||"")+" "+esc(x.descripcion||""):"comprobante "+id};
+  const aplLineas=(nc?aplDeNC(f).map(a=>`<div class="fmeta" style="white-space:normal;color:#a63a50">↩ ${money(a.monto)} aplicado a ${nombreDe(a.factura_id)} <a href="#" style="color:#9b3040" onclick="quitarAplicacion(${a.id});return false">quitar</a></div>`):aplDeFactura(f).map(a=>`<div class="fmeta" style="white-space:normal;color:#a63a50">↩ −${money(a.monto)} de la nota ${nombreDe(a.nc_id)} <a href="#" style="color:#9b3040" onclick="quitarAplicacion(${a.id});return false">quitar</a></div>`)).join("");
   const ncLineas=ncs.map(n=>`<div class="fmeta" style="white-space:normal;color:#a63a50">↩ ${esc(n.tipo_comprobante)} ${esc(n.descripcion||"")} del ${fmtFechaCorta(n.fecha)}: −${money(Math.abs(n.importe))}${n.nc_motivo?" · "+esc(n.nc_motivo):""}</div>`).join("");
   return `<div class="frow ${f.pagada?"pagada":""}" onclick="toggleFactura(${f.id})">
    ${(f.pagada||nc)?'<span style="width:20px"></span>':`<input type="checkbox" ${sel.has(f.id)?"checked":""} onclick="event.stopPropagation()" onchange="toggleSel(${f.id},this.checked)">`}
@@ -754,12 +761,13 @@ function renderFacturas(){
    <div class="fdet ${open?"open":""}" onclick="event.stopPropagation()">
     ${f.cuit_proveedor?`<div class="fmeta" style="white-space:normal">CUIT ${f.cuit_proveedor}</div>`:""}
     ${f.pagada&&f.fecha_pago?`<div class="fmeta" style="white-space:normal">Pagada el ${fmtFechaCorta(f.fecha_pago)}</div>`:""}
-    ${nc?`<div class="fmeta" style="white-space:normal">${asoc?"Asociada a: "+esc(asoc.tipo_comprobante)+" "+esc(asoc.descripcion||"")+" del "+fmtFechaCorta(asoc.fecha)+" ("+money(asoc.importe)+")":"⚠️ Sin factura asociada: queda como saldo a favor del proveedor."}${f.nc_motivo?" · Motivo: "+esc(f.nc_motivo):""}${f.nc_afecta_stock?" · Descontó stock":""}</div>`:""}
-    ${ncLineas}
+    ${nc?`<div class="fmeta" style="white-space:normal">${asoc?"Asociada a: "+esc(asoc.tipo_comprobante)+" "+esc(asoc.descripcion||"")+" del "+fmtFechaCorta(asoc.fecha)+" ("+money(asoc.importe)+")":(aplDeNC(f).length?(ncDisp(f)>0.005?"Aplicada en parte · te quedan "+money(ncDisp(f))+" por aplicar (saldo a favor)":"Aplicada por completo"):"⚠️ Sin factura asociada: queda como saldo a favor del proveedor.")}${f.nc_motivo?" · Motivo: "+esc(f.nc_motivo):""}${f.nc_afecta_stock?" · Descontó stock":""}</div>`:""}
+    ${ncLineas}${aplLineas}
     ${itemsHtml?`<table><thead><tr><th>Ítem</th><th class="num">Cant.</th><th class="num">P. final</th><th class="num">Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table>`:""}
     <div class="actions">
      ${nc?`<button class="btn-del" style="color:#542477;border-color:#ddcde4" onclick="abrirAsociar(${f.id})">🔗 ${f.factura_asociada_id?"Cambiar factura asociada":"Asociar a una factura"}</button>`:`<button class="btn-del" onclick="editarImporte(${f.id})">✏️ Editar importe</button>`}
      ${nc&&f.factura_asociada_id?`<button class="btn-del" onclick="quitarAsociacion(${f.id})">Quitar asociación</button>`:""}
+     ${nc&&!f.factura_asociada_id&&ncDisp(f)>0.005?`<button class="btn-del" style="color:#542477;border-color:#ddcde4" onclick="abrirAplicarNC(${f.id})">↩ Aplicar a varias facturas</button>`:""}
      ${f.archivo_url?`<button class="btn-del" onclick="window.open('${f.archivo_url}','_blank')">📎 Ver archivo</button>`:""}
      <button class="btn-del" onclick="borrarFactura(${f.id})">Borrar</button>
     </div>
@@ -873,7 +881,7 @@ function renderAccionProveedor(){
  if(!provFiltro){box.innerHTML="";return}
  const delProv=facturas.filter(f=>normP(f.proveedor)===normP(provFiltro));
  const saldoFacturas=delProv.filter(f=>!esNC(f)).reduce((s,f)=>s+saldoDe(f),0);
- const ncLibres=delProv.filter(f=>esNC(f)&&!f.factura_asociada_id).reduce((s,n)=>s+Math.abs(n.importe||0),0);
+ const ncLibres=delProv.filter(f=>esNC(f)).reduce((s,n)=>s+ncDisp(n),0);
  const hoyISO=new Date().toISOString().slice(0,10);
  const vencido=delProv.filter(f=>!esNC(f)&&!f.pagada&&f.fecha_vencimiento&&f.fecha_vencimiento<hoyISO).reduce((s,f)=>s+saldoDe(f),0);
  box.innerHTML=`<div class="card" style="margin-top:12px">
@@ -883,7 +891,8 @@ function renderAccionProveedor(){
    ${vencido>0?`<div style="font-size:12px;color:#9b3040;font-weight:700">Vencido: ${money(vencido)}</div>`:""}
    ${ncLibres>0?`<div style="font-size:12px;color:#a63a50;font-weight:700">Notas de crédito sin asociar: ${money(ncLibres)}</div>`:""}
   </div>
-  <button type="button" class="btn-pagar" style="padding:13px 18px;font-size:14px" onclick="abrirPagoMonto()" ${saldoFacturas>0.005?"":"disabled"}>💸 Registrar pago (a las más antiguas)</button></div>
+  <button type="button" class="btn-pagar" style="padding:13px 18px;font-size:14px" onclick="abrirPagoMonto()" ${saldoFacturas>0.005?"":"disabled"}>💸 Registrar pago (a las más antiguas)</button>
+  ${ncLibres>0.005?`<button type="button" class="btn-pagar" style="padding:13px 18px;font-size:14px;background:#fff;color:#542477;border:1px solid #ddcde4;box-shadow:none" onclick="abrirAplicarNC(${delProv.find(x=>esNC(x)&&ncDisp(x)>0.005).id})">↩ Aplicar nota de crédito (${money(ncLibres)})</button>`:""}</div>
  </div>`;
 }
 
@@ -1005,11 +1014,86 @@ async function quitarAsociacion(id){
  }catch(e){alert("No se pudo quitar: "+(e.message||"error"))}
 }
 
+// ---------- Aplicar una nota de crédito a varias facturas / remitos ----------
+function abrirAplicarNC(id){
+ const n=facturas.find(x=>x.id===id);if(!n)return;
+ opState={ncAplicar:id,done:null,fs:[]};
+ renderAplicarNC();
+ $("opModal").classList.add("open");
+}
+function ncAbiertas(n){
+ return facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&!f.pagada&&normP(f.proveedor)===normP(n.proveedor)&&saldoDe(f)>0.005)
+  .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")||a.id-b.id);
+}
+function renderAplicarNC(){
+ const n=facturas.find(x=>x.id===opState.ncAplicar);if(!n)return;
+ const esc=t=>String(t==null?"":t).replace(/</g,"&lt;");
+ const otras=facturas.filter(x=>esNC(x)&&normP(x.proveedor)===normP(n.proveedor)&&ncDisp(x)>0.005);
+ const fs=ncAbiertas(n);
+ $("opBox").innerHTML=`<h2>Aplicar nota de crédito</h2>
+  <label>Nota de crédito<select id="ncSel" onchange="opState.ncAplicar=+this.value;renderAplicarNC()">${otras.map(x=>`<option value="${x.id}" ${x.id===n.id?"selected":""}>${fmtFechaCorta(x.fecha)} · ${esc(x.tipo_comprobante)} ${esc(x.descripcion||"")} · disponible ${money(ncDisp(x))}</option>`).join("")}</select></label>
+  <div class="fmeta" style="white-space:normal;margin-top:6px">${esc(n.proveedor)}${n.nc_motivo?" · "+esc(n.nc_motivo):""} · Para repartir: <b>${money(ncDisp(n))}</b></div>
+  <div style="font-size:12px;color:var(--muted);margin-top:6px">Te traigo las facturas y remitos sin pagar de este proveedor, de la más vieja a la más nueva. Ya está repartido a las más viejas: podés cambiar los montos a mano. No mueve stock.</div>
+  <div style="margin:8px 0"><button type="button" class="btn-del" onclick="ncRepartir()">Repartir a las más viejas</button> <button type="button" class="btn-del" onclick="ncLimpiar()">Limpiar</button></div>
+  <div>${fs.length?fs.map(f=>`<div class="op-line"><div><strong>${fmtFechaCorta(f.fecha)}</strong> · ${esc(f.tipo_comprobante||"Factura")}${f.descripcion?" "+esc(f.descripcion):""}${f.fecha_vencimiento?" · vence "+fmtFechaCorta(f.fecha_vencimiento):""}<br><span style="color:var(--muted)">Saldo ${money(saldoDe(f))}</span></div><input type="number" step="0.01" min="0" data-nca="${f.id}" placeholder="0" oninput="ncResumen()"></div>`).join(""):'<div class="empty">Este proveedor no tiene facturas ni remitos sin pagar.</div>'}</div>
+  <div class="op-total" style="font-size:14px;font-weight:700"><span id="ncResumen"></span></div>
+  <div id="opMsg"></div>
+  <button class="btn-main" id="opGuardar" onclick="confirmarAplicarNC()" ${fs.length?"":"disabled"}>✓ Aplicar nota de crédito</button>
+  <button class="btn-sec" style="border-style:solid" onclick="cerrarOp()">Cancelar</button>`;
+ ncRepartir();
+}
+function ncRepartir(){
+ const n=facturas.find(x=>x.id===opState.ncAplicar);if(!n)return;
+ let resto=ncDisp(n);
+ document.querySelectorAll("[data-nca]").forEach(inp=>{
+  const f=facturas.find(x=>x.id===+inp.dataset.nca);
+  const ap=Math.min(resto,saldoDe(f));
+  inp.value=ap>0.004?r2b(ap):"";
+  resto=r2b(resto-ap);
+ });
+ ncResumen();
+}
+function ncLimpiar(){document.querySelectorAll("[data-nca]").forEach(i=>i.value="");ncResumen()}
+function ncResumen(){
+ const n=facturas.find(x=>x.id===opState.ncAplicar);if(!n)return;
+ const ap=r2b([...document.querySelectorAll("[data-nca]")].reduce((s,i)=>s+(parseFloat(i.value)||0),0));
+ const queda=r2b(ncDisp(n)-ap);
+ $("ncResumen").innerHTML=queda<-0.005?'<span style="color:#9b3040">Repartiste '+money(ap)+', más de lo que tiene la nota ('+money(ncDisp(n))+').</span>':'Aplicado: <strong>'+money(ap)+'</strong>'+(queda>0.005?' · <span style="color:#177a4d">queda a favor: <strong>'+money(queda)+'</strong></span>':"");
+}
+async function confirmarAplicarNC(){
+ const n=facturas.find(x=>x.id===opState.ncAplicar),msg=$("opMsg");
+ const items=[...document.querySelectorAll("[data-nca]")].map(i=>({factura_id:+i.dataset.nca,monto:r2b(parseFloat(i.value)||0)})).filter(x=>x.monto>0);
+ if(!items.length){msg.innerHTML='<div class="err">Poné cuánto aplicar a al menos una factura.</div>';return}
+ const tot=r2b(items.reduce((s,i)=>s+i.monto,0));
+ if(tot>ncDisp(n)+0.005){msg.innerHTML='<div class="err">Repartiste más de lo que tiene la nota de crédito.</div>';return}
+ for(const it of items){const f=facturas.find(x=>x.id===it.factura_id);if(it.monto>saldoDe(f)+0.005){msg.innerHTML='<div class="err">Un monto supera el saldo de la factura.</div>';return}}
+ const btn=$("opGuardar");btn.disabled=true;btn.textContent="Aplicando...";
+ try{
+  const r=await apiFetch("/rest/v1/rpc/aplicar_nota_credito",{method:"POST",body:JSON.stringify({p_nc:n.id,p_items:items})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));const m=d.message||"error";throw new Error(/function|schema cache|does not exist|nc_aplicaciones/i.test(m)?"Falta correr el SQL sql-nc-varias-facturas.sql en Supabase.":m)}
+  try{if(window.Audit)Audit.log(null,"Nota de crédito de proveedor aplicada a varias facturas","Nota "+n.id+" · "+n.proveedor+" · "+money(tot)+" en "+items.length+" comprobante(s)")}catch(e){}
+  cerrarOp();await cargarFacturas();
+ }catch(e){
+  msg.innerHTML='<div class="err">❌ '+(e.message||"No se pudo aplicar")+'</div>';
+  btn.disabled=false;btn.textContent="✓ Aplicar nota de crédito";
+ }
+}
+async function quitarAplicacion(id){
+ if(!confirm("¿Quitar esta aplicación? El importe vuelve a quedar disponible en la nota de crédito y la factura vuelve a mostrar ese saldo."))return;
+ try{
+  const r=await apiFetch("/rest/v1/rpc/quitar_aplicaciones_nc",{method:"POST",body:JSON.stringify({p_id:id})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||"error")}
+  try{if(window.Audit)Audit.log(null,"Aplicación de nota de crédito quitada","Aplicación "+id)}catch(e){}
+  await cargarFacturas();
+ }catch(e){alert("No se pudo quitar: "+(e.message||"error"))}
+}
+
 async function cargarFacturas(){
  $("facturasList").innerHTML='<div class="loading">Cargando...</div>';
  try{
   const r=await apiFetch("/rest/v1/facturas_proveedor?select=*&order=fecha.desc");
   facturas=await r.json();
+  ncApl=[];try{const ra=await apiFetch("/rest/v1/nc_aplicaciones?select=*");if(ra.ok)ncApl=await ra.json()}catch(e){}
   renderTotales();
   renderFacturas();
   fillProductoSelect();
@@ -1055,6 +1139,8 @@ async function borrarFactura(id){
  const ncs=f&&!esNC(f)?ncsDe(f):[];
  if(!confirm(esNC(f||{})?"¿Borrar esta nota de crédito? La factura asociada vuelve a mostrar su saldo completo.":"¿Borrar esta factura?"+(ncs.length?" Sus notas de crédito asociadas quedan sin asociar.":"")))return;
  try{
+  if(f&&esNC(f)&&aplDeNC(f).length)await apiFetch("/rest/v1/rpc/quitar_aplicaciones_nc",{method:"POST",body:JSON.stringify({p_nc:id})});
+  if(f&&!esNC(f)&&aplDeFactura(f).length)await apiFetch("/rest/v1/rpc/quitar_aplicaciones_nc",{method:"POST",body:JSON.stringify({p_factura:id})});
   if(ncs.length)await apiFetch("/rest/v1/facturas_proveedor?factura_asociada_id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({factura_asociada_id:null})});
   await apiFetch("/rest/v1/facturas_proveedor?id=eq."+id,{method:"DELETE",headers:{"Prefer":"return=minimal"}});
   if(f&&esNC(f)&&f.factura_asociada_id){try{await apiFetch("/rest/v1/rpc/recalcular_factura_proveedor",{method:"POST",body:JSON.stringify({p_id:f.factura_asociada_id})})}catch(e){}}

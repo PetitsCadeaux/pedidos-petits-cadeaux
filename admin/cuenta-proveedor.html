@@ -268,6 +268,7 @@ async function cargarTodo(){
   facturas=await rFacturas.json();
   pagos=await rPagos.json();
   opIds=new Set();
+  ncApl=[];try{const ra=await apiFetch("/rest/v1/nc_aplicaciones?select=nc_id,factura_id,monto");if(ra.ok)ncApl=await ra.json()}catch(e){}
   try{const rl=await apiFetch("/rest/v1/pagos_proveedor_facturas?select=pago_id");if(rl.ok)(await rl.json()).forEach(l=>opIds.add(l.pago_id))}catch(e){}
   buildProveedores();
   renderTotales();
@@ -281,7 +282,8 @@ async function cargarTodo(){
 // Reparto automático: el pago se descuenta de la factura/remito más viejo primero.
 const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
 const esNC=f=>/^nota de cr/i.test(f.tipo_comprobante||"");
-const ncMontoDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id).reduce((t,n)=>t+Math.abs(n.importe||0),0);
+let ncApl=[];
+const ncMontoDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id).reduce((t,n)=>t+Math.abs(n.importe||0),0)+ncApl.filter(a=>a.factura_id===f.id).reduce((t,a)=>t+(+a.monto||0),0);
 const saldoDe=f=>(esNC(f)||f.pagada)?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0)-ncMontoDe(f));
 // Regla: en efectivo se descuenta de remitos y facturas; con cualquier otro medio (transferencia, etc.) solo de facturas.
 const esRemitoODoc=f=>/^(remito|compromiso)/i.test(f.tipo_comprobante||"");
