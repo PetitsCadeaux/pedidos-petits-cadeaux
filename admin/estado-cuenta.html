@@ -193,7 +193,7 @@ function enviarWA(){
  const pend=datos.pedidos.filter(o=>faltaCobrar(o)>0.005);
  const nombre=(datos.pedidos[0]&&datos.pedidos[0].comercio)||"";
  const msg="Hola"+(nombre?" "+nombre:"")+"! Te paso tu estado de cuenta de Petits Cadeaux\n"
-  +(R.saldoFinal>0.5?pend.slice(0,12).map(o=>"• "+fmtFecha(o.created_at)+" – "+money(faltaCobrar(o))).join("\n")+"\n*Saldo pendiente: "+money(R.saldoFinal)+"*":"Tu cuenta está al día. ¡Gracias!")
+  +(R.saldoFinal>0.5?pend.map(o=>"• "+fmtFecha(o.created_at)+" – "+money(faltaCobrar(o))).join("\n")+"\n*Saldo pendiente: "+money(R.saldoFinal)+"*":"Tu cuenta está al día. ¡Gracias!")
   +"\n(Te adjunto el PDF.)";
  let d=String((conTel&&conTel.whatsapp)||"").replace(/\D/g,"").replace(/^0+/,"");
  if(d.startsWith("54")){if(!d.startsWith("549")&&d.length===12)d="549"+d.slice(2)}else if(d.length===10)d="549"+d;

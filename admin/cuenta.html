@@ -60,6 +60,12 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 .modal-bg{position:fixed;inset:0;background:rgba(57,37,65,.55);display:none;align-items:center;justify-content:center;padding:14px;z-index:100}
 .modal-bg.open{display:flex}
 .modal-bg .card{width:100%;max-width:480px!important;max-height:92vh;overflow:auto;margin:0!important;position:relative}
+#mCobranza .card{max-width:min(1150px,96vw)!important;padding:20px 24px}
+.cob-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:26px;align-items:start}
+.cob-right{background:#fbf7fc;border:1px solid #eadcef;border-radius:16px;padding:12px 16px;max-height:68vh;overflow:auto;min-height:200px}
+.cob-right .op-line{grid-template-columns:1fr 150px;padding:11px 0;font-size:14px}
+.cob-right .op-line input{font-size:16px}
+@media(max-width:800px){.cob-grid{grid-template-columns:1fr;gap:14px}#mCobranza{padding:0;align-items:flex-end}#mCobranza .card{max-width:100%!important;max-height:96vh;border-radius:20px 20px 0 0;padding:16px 14px}.cob-right{max-height:none;overflow:visible}}
 .medios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .medio{padding:11px 6px;border:1.5px solid #ddcde4;border-radius:13px;background:#fff;color:#654273;font:700 13px Inter,Arial,sans-serif;text-align:center}
 .medio.sel{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border-color:#6d3a97}
@@ -114,23 +120,27 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  <div class="card">
   <button type="button" class="modal-x" data-close>✕</button>
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Registrar cobranza</h2>
-  <label>Cliente (domicilio)
-   <select id="pagoDomicilio"><option value="">Seleccionar domicilio...</option></select>
-  </label>
-  <label>Monto que te pagó<input id="pagoMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 50000"></label>
-  <div id="cobroInfo" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
-  <div id="cobroReparto"></div>
-  <label>Medio de cobro</label>
-  <div class="medios">
-   <button type="button" class="medio" data-m="Efectivo">Efectivo</button>
-   <button type="button" class="medio" data-m="Transferencia">Transferencia</button>
-   <button type="button" class="medio" data-m="Mercado Pago">Mercado Pago</button>
+  <div class="cob-grid">
+   <div class="cob-left">
+    <label>Cliente (domicilio)
+     <select id="pagoDomicilio"><option value="">Seleccionar domicilio...</option></select>
+    </label>
+    <label>Monto que te pagó<input id="pagoMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 50000"></label>
+    <div id="cobroInfo" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+    <label>Medio de cobro</label>
+    <div class="medios">
+     <button type="button" class="medio" data-m="Efectivo">Efectivo</button>
+     <button type="button" class="medio" data-m="Transferencia">Transferencia</button>
+     <button type="button" class="medio" data-m="Mercado Pago">Mercado Pago</button>
+    </div>
+    <div class="row2"><label>Fecha<input id="pagoFecha" type="date"></label>
+    <label>Referencia (opcional)<input id="pagoRef" placeholder="N° de transferencia…"></label></div>
+    <label>Nota (opcional)<input id="pagoNota" placeholder="Ej. Seña, pago parcial..."></label>
+    <button class="btn-main" id="guardarPagoBtn">Guardar cobranza</button>
+    <div id="pagoMsg"></div>
+   </div>
+   <div class="cob-right"><div id="cobroReparto"><div class="empty" style="margin:0">Elegí un cliente para ver sus pedidos pendientes de cobro.</div></div></div>
   </div>
-  <div class="row2"><label>Fecha<input id="pagoFecha" type="date"></label>
-  <label>Referencia (opcional)<input id="pagoRef" placeholder="N° de transferencia…"></label></div>
-  <label>Nota (opcional)<input id="pagoNota" placeholder="Ej. Seña, pago parcial..."></label>
-  <button class="btn-main" id="guardarPagoBtn">Guardar cobranza</button>
-  <div id="pagoMsg"></div>
  </div>
  </div>
 
@@ -202,22 +212,41 @@ function waNumero(t){
  if(d.length===12&&d.startsWith("15"))return d; // formato dudoso: se deja tal cual
  return d;
 }
-function recordatorioWA(key){
- const c=clients.find(x=>x.key===key);if(!c)return;
+function textoRecordatorio(c){
  const pend=pedidosPorCobrar(c);
- const conTel=c.pedidos.find(o=>o.whatsapp);
  const nombre=(c.comercios[0]||"").trim();
- const lineas=pend.slice(0,12).map(o=>"• "+fmtFechaCorta(o.created_at)+" – "+money(faltaCobrar(o))).join("\n");
- const resto=pend.length>12?"\n• y "+(pend.length-12)+" pedido"+(pend.length-12===1?"":"s")+" más":"";
+ const variosComercios=c.comercios.length>1;
+ const lineas=pend.map(o=>"• "+fmtFechaCorta(o.created_at)+(variosComercios?" "+(o.comercio||""):"")+" – "+money(faltaCobrar(o))).join("\n");
  const saldoAnt=(c.saldos||[]).reduce((s,x)=>s+(x.monto||0),0);
- const msg="Hola"+(nombre?" "+nombre:"")+", ¿cómo estás?\n"
-  +"Te escribimos de Petits Cadeaux para pasarte el detalle de tu cuenta:\n\n"+(lineas?lineas+resto+"\n":"")
+ return "Hola"+(nombre?" "+nombre:"")+", ¿cómo estás?\n"
+  +"Te escribimos de Petits Cadeaux para pasarte el detalle de tu cuenta:\n\n"+(lineas?lineas+"\n":"")
   +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
   +"\n*Total pendiente: "+money(c.saldo)+"*\n\n"
   +"Cuando puedas, ¿nos avisás cuándo te queda cómodo abonarlo? Si ya pagaste, enviános el comprobante así registramos el pago correctamente.\n"
   +"¡Muchas gracias por tu compra y por elegirnos!";
+}
+async function copiarTexto(t){
+ try{await navigator.clipboard.writeText(t);return true}catch(e){
+  const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand("copy")}catch(e){}ta.remove();return ok;
+ }
+}
+function recordatorioWA(key){
+ const c=clients.find(x=>x.key===key);if(!c)return;
+ const conTel=c.pedidos.find(o=>o.whatsapp);
+ const msg=textoRecordatorio(c);
  const num=waNumero(conTel&&conTel.whatsapp);
- window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
+ const url="https://wa.me/"+num+"?text="+encodeURIComponent(msg);
+ if(url.length>7000){ // detalle muy largo: no entra en el link, se copia para pegarlo en el chat
+  copiarTexto(msg).then(()=>{alert("El detalle es largo: lo copié. Pegalo en el chat de WhatsApp (se abre ahora).");window.open("https://wa.me/"+num,"_blank")});
+  return;
+ }
+ window.open(url,"_blank");
+}
+async function copiarRecordatorio(key,btn){
+ const c=clients.find(x=>x.key===key);if(!c)return;
+ const ok=await copiarTexto(textoRecordatorio(c));
+ const t=btn.textContent;btn.textContent=ok?"✓":"✗";setTimeout(()=>btn.textContent=t,1400);
 }
 let openKey=null;
 let filtroSaldo="todos";
@@ -329,7 +358,7 @@ function renderClients(){
       <div class="saldo-label">${saldado?"Al día":"Debe"}</div>
       <div class="saldo-val ${saldado?"saldado":"debe"}">${money(Math.abs(c.saldo))}</div>
      </div>
-     ${saldado?'<span style="width:84px"></span>':`<button type="button" class="btn-wa" title="Enviar recordatorio de deuda por WhatsApp" onclick="event.stopPropagation();recordatorioWA('${c.key.replace(/'/g,"\\'")}')">💬</button><button type="button" class="btn-cobrar" onclick="event.stopPropagation();abrirCobranza('${c.key.replace(/'/g,"\\'")}')">Cobrar</button>`}
+     ${saldado?'<span style="width:84px"></span>':`<button type="button" class="btn-wa" title="Copiar el texto con todo lo adeudado" onclick="event.stopPropagation();copiarRecordatorio('${c.key.replace(/'/g,"\\'")}',this)">📋</button><button type="button" class="btn-wa" title="Enviar recordatorio de deuda por WhatsApp" onclick="event.stopPropagation();recordatorioWA('${c.key.replace(/'/g,"\\'")}')">💬</button><button type="button" class="btn-cobrar" onclick="event.stopPropagation();abrirCobranza('${c.key.replace(/'/g,"\\'")}')">Cobrar</button>`}
     </div>
    </div>
    <div class="detail ${open?"open":""}">
