@@ -214,7 +214,7 @@ function recordatorioWA(key){
   +"Te escribimos de Petits Cadeaux para pasarte el detalle de tu cuenta:\n\n"+(lineas?lineas+resto+"\n":"")
   +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
   +"\n*Total pendiente: "+money(c.saldo)+"*\n\n"
-  +"Cuando puedas, ¿nos avisás cuándo te queda cómodo abonarlo? Si ya lo pagaste, contanos y lo registramos.\n"
+  +"Cuando puedas, ¿nos avisás cuándo te queda cómodo abonarlo? Si ya pagaste, enviános el comprobante así registramos el pago correctamente.\n"
   +"¡Muchas gracias por tu compra y por elegirnos!";
  const num=waNumero(conTel&&conTel.whatsapp);
  window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
