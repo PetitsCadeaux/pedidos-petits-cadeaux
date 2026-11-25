@@ -1064,7 +1064,9 @@ function confirmarRemito(id){
  const o=orders.find(x=>x.id===id);if(!o)return;
  const filas=(o.productos||[]).map(it=>`<tr><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1">${it.cantidad} × ${esc(it.producto)}${it.cambio?" (CAMBIO)":""}</td><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1;text-align:right;white-space:nowrap">${it.cambio?"$0":(it.precio_unitario!=null?money(it.precio_unitario)+" c/u":"")}</td><td style="padding:5px 4px;border-bottom:1px solid #f0e4f1;text-align:right;font-weight:800;white-space:nowrap">${it.cambio?"":(it.precio_unitario!=null?money(it.cantidad*it.precio_unitario):"a confirmar")}</td></tr>`).join("");
  $("facModalBody").innerHTML=`<div style="font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px;font-weight:700">Confirmar remito</div>
-  <div style="font-size:14px;line-height:1.6;margin-top:6px"><b>${esc(o.comercio||"")}</b><br>${esc(o.domicilio||"")}<br><span style="color:var(--muted)">Fecha: ${new Date().toLocaleDateString("es-AR")} · Pedido #${o.id}</span></div>
+  <div style="font-size:14px;line-height:1.6;margin-top:6px"><b>${esc(o.comercio||"")}</b><br>${esc(o.domicilio||"")}<br><span style="color:var(--muted)">Pedido #${o.id} · cargado el ${new Date(o.created_at).toLocaleDateString("es-AR")}</span></div>
+  <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><label style="font-weight:800;font-size:13px;color:#5f4d68">Fecha del remito <input id="remitoFecha" type="date" value="${fechaLocalISO(new Date().toISOString())}" max="${fechaLocalISO(new Date().toISOString())}" style="margin-left:6px;padding:7px 9px;border:1px solid #ddcde4;border-radius:10px;font:600 13px Inter,Arial,sans-serif"></label>
+   <button type="button" class="chip" onclick="document.getElementById('remitoFecha').value='${fechaLocalISO(o.created_at)}'">Usar la fecha del pedido</button></div>
   <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px">${filas}</table>
   <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--purple);margin-top:10px;font-size:16px"><span>Total</span><span>${money(o.total)}</span></div>
   ${o.observaciones?`<div class="order-notes">📝 ${esc(o.observaciones)}</div>`:""}
@@ -1073,18 +1075,22 @@ function confirmarRemito(id){
 }
 async function generarRemito(id,btn){
  btn.disabled=true;btn.textContent="Guardando...";
+ let payload={p_pedido:id};
  try{
-  const resp=await apiFetch("/rest/v1/rpc/asignar_remito",{method:"POST",body:JSON.stringify({p_pedido:id})});
+  const fSel=($("remitoFecha")||{}).value||"";
+  const hoyISO=fechaLocalISO(new Date().toISOString());
+  if(fSel&&fSel!==hoyISO)payload.p_fecha=fSel; // solo si es otra fecha, así funciona aunque falte correr sql-remito-fecha.sql
+  const resp=await apiFetch("/rest/v1/rpc/asignar_remito",{method:"POST",body:JSON.stringify(payload)});
   const rows=await resp.json();
   if(!resp.ok)throw new Error(rows.message||"Error de Supabase");
   const r=Array.isArray(rows)?rows[0]:rows;
   if(!r||!r.remito_nro)throw new Error("No se pudo asignar el número de remito");
-  Audit.log(id,"Remito generado","Remito "+fmtNro(r.remito_pto_vta,r.remito_nro));
+  Audit.log(id,"Remito generado","Remito "+fmtNro(r.remito_pto_vta,r.remito_nro)+(payload.p_fecha?" · fecha "+payload.p_fecha.split("-").reverse().join("/"):""));
   const o=orders.find(x=>x.id===id);
-  if(o){o.remito_nro=r.remito_nro;o.remito_pto_vta=r.remito_pto_vta}
+  if(o){o.remito_nro=r.remito_nro;o.remito_pto_vta=r.remito_pto_vta;o.remito_en=r.remito_en||o.remito_en}
   cerrarFac();render();avisoRapido("Remito "+fmtNro(r.remito_pto_vta,r.remito_nro)+" generado");
  }catch(e){
-  alert("No se pudo generar el remito: "+(e.message||"error")+"\n¿Ya corriste sql-facturacion.sql en Supabase?");
+  alert("No se pudo generar el remito: "+(e.message||"error")+"\n¿Ya corriste sql-facturacion.sql"+(payload.p_fecha?" y sql-remito-fecha.sql":"")+" en Supabase?");
   btn.disabled=false;btn.textContent="✅ Confirmar y guardar";
  }
 }
