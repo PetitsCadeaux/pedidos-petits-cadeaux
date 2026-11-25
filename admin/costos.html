@@ -78,7 +78,8 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
 
  <div class="card" id="sugCard" style="display:none">
   <h2 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Costos según tus últimas compras</h2>
-  <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Sale de las facturas y remitos de proveedor que cargaste (precio final con IVA y bonificación). Tocá <b>Usar</b> para que ese pase a ser el costo del producto y el margen se calcule con él.</p>
+  <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Sale de las facturas y remitos de proveedor que cargaste (precio final con bonificación; con o sin IVA según el tilde). Tocá <b>Usar</b> para que ese pase a ser el costo del producto y el margen se calcule con él.</p>
+  <label style="display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:700;cursor:pointer"><input type="checkbox" id="sugSinIva" onchange="try{localStorage.setItem('costos_sin_iva',this.checked?'1':'0')}catch(e){};renderSug()" style="width:auto"> Mostrar precios sin IVA</label>
   <div id="sugResumen" style="margin-bottom:10px"></div>
   <div id="sugList"></div>
  </div>
@@ -196,7 +197,8 @@ function calcSugerencias(){
  compras.filter(f=>(f.importe||0)>0).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||a.id-b.id).forEach(f=>{
   (f.items||[]).forEach(it=>{
    if(it.tipo==="servicio"||!it.producto)return;
-   const pf=Number(it.precioFinal);if(!(pf>0))return;
+   let pf=Number(it.precioFinal);if(!(pf>0))return;
+   if($("sugSinIva")&&$("sugSinIva").checked)pf=pf/(1+(Number(it.ivaPct)||0)/100);
    const h=ult[it.producto]||(ult[it.producto]=[]);
    h.push({precio:pf,fecha:f.fecha,proveedor:f.proveedor,tipo:f.tipo_comprobante});
   });
@@ -208,8 +210,10 @@ function calcSugerencias(){
  }).filter(x=>x.actual==null||Math.abs(x.u.precio-x.actual)>0.5)
   .sort((a,b)=>(b.actual==null?1e9:Math.abs(b.dif))-(a.actual==null?1e9:Math.abs(a.dif)));
 }
+let sugIvaInit=false;
 function renderSug(){
  const card=$("sugCard");
+ if(!sugIvaInit){sugIvaInit=true;try{$("sugSinIva").checked=localStorage.getItem("costos_sin_iva")==="1"}catch(e){}}
  if(!compras.length){card.style.display="none";return}
  calcSugerencias();card.style.display="block";
  const suben=sugs.filter(x=>x.dif!=null&&x.dif>0.5),bajan=sugs.filter(x=>x.dif!=null&&x.dif<-0.5),nuevos=sugs.filter(x=>x.actual==null);
