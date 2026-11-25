@@ -97,8 +97,8 @@ export default async function handler(req, res) {
         max_tokens: 4000,
         system: sistema(proveedores, productos),
         tools: [tool],
-        tool_choice: { type: "tool", name: "cargar_factura" },
-        messages: [{ role: "user", content: [bloque, { type: "text", text: "Leé este comprobante y cargalo." }] }],
+        tool_choice: { type: "auto" }, // este modelo no admite forzar la herramienta; el prompt le exige usarla
+        messages: [{ role: "user", content: [bloque, { type: "text", text: "Leé este comprobante y cargalo llamando a la herramienta cargar_factura. Respondé solo con esa llamada." }] }],
       }),
     });
     const d = await r.json();
