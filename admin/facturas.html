@@ -158,6 +158,10 @@ td{padding:8px 4px;border-bottom:1px dotted #eee1ef;font-size:13px}
    <div class="radio-row" style="margin-top:10px"><label><input type="checkbox" id="fNcStock"> Incluye mercadería devuelta (descuenta el stock)</label></div>
   </div>
   <label>Foto o PDF de la factura/remito (opcional)<input id="fArchivo" type="file" accept="image/*,application/pdf"></label>
+  <div id="iaBox" style="margin:-4px 0 14px">
+   <button type="button" id="iaBtn" class="btn-main" style="max-width:340px">✨ Leer con IA</button>
+   <div id="iaMsg" style="font-size:13px;margin-top:8px"></div>
+  </div>
 
   <div class="item-form">
    <strong style="color:var(--purple)">Agregar ítem a la factura</strong>
@@ -446,6 +450,89 @@ $("fOtrosImpuestos").addEventListener("input",()=>actualizarImpuestos());
 $("fTotalFactura").addEventListener("input",()=>actualizarImpuestos());
 
 function quitarItem(i){currentItems.splice(i,1);renderItemsWrap()}
+// ---- Leer la factura con IA: precarga el formulario, la persona revisa y guarda ----
+function calcItemIA(cantidad,precio,ivaPct,bonifPct,conIva){
+ const precioConIva=conIva?precio:precio*(1+ivaPct/100);
+ const precioSinIva=conIva?precio/(1+ivaPct/100):precio;
+ const precioFinal=precioConIva*(1-bonifPct/100);
+ const ivaMonto=precioFinal-(precioFinal/(1+ivaPct/100));
+ return {cantidad,precioConIva,precioSinIva,bonifPct,precioFinal,ivaPct,ivaMonto,subtotal:precioFinal*cantidad};
+}
+function archivoABase64(file){
+ return new Promise((ok,mal)=>{
+  const fr=new FileReader();
+  fr.onload=()=>ok(String(fr.result).split(",")[1]);fr.onerror=()=>mal(new Error("No se pudo leer el archivo"));
+  fr.readAsDataURL(file);
+ });
+}
+// Las fotos del celular pesan mucho: se achican antes de mandarlas (el original queda adjunto igual).
+async function imagenLiviana(file){
+ const url=URL.createObjectURL(file);
+ try{
+  const img=await new Promise((ok,mal)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>mal(new Error("No se pudo abrir la imagen"));i.src=url});
+  const max=2000,k=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  return c.toDataURL("image/jpeg",0.85).split(",")[1];
+ }finally{URL.revokeObjectURL(url)}
+}
+async function leerConIA(){
+ const file=$("fArchivo").files[0];
+ const msg=$("iaMsg");
+ if(!file){msg.innerHTML='<span style="color:#9b3040">Primero elegí la foto o el PDF de la factura (arriba).</span>';return}
+ if(currentItems.length&&!confirm("Ya hay productos cargados en este formulario. ¿Reemplazarlos con lo que lea la IA?"))return;
+ const btn=$("iaBtn");btn.disabled=true;btn.textContent="Leyendo la factura…";
+ msg.innerHTML='<span style="color:var(--muted)">Puede tardar unos 15 segundos.</span>';
+ try{
+  let tipo=file.type,b64;
+  if(tipo==="application/pdf"){
+   if(file.size>3_000_000)throw new Error("El PDF pesa más de 3 MB. Sacale una foto o guardalo más liviano.");
+   b64=await archivoABase64(file);
+  }else if(tipo.startsWith("image/")){
+   b64=await imagenLiviana(file);tipo="image/jpeg";
+  }else throw new Error("Subí una foto o un PDF.");
+  const provs=[...new Set(facturas.map(f=>(f.proveedor||"").trim()).filter(Boolean))];
+  const prods=CATALOGO_ACTUAL.slice();
+  const r=await fetch("/api/leer-factura",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},
+   body:JSON.stringify({archivo:b64,tipo,proveedores:provs,productos:prods})});
+  const d=await r.json().catch(()=>({ok:false,error:"La respuesta del servidor no se pudo leer (¿archivo muy pesado?)."}));
+  if(!d.ok)throw new Error(d.error||"No se pudo leer");
+  aplicarLecturaIA(d.datos);
+ }catch(e){
+  msg.innerHTML='<span style="color:#9b3040">❌ '+String(e.message||e).replace(/</g,"&lt;")+'</span>';
+ }finally{btn.disabled=false;btn.textContent="✨ Leer con IA"}
+}
+function aplicarLecturaIA(x){
+ const set=(id,v)=>{if(v!==null&&v!==undefined&&v!=="")$(id).value=v};
+ set("fProveedor",x.proveedor_existente||x.proveedor);
+ set("fCuitProveedor",x.cuit&&String(x.cuit).replace(/\D/g,""));
+ if(x.tipo_comprobante&&[...$("fTipo").options].some(o=>o.value===x.tipo_comprobante))$("fTipo").value=x.tipo_comprobante;
+ actualizarTipo();
+ set("fFecha",x.fecha);set("fVencimiento",x.vencimiento);
+ set("fPtoVta",x.punto_venta&&String(x.punto_venta).replace(/\D/g,"").slice(0,5));
+ set("fNumero",x.numero&&String(x.numero).replace(/\D/g,"").slice(0,8));
+ $("fPercepcionIvaPct").value="";$("fPercepcionIibbPct").value="";
+ $("fPercepcionIva").value=x.percepcion_iva||"";$("fPercepcionIibb").value=x.percepcion_iibb||"";
+ $("fOtrosImpuestos").value=x.otros_impuestos||"";set("fOtrosImpuestosConcepto",x.otros_impuestos_concepto);
+ $("fTotalFactura").value=x.total||"";
+ const conIva=!!x.precios_incluyen_iva;
+ const ivaDef=(/ C$/.test(x.tipo_comprobante||"")||x.tipo_comprobante==="Remito"||x.tipo_comprobante==="Compromiso de pago")?0:21;
+ currentItems=(x.items||[]).filter(it=>it&&it.descripcion&&Number(it.cantidad)>0&&Number(it.precio_unitario)>=0&&it.precio_unitario!==null).map(it=>{
+  const iva=it.iva_pct!=null?Number(it.iva_pct):ivaDef;
+  const nombre=(it.producto_existente||it.descripcion||"").trim();
+  const tipo=it.es_servicio?"servicio":"producto";
+  return {producto:nombre,tipo,...calcItemIA(Number(it.cantidad),Number(it.precio_unitario),iva,Number(it.bonif_pct)||0,conIva)};
+ });
+ const sinPrecio=(x.items||[]).filter(it=>it&&it.descripcion&&(it.precio_unitario==null)).map(it=>it.descripcion);
+ renderItemsWrap();actualizarImpuestos();
+ const av=(x.advertencias||[]).slice();
+ if(sinPrecio.length)av.push("Sin precio legible (no se cargaron): "+sinPrecio.join(", "));
+ $("iaMsg").innerHTML='<div style="background:#fff7e6;border:1px solid #f3dfb0;border-radius:12px;padding:10px 12px;color:#6b4a00"><b>✨ Leída por la IA — revisá todo antes de guardar.</b> Controlá proveedor, fecha, cantidades, precios y que el total coincida (más abajo aparece el chequeo).'+
+  (av.length?'<ul style="margin:6px 0 0 18px;padding:0">'+av.map(a=>'<li>'+String(a).replace(/</g,"&lt;")+'</li>').join("")+'</ul>':"")+'</div>';
+ $("fProveedor").dispatchEvent(new Event("change"));
+}
+$("iaBtn").addEventListener("click",leerConIA);
+
 
 // ---- Tipo de comprobante: nota de crédito ----
 function tipoEsNC(){return /^nota de cr/i.test($("fTipo").value)}
