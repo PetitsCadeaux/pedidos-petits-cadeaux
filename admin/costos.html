@@ -38,6 +38,7 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
 .tot-value{font-family:"Cormorant Garamond",Georgia,serif;font-size:22px;font-weight:700;color:var(--purple)}
 .empty{padding:30px;text-align:center;color:#817287;background:#fbf7fc;border:1px dashed #dfd0e4;border-radius:16px;margin-top:14px}
 .loading{text-align:center;padding:30px;color:var(--muted)}
+.chip-s{display:inline-block;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:800}
 .row2b{display:grid;grid-template-columns:2fr 1fr;gap:10px}
 </style>
 <link rel="stylesheet" href="ancho.css">
@@ -73,6 +74,13 @@ td{padding:9px 5px;border-bottom:1px dotted #eee1ef;font-size:14px}
   <label>Costo por unidad<input id="cCosto" type="number" min="0" inputmode="decimal" placeholder="Ej. 1800"></label>
   <button class="btn-main" id="guardarCostoBtn">Guardar costo</button>
   <div id="costoMsg"></div>
+ </div>
+
+ <div class="card" id="sugCard" style="display:none">
+  <h2 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Costos según tus últimas compras</h2>
+  <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Sale de las facturas y remitos de proveedor que cargaste (precio final con IVA y bonificación). Tocá <b>Usar</b> para que ese pase a ser el costo del producto y el margen se calcule con él.</p>
+  <div id="sugResumen" style="margin-bottom:10px"></div>
+  <div id="sugList"></div>
  </div>
 
  <div class="card">
@@ -179,6 +187,51 @@ function renderMargenes(){
  </table>`;
 }
 
+// ---- Costos según las últimas compras a proveedores ----
+let compras=[]; // facturas_proveedor con items
+let sugs=[];
+const money2=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:0,maximumFractionDigits:2}).format(n||0);
+function calcSugerencias(){
+ const ult={};
+ compras.filter(f=>(f.importe||0)>0).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||a.id-b.id).forEach(f=>{
+  (f.items||[]).forEach(it=>{
+   if(it.tipo==="servicio"||!it.producto)return;
+   const pf=Number(it.precioFinal);if(!(pf>0))return;
+   const h=ult[it.producto]||(ult[it.producto]=[]);
+   h.push({precio:pf,fecha:f.fecha,proveedor:f.proveedor,tipo:f.tipo_comprobante});
+  });
+ });
+ sugs=Object.keys(ult).map(prod=>{
+  const h=ult[prod],u=h[h.length-1],ant=h.length>1?h[h.length-2]:null,actual=costoDe(prod);
+  const dif=actual?(u.precio-actual)/actual*100:null;
+  return {prod,u,ant,actual,dif,compras:h.length};
+ }).filter(x=>x.actual==null||Math.abs(x.u.precio-x.actual)>0.5)
+  .sort((a,b)=>(b.actual==null?1e9:Math.abs(b.dif))-(a.actual==null?1e9:Math.abs(a.dif)));
+}
+function renderSug(){
+ const card=$("sugCard");
+ if(!compras.length){card.style.display="none";return}
+ calcSugerencias();card.style.display="block";
+ const suben=sugs.filter(x=>x.dif!=null&&x.dif>0.5),bajan=sugs.filter(x=>x.dif!=null&&x.dif<-0.5),nuevos=sugs.filter(x=>x.actual==null);
+ $("sugResumen").innerHTML=sugs.length?`<span class="chip-s" style="background:#fde8e8;color:#a13030">${suben.length} subieron</span> <span class="chip-s" style="background:#e6f7ee;color:#177a4d">${bajan.length} bajaron</span> <span class="chip-s" style="background:#e8f0fe;color:#1a56b0">${nuevos.length} sin costo cargado</span> <button class="btn-main" style="padding:9px 14px;font-size:13px;margin-left:8px" onclick="usarTodos()">Usar todos (${sugs.length})</button>`:'<span style="color:#177a4d;font-weight:700">✓ Todos los costos coinciden con tu última compra.</span>';
+ $("sugList").innerHTML=sugs.length?`<table><thead><tr><th>Producto</th><th class="num">Costo cargado</th><th class="num">Última compra</th><th class="num">Cambio</th><th></th></tr></thead><tbody>${sugs.slice(0,80).map((x,i)=>{
+  const cambio=x.dif==null?'<span class="margin-na">nuevo</span>':`<span class="${x.dif>0?"margin-neg":"margin-pos"}">${x.dif>0?"▲":"▼"} ${Math.abs(x.dif).toFixed(1)}%</span>`;
+  return `<tr><td>${x.prod}<div style="font-size:11px;color:var(--muted)">${x.u.proveedor||""} · ${String(x.u.fecha).slice(8,10)}/${String(x.u.fecha).slice(5,7)}${x.ant?" · antes "+money2(x.ant.precio):""}</div></td><td class="num">${x.actual==null?"-":money2(x.actual)}</td><td class="num"><b>${money2(x.u.precio)}</b></td><td class="num">${cambio}</td><td class="num"><button class="btn-main" style="padding:7px 12px;font-size:12px" onclick="usarSug(${i})">Usar</button></td></tr>`}).join("")}</tbody></table>`+(sugs.length>80?`<div style="font-size:12px;color:var(--muted);padding-top:8px">Mostrando 80 de ${sugs.length}.</div>`:""):"";
+}
+async function guardarCostoDe(producto,costo){
+ const r=costos.find(c=>c.producto===producto);
+ const res=await apiFetch("/rest/v1/costos_productos"+(r?"?producto=eq."+encodeURIComponent(producto):""),{method:r?"PATCH":"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(r?{costo}:{producto,costo})});
+ if(!res.ok)throw new Error("No se pudo guardar el costo de "+producto);
+}
+async function usarSug(i){
+ const x=sugs[i];if(!x)return;
+ try{await guardarCostoDe(x.prod,Math.round(x.u.precio*100)/100);try{if(window.Audit)Audit.log(null,"Costo actualizado desde compra",x.prod+": "+(x.actual==null?"nuevo":money2(x.actual))+" → "+money2(x.u.precio))}catch(e){}await cargarTodo()}catch(e){alert(e.message)}
+}
+async function usarTodos(){
+ if(!confirm("¿Actualizar el costo de "+sugs.length+" producto(s) con el precio de tu última compra?"))return;
+ try{for(const x of sugs)await guardarCostoDe(x.prod,Math.round(x.u.precio*100)/100);try{if(window.Audit)Audit.log(null,"Costos actualizados desde compras",sugs.length+" productos")}catch(e){}await cargarTodo()}catch(e){alert(e.message)}
+}
+
 async function cargarTodo(){
  $("costosList").innerHTML='<div class="loading">Cargando...</div>';
  $("margenesList").innerHTML='<div class="loading">Cargando...</div>';
@@ -189,10 +242,12 @@ async function cargarTodo(){
   ]);
   costos=await rCostos.json();
   orders=(await rOrders.json()).filter(o=>!o.anulado).slice(0,30);
+  try{const rc=await apiFetch("/rest/v1/facturas_proveedor?select=id,proveedor,fecha,tipo_comprobante,importe,items&order=fecha.desc&limit=600");compras=rc.ok?await rc.json():[]}catch(e){compras=[]}
   renderTotales();
   fillProductoSelect();
   renderCostos();
   renderMargenes();
+  renderSug();
  }catch(e){
   $("costosList").innerHTML='<div class="err">❌ '+(e.message||"Error al cargar datos")+'</div>';
  }
