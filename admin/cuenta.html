@@ -210,11 +210,12 @@ function recordatorioWA(key){
  const lineas=pend.slice(0,12).map(o=>"• "+fmtFechaCorta(o.created_at)+" – "+money(faltaCobrar(o))).join("\n");
  const resto=pend.length>12?"\n• y "+(pend.length-12)+" pedido"+(pend.length-12===1?"":"s")+" más":"";
  const saldoAnt=(c.saldos||[]).reduce((s,x)=>s+(x.monto||0),0);
- const msg="Hola"+(nombre?" "+nombre:"")+"! Te escribimos de Petits Cadeaux\n"
-  +"Te pasamos el detalle de tu cuenta:\n"+(lineas?lineas+resto+"\n":"")
+ const msg="Hola"+(nombre?" "+nombre:"")+", ¿cómo estás?\n"
+  +"Te escribimos de Petits Cadeaux para pasarte el detalle de tu cuenta:\n\n"+(lineas?lineas+resto+"\n":"")
   +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
-  +"*Total a pagar: "+money(c.saldo)+"*\n"
-  +"¿Nos confirmás cuándo podés abonarlo? Muchas gracias!";
+  +"\n*Total pendiente: "+money(c.saldo)+"*\n\n"
+  +"Cuando puedas, ¿nos avisás cuándo te queda cómodo abonarlo? Si ya lo pagaste, contanos y lo registramos.\n"
+  +"¡Muchas gracias por tu compra y por elegirnos!";
  const num=waNumero(conTel&&conTel.whatsapp);
  window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
 }
