@@ -39,6 +39,18 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 .mes small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
 .mes b{font-family:"Cormorant Garamond",Georgia,serif;font-size:23px;color:var(--purple)}
 @media(min-width:760px){.mes{grid-template-columns:repeat(4,1fr)}}
+.recl{grid-column:1/-1;background:rgba(255,255,255,.97);border:1px solid var(--line);border-left:6px solid #d35a6a;border-radius:20px;padding:16px 17px;box-shadow:0 8px 24px rgba(84,36,119,.07)}
+.recl h2{margin:0;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.recl .sub{font-size:13px;color:#5f4d68;margin:3px 0 8px}
+.rc{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:10px 0;border-top:1px dotted #eee1ef}
+.rc .n{font-weight:800;font-size:15px}.rc .d{font-size:12.5px;color:var(--muted);margin-top:2px}
+.rc .m{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:700;color:var(--purple);text-align:right;line-height:1}
+.rc .m.v{color:#9b3040}
+.rc .acc{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.rc .acc button,.rc .acc a{padding:8px 12px;border-radius:12px;font:700 12.5px Inter,Arial,sans-serif;border:1px solid #ddcde4;background:#fff;color:#654273;text-decoration:none;cursor:pointer}
+.rc .acc .wa{background:#e9f8ef;border-color:#bfe3cf;color:#177a4d}
+.rc .acc .cob{background:linear-gradient(135deg,#6d3a97,#9c61c5);color:#fff;border:0}
+.rc.hecho{opacity:.55}
 .aviso{background:#fff7e6;color:#8a5a00;border:1px solid #f3dfb0;padding:10px 13px;border-radius:14px;margin-bottom:12px;font-size:13px}
 </style>
 <link rel="stylesheet" href="ancho.css">
@@ -71,6 +83,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 </main>
 
 <script src="permisos.js"></script>
+<script src="cobranza-util.js"></script>
 <script>
 const SUPABASE_URL="https://stkfdzqwcnzievrmivaj.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0a2ZkenF3Y256aWV2cm1pdmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODM4MzIsImV4cCI6MjEwNDQ1OTgzMn0.rMlhM8TBZhtwroF3lOwRBB8LOyRplPgZQnsUWtjptsM";
@@ -116,7 +129,7 @@ function tarjeta({titulo,clase,numero,sub,items,link,textoLink,vacio}){
 
 async function cargar(){
  const desdeFact=iso(new Date(Date.now()-60*86400000));
- const colsP="id,comercio,total,created_at,estado,estado_entrega,estado_pago,pagado,anulado,cobro,cobro_fecha,factura_cae,facturado_en,nc_cae,remito_nro,remito_en,factura_total";
+ const colsP="id,comercio,domicilio,whatsapp,total,created_at,estado,estado_entrega,estado_pago,pagado,anulado,cobro,cobro_fecha,factura_cae,facturado_en,nc_cae,remito_nro,remito_en,factura_total";
  const pedir=c=>get("pedidos_distribuidora?select="+c+"&order=created_at.desc&limit=3000",true);
  let peds=await pedir(colsP+",cobrado_monto");
  if(peds===null)peds=await pedir(colsP);
@@ -126,13 +139,62 @@ async function cargar(){
   get("stock_productos?select=producto,cantidad,stock_minimo",true)
  ]);
  const ncApl=await get("nc_aplicaciones?select=factura_id,monto&limit=5000",true);
- return {peds,provs,stock,ncApl:ncApl||[]};
+ const [pagosC,saldosC,unifC]=await Promise.all([
+  get("pagos_clientes?select=id,domicilio,monto&limit=5000",true),
+  get("saldos_iniciales?select=domicilio,monto&limit=5000",true),
+  get("clientes_unificados?select=origen,destino",true)
+ ]);
+ return {peds,provs,stock,ncApl:ncApl||[],pagosC:pagosC||[],saldosC:saldosC||[],unifC:unifC||[]};
 }
 
+
+// ---- A quién reclamar hoy (mismos números que Cuenta corriente) ----
+let CLI=[];
+const keyHoy="hoy_reclamo_"+hoyISO;
+const hechos=()=>{try{return JSON.parse(localStorage.getItem(keyHoy)||"[]")}catch(e){return[]}};
+function clientesConDeuda(D){
+ const nd=d=>(d||"").trim().toLowerCase().replace(/\s+/g," ");
+ const unif={};(D.unifC||[]).forEach(u=>unif[u.origen]=u.destino);
+ const canon=d=>{const k=nd(d);return unif[k]||k};
+ const orig={};[...D.peds,...D.pagosC,...D.saldosC].forEach(x=>{if(x.domicilio&&!orig[nd(x.domicilio)])orig[nd(x.domicilio)]=x.domicilio});
+ const map={};
+ const get=(k,dom)=>map[k]||(map[k]={key:k,domicilio:orig[k]||dom,comercios:new Set(),pedidos:[],saldos:[],debe:0,haber:0});
+ D.peds.filter(o=>!o.anulado&&o.domicilio).forEach(o=>{const c=get(canon(o.domicilio),o.domicilio);c.comercios.add(o.comercio||"Sin nombre");c.pedidos.push(o);if(o.total!=null)c.debe+=o.total});
+ D.pagosC.forEach(p=>{if(p.domicilio)get(canon(p.domicilio),p.domicilio).haber+=p.monto||0});
+ D.saldosC.forEach(x=>{if(x.domicilio){const c=get(canon(x.domicilio),x.domicilio);c.saldos.push(x);c.debe+=x.monto||0}});
+ return Object.values(map).map(c=>{
+  const pend=Cobr.pedidosPorCobrar({pedidos:c.pedidos});
+  const masViejo=pend.length?diasEntre(String(pend[0].created_at).slice(0,10),hoyISO):0;
+  const saldo=c.debe-c.haber;
+  return {...c,comercios:[...c.comercios],saldo,pend:pend.length,dias:masViejo,
+   score:saldo*(1+Math.max(0,masViejo)/30),wa:(c.pedidos.slice().reverse().find(o=>o.whatsapp)||{}).whatsapp||""};
+ }).filter(c=>c.saldo>0.5).sort((a,b)=>b.score-a.score);
+}
+function tarjetaReclamo(D){
+ CLI=clientesConDeuda(D);
+ const ya=hechos();
+ const pend=CLI.filter(c=>!ya.includes(c.key)),listos=CLI.length-pend.length;
+ const total=CLI.reduce((s,c)=>s+c.saldo,0),viejos=CLI.filter(c=>c.dias>30);
+ const fila=c=>{const hecho=ya.includes(c.key);
+  return `<div class="rc ${hecho?"hecho":""}"><div><div class="n">${esc(c.comercios[0]||c.domicilio)}</div><div class="d">${esc(c.domicilio)} · ${c.pend} pedido${c.pend===1?"":"s"}${c.dias>0?" · el más viejo hace "+c.dias+" días":""}</div></div><div class="m ${c.dias>30?"v":""}">${money(c.saldo)}</div>
+  <div class="acc"><button class="wa" onclick="hoyWA('${esc(c.key).replace(/'/g,"\\'")}')">💬 WhatsApp</button><button onclick="hoyCopiar('${esc(c.key).replace(/'/g,"\\'")}',this)">📋 Copiar texto</button><a class="cob" href="cuenta.html?cobrar=${encodeURIComponent(c.key)}">Registrar cobranza</a><button onclick="hoyListo('${esc(c.key).replace(/'/g,"\\'")}')">${hecho?"↩ Deshacer":"✓ Ya le escribí"}</button></div></div>`};
+ const lista=pend.slice(0,8).map(fila).join("")+(listos?`<div style="font-size:12px;color:var(--muted);padding-top:8px">${listos} cliente${listos===1?"":"s"} ya reclamado${listos===1?"":"s"} hoy</div>`+CLI.filter(c=>ya.includes(c.key)).slice(0,5).map(fila).join(""):"");
+ return `<div class="recl"><h2>A quién reclamar hoy</h2><div class="sub">${CLI.length?`<b>${money(total)}</b> por cobrar en ${CLI.length} cliente${CLI.length===1?"":"s"}`+(viejos.length?` · <span style="color:#9b3040">${viejos.length} con más de 30 días</span>`:""):""} · ordenados por monto y antigüedad</div>
+  ${lista||'<div class="ok" style="color:#177a4d;font-weight:700">✓ No hay clientes con deuda</div>'}
+  ${pend.length>8?`<a class="ir" style="display:inline-block;margin-top:10px;font-size:13px;font-weight:800;color:#865a8e;text-decoration:none" href="cuenta.html">Ver los ${pend.length-8} restantes en cuenta corriente ›</a>`:`<a class="ir" style="display:inline-block;margin-top:10px;font-size:13px;font-weight:800;color:#865a8e;text-decoration:none" href="cuenta.html">Ir a cuenta corriente ›</a>`}</div>`;
+}
+const cliHoy=k=>CLI.find(c=>c.key===k);
+function hoyWA(k){const c=cliHoy(k);if(c)Cobr.abrirWA(Cobr.waNumero(c.wa),Cobr.textoRecordatorio(c))}
+async function hoyCopiar(k,b){const c=cliHoy(k);if(!c)return;const ok=await Cobr.copiarTexto(Cobr.textoRecordatorio(c));const t=b.textContent;b.textContent=ok?"✓ Copiado":"No se pudo";setTimeout(()=>b.textContent=t,1400)}
+function hoyListo(k){const h=hechos(),i=h.indexOf(k);if(i>=0)h.splice(i,1);else h.push(k);try{localStorage.setItem(keyHoy,JSON.stringify(h))}catch(e){}render(window.__D)}
+
 function render(D){
+ window.__D=D;
  const out=[],avisos=[];
  const peds=D.peds.filter(o=>!o.anulado);
  const sum=a=>a.reduce((s,o)=>s+(Number(o.total)||0),0);
+
+ if(puede("clientes")){out.push(tarjetaReclamo(D))}
 
  if(puede("pedidos")){
   const sinTomar=peds.filter(o=>o.estado!=="Tomado"&&o.estado_entrega!=="Entregado");

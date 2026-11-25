@@ -181,6 +181,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 </main>
 
 <script src="permisos.js"></script>
+<script src="cobranza-util.js"></script>
 <script src="paginacion.js"></script>
 <script src="auditoria.js"></script>
 <script>
@@ -203,18 +204,7 @@ let cobroMedio="";
 // ---- Cobranzas: qué le falta cobrar a cada pedido ----
 const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
 const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function pedidoCobrado(o){
- return ["Efectivo","Transferencia","Mercado Pago"].includes(o.cobro)||(o.estado_pago==="Mercado Pago"&&!!o.pagado);
-}
-// Lo que falta cobrar de un pedido (0 si ya figura cobrado)
-function faltaCobrar(o){
- if(o.total==null||pedidoCobrado(o))return 0;
- return Math.max(0,r2(o.total-(Number(o.cobrado_monto)||0)));
-}
-// Pedidos del cliente con algo por cobrar, del más antiguo al más nuevo
-function pedidosPorCobrar(c){
- return c.pedidos.filter(o=>faltaCobrar(o)>0.005).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)||a.id-b.id);
-}
+const {pedidoCobrado,faltaCobrar,pedidosPorCobrar,waNumero,textoRecordatorio,copiarTexto}=Cobr;
 // Saldo a favor que dejaron cobranzas anteriores hechas con la imputación automática (las viejas, sin medio, no cuentan)
 function creditoDe(c){
  const imputado=pid=>links.filter(l=>l.pago_id===pid).reduce((s,l)=>s+(l.monto||0),0);
@@ -222,44 +212,10 @@ function creditoDe(c){
 }
 
 // ---- WhatsApp: recordatorio de deuda ----
-function waNumero(t){
- let d=String(t||"").replace(/\D/g,"").replace(/^0+/,"");
- if(!d)return"";
- if(d.startsWith("54")){if(!d.startsWith("549")&&d.length===12)d="549"+d.slice(2);return d}
- if(d.length===10)return"549"+d;
- if(d.length===12&&d.startsWith("15"))return d; // formato dudoso: se deja tal cual
- return d;
-}
-function textoRecordatorio(c){
- const pend=pedidosPorCobrar(c);
- const nombre=(c.comercios[0]||"").trim();
- const variosComercios=c.comercios.length>1;
- const lineas=pend.map(o=>"• "+fmtFechaCorta(o.created_at)+(variosComercios?" "+(o.comercio||""):"")+" – "+money(faltaCobrar(o))).join("\n");
- const saldoAnt=(c.saldos||[]).reduce((s,x)=>s+(x.monto||0),0);
- return "Hola"+(nombre?" "+nombre:"")+", ¿cómo estás?\n"
-  +"Te escribimos de Petits Cadeaux para pasarte el detalle de tu cuenta:\n\n"+(lineas?lineas+"\n":"")
-  +(saldoAnt>0.005?"• Saldo anterior – "+money(saldoAnt)+"\n":"")
-  +"\n*Total pendiente: "+money(c.saldo)+"*\n\n"
-  +"Cuando puedas, ¿nos avisás cuándo te queda cómodo abonarlo? Si ya pagaste, enviános el comprobante así registramos el pago correctamente.\n"
-  +"¡Muchas gracias por tu compra y por elegirnos!";
-}
-async function copiarTexto(t){
- try{await navigator.clipboard.writeText(t);return true}catch(e){
-  const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
-  let ok=false;try{ok=document.execCommand("copy")}catch(e){}ta.remove();return ok;
- }
-}
 function recordatorioWA(key){
  const c=clients.find(x=>x.key===key);if(!c)return;
  const conTel=c.pedidos.find(o=>o.whatsapp);
- const msg=textoRecordatorio(c);
- const num=waNumero(conTel&&conTel.whatsapp);
- const url="https://wa.me/"+num+"?text="+encodeURIComponent(msg);
- if(url.length>7000){ // detalle muy largo: no entra en el link, se copia para pegarlo en el chat
-  copiarTexto(msg).then(()=>{alert("El detalle es largo: lo copié. Pegalo en el chat de WhatsApp (se abre ahora).");window.open("https://wa.me/"+num,"_blank")});
-  return;
- }
- window.open(url,"_blank");
+ Cobr.abrirWA(waNumero(conTel&&conTel.whatsapp),textoRecordatorio(c));
 }
 async function copiarRecordatorio(key,btn){
  const c=clients.find(x=>x.key===key);if(!c)return;
@@ -669,7 +625,7 @@ $("saldoFecha").value=new Date().toISOString().slice(0,10);
 
 if(session){
  $("content").style.display="block";
- cargarTodo();
+ cargarTodo().then(()=>{const q=new URLSearchParams(location.search).get("cobrar");if(q){const c=clients.find(x=>x.key===q);if(c)abrirCobranza(c.key)}});
 }else{
  $("noSession").style.display="block";
 }
