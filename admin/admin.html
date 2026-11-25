@@ -158,7 +158,20 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
 .header-actions .pill{padding:6px 11px;font-size:11px}
 @media(min-width:1000px){.header-actions{position:absolute;right:0;top:50%;transform:translateY(-50%)}header{padding-top:12px;padding-bottom:12px}}
 @media(max-width:999px){.header-top{flex-direction:column!important}.header-top h1{width:100%!important}}
-@media(max-width:700px){.sepv{display:none!important}#printSelectedBtn{width:100%;justify-content:center;text-align:center}.fil-main .chip{padding:9px 13px}}
+@media(max-width:700px){
+.sepv{display:none!important}
+#panelView>.card{padding:12px 12px 14px}
+.topbar{display:flex!important;flex-wrap:nowrap!important;align-items:center;justify-content:space-between;gap:8px}
+.topbar strong{font-size:15px}
+#printSelectedBtn{width:auto;padding:7px 11px;font-size:12px;border-radius:11px}
+.fil-main{display:grid!important;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+.fil-main .search{grid-column:1/-1;padding:10px 12px;font-size:14px;border-radius:12px}
+.fil-main select{width:100%;min-width:0;padding:9px 10px;font-size:13px;border-radius:12px}
+.fil-main .chip{padding:9px 12px;font-size:12px;flex:0 0 auto;border-radius:12px}
+.fil-chips{margin-top:10px}
+.fil-chips .filters{gap:6px}
+.fil-chips .chip,.fil-chips .filters .chip{padding:7px 11px;font-size:12px;border-radius:11px}
+}
 .statbar{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-bottom:12px}
 .sb{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:14px;padding:7px 16px;display:flex;align-items:baseline;gap:9px;box-shadow:0 6px 16px rgba(84,36,119,.06)}
 .sb b{font-family:"Cormorant Garamond",Georgia,serif;font-size:26px;color:var(--purple);line-height:1}
@@ -227,7 +240,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
     <div class="topbar">
       <div><strong id="countLabel">0 pedidos</strong></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-       <button class="logout" id="printSelectedBtn">🖨️ Imprimir pedidos seleccionados</button>
+       <button class="logout" id="printSelectedBtn">🖨️ Imprimir seleccionados</button>
       </div>
     </div>
     <div class="fil-main">
