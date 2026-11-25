@@ -103,14 +103,18 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  <div class="card">
   <button type="button" class="modal-x" data-close>✕</button>
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Registrar pago a cuenta</h2>
-  <p style="margin:0;color:var(--muted);font-size:13px">Podés registrar un pago parcial, el total, o de más (queda a favor para la próxima factura).</p>
+  <p style="margin:0;color:var(--muted);font-size:13px">Se descuenta solo de la factura o remito <b>más viejo</b> primero. Revisá el reparto y confirmá. Si pagás de más, queda a favor para la próxima factura.</p>
   <label>Proveedor
    <select id="pagoProveedor"><option value="">Seleccionar proveedor...</option></select>
   </label>
   <label>Monto<input id="pagoMonto" type="number" min="0" inputmode="decimal" placeholder="Ej. 100000"></label>
+  <div id="pagoReparto" style="margin:10px 0"></div>
+  <label>Medio de pago
+   <select id="pagoMedio"><option>Transferencia</option><option>Efectivo</option><option>Cheque</option><option>Mercado Pago</option><option>Tarjeta</option><option>Otro</option></select>
+  </label>
   <label>Fecha<input id="pagoFecha" type="date"></label>
   <label>Nota (opcional)<input id="pagoNota" placeholder="Ej. Pago parcial factura O 57496"></label>
-  <button class="btn-main" id="guardarPagoBtn">Guardar pago</button>
+  <button class="btn-main" id="guardarPagoBtn">✓ Confirmar pago</button>
   <div id="pagoMsg"></div>
  </div>
  </div>
@@ -274,33 +278,51 @@ async function cargarTodo(){
  }
 }
 
+// Reparto automático: el pago se descuenta de la factura/remito más viejo primero.
+const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const esNC=f=>/^nota de cr/i.test(f.tipo_comprobante||"");
+const ncMontoDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id).reduce((t,n)=>t+Math.abs(n.importe||0),0);
+const saldoDe=f=>(esNC(f)||f.pagada)?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0)-ncMontoDe(f));
+function calcularReparto(){
+ const prov=$("pagoProveedor").value,monto=r2(parseFloat($("pagoMonto").value)||0);
+ const abiertas=facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&normProv(f.proveedor)===normProv(prov)&&saldoDe(f)>0.005)
+  .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")||a.id-b.id);
+ let resto=monto;const items=[];
+ abiertas.forEach(f=>{const ap=r2(Math.min(resto,saldoDe(f)));if(ap>0){items.push({f,monto:ap,salda:ap>=saldoDe(f)-0.005});resto=r2(resto-ap)}});
+ return {prov,monto,items,aCuenta:resto>0.005?resto:0,pendiente:r2(abiertas.reduce((t,f)=>t+saldoDe(f),0))};
+}
+function renderReparto(){
+ const box=$("pagoReparto"),r=calcularReparto(),esc=t=>String(t==null?"":t).replace(/</g,"&lt;");
+ if(!r.prov||!r.monto){box.innerHTML="";return}
+ const filas=r.items.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dotted #eee1ef;font-size:13px"><span>${fmtFechaCorta(x.f.fecha)} · ${esc(x.f.tipo_comprobante||"Factura")}${x.f.descripcion?" "+esc(x.f.descripcion):""}<br><small style="color:var(--muted)">Saldo ${money(saldoDe(x.f))} → ${x.salda?"<b style=\"color:#177a4d\">queda saldada</b>":"queda "+money(saldoDe(x.f)-x.monto)}</small></span><strong>${money(x.monto)}</strong></div>`).join("");
+ box.innerHTML=`<div style="background:#faf5fc;border:1px solid #eadcef;border-radius:14px;padding:10px 12px"><div style="font-size:12px;font-weight:800;color:#8a7694;text-transform:uppercase;margin-bottom:4px">Se va a descontar de:</div>${filas||'<div style="font-size:13px;color:var(--muted)">No hay facturas ni remitos pendientes de este proveedor.</div>'}${r.aCuenta?`<div style="display:flex;justify-content:space-between;padding-top:6px;font-size:13px;color:#177a4d"><span>A cuenta (saldo a favor)</span><strong>${money(r.aCuenta)}</strong></div>`:""}</div>`;
+}
 async function guardarPago(){
- const proveedor=$("pagoProveedor").value;
- const monto=parseFloat($("pagoMonto").value);
+ const r=calcularReparto();
  const fecha=$("pagoFecha").value;
  const nota=$("pagoNota").value.trim();
  $("pagoMsg").innerHTML="";
- if(!proveedor)return $("pagoMsg").innerHTML='<div class="err">Elegí un proveedor.</div>';
- if(!monto||monto<=0)return $("pagoMsg").innerHTML='<div class="err">Ingresá un monto válido.</div>';
+ if(!r.prov)return $("pagoMsg").innerHTML='<div class="err">Elegí un proveedor.</div>';
+ if(!r.monto||r.monto<=0)return $("pagoMsg").innerHTML='<div class="err">Ingresá un monto válido.</div>';
  if(!fecha)return $("pagoMsg").innerHTML='<div class="err">Elegí una fecha.</div>';
 
  $("guardarPagoBtn").disabled=true;$("guardarPagoBtn").textContent="Guardando...";
  try{
-  await apiFetch("/rest/v1/pagos_proveedor",{
-   method:"POST",
-   headers:{"Prefer":"return=minimal"},
-   body:JSON.stringify({proveedor,monto,fecha,nota:nota||null})
-  });
-  $("pagoMsg").innerHTML='<div class="ok">✅ Pago registrado.</div>';
-  $("pagoMonto").value="";$("pagoNota").value="";
+  const rr=await apiFetch("/rest/v1/rpc/generar_orden_pago",{method:"POST",body:JSON.stringify({
+   p_proveedor:r.prov,p_fecha:fecha,p_medio:$("pagoMedio").value,p_referencia:"",p_nota:nota,
+   p_items:r.items.map(x=>({factura_id:x.f.id,monto:x.monto})),p_a_cuenta:r.aCuenta})});
+  const data=await rr.json().catch(()=>null);
+  if(!rr.ok){const m=(data&&(data.message||data.hint))||"error";throw new Error(/function|schema cache|does not exist/i.test(m)?"Falta correr el SQL de órdenes de pago en Supabase.":m)}
+  try{if(window.Audit)Audit.log(null,"Pago a cuenta de proveedor","Orden N° "+data+" · "+r.prov+" · "+money(r.monto)+" · descontado de "+r.items.length+" comprobante(s) más antiguos"+(r.aCuenta?" · a cuenta "+money(r.aCuenta):""))}catch(e){}
+  $("pagoMsg").innerHTML='<div class="ok">✅ Pago registrado y descontado de '+r.items.length+' comprobante'+(r.items.length===1?"":"s")+'.</div>';
+  $("pagoMonto").value="";$("pagoNota").value="";$("pagoReparto").innerHTML="";
   await cargarTodo();
-  setTimeout(cerrarModales,900);
+  setTimeout(cerrarModales,1200);
  }catch(e){
   $("pagoMsg").innerHTML='<div class="err">❌ '+(e.message||"No se pudo guardar")+'</div>';
  }
- $("guardarPagoBtn").disabled=false;$("guardarPagoBtn").textContent="Guardar pago";
+ $("guardarPagoBtn").disabled=false;$("guardarPagoBtn").textContent="✓ Confirmar pago";
 }
-
 async function borrarPago(id,esOP){
  if(!confirm(esOP?"¿Anular esta orden de pago? Las facturas vuelven a quedar pendientes.":"¿Borrar este pago?"))return;
  try{
@@ -323,6 +345,8 @@ document.querySelectorAll(".modal-bg").forEach(m=>m.addEventListener("click",e=>
 document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarModales()});
 document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("click",()=>{filtroSaldo=b.dataset.f;Pag.reset("cprov");document.querySelectorAll("#saldoFilters .chip").forEach(x=>x.classList.toggle("active",x===b));renderProveedores()}));
 $("guardarPagoBtn").addEventListener("click",guardarPago);
+$("pagoMonto").addEventListener("input",renderReparto);
+$("pagoProveedor").addEventListener("change",renderReparto);
 $("searchProv").addEventListener("input",()=>{Pag.reset("cprov");renderProveedores()});
 $("pagoFecha").value=new Date().toISOString().slice(0,10);
 
