@@ -103,7 +103,7 @@ button{border:0;border-radius:15px;font:800 15px Inter,Arial,sans-serif;cursor:p
  <div class="card">
   <button type="button" class="modal-x" data-close>✕</button>
   <h2 style="margin:0 0 10px;font-family:'Cormorant Garamond',serif;color:var(--purple);font-size:26px">Registrar pago a cuenta</h2>
-  <p style="margin:0;color:var(--muted);font-size:13px">Se descuenta solo de la factura o remito <b>más viejo</b> primero. Revisá el reparto y confirmá. Si pagás de más, queda a favor para la próxima factura.</p>
+  <p style="margin:0;color:var(--muted);font-size:13px">Se descuenta solo de lo <b>más viejo</b> primero: en <b>efectivo</b> de remitos y facturas; con <b>transferencia</b> (u otro medio) solo de facturas. Revisá el reparto y confirmá. Si pagás de más, queda a favor para la próxima factura.</p>
   <label>Proveedor
    <select id="pagoProveedor"><option value="">Seleccionar proveedor...</option></select>
   </label>
@@ -283,9 +283,11 @@ const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
 const esNC=f=>/^nota de cr/i.test(f.tipo_comprobante||"");
 const ncMontoDe=f=>facturas.filter(n=>esNC(n)&&n.factura_asociada_id===f.id).reduce((t,n)=>t+Math.abs(n.importe||0),0);
 const saldoDe=f=>(esNC(f)||f.pagada)?0:Math.max(0,(f.importe||0)-(f.pagado_monto||0)-ncMontoDe(f));
+// Regla: en efectivo se descuenta de remitos y facturas; con cualquier otro medio (transferencia, etc.) solo de facturas.
+const esRemitoODoc=f=>/^(remito|compromiso)/i.test(f.tipo_comprobante||"");
 function calcularReparto(){
  const prov=$("pagoProveedor").value,monto=r2(parseFloat($("pagoMonto").value)||0);
- const abiertas=facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&normProv(f.proveedor)===normProv(prov)&&saldoDe(f)>0.005)
+ const abiertas=facturas.filter(f=>!esNC(f)&&(f.importe||0)>0&&normProv(f.proveedor)===normProv(prov)&&saldoDe(f)>0.005&&($("pagoMedio").value==="Efectivo"||!esRemitoODoc(f)))
   .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")||a.id-b.id);
  let resto=monto;const items=[];
  abiertas.forEach(f=>{const ap=r2(Math.min(resto,saldoDe(f)));if(ap>0){items.push({f,monto:ap,salda:ap>=saldoDe(f)-0.005});resto=r2(resto-ap)}});
@@ -295,7 +297,7 @@ function renderReparto(){
  const box=$("pagoReparto"),r=calcularReparto(),esc=t=>String(t==null?"":t).replace(/</g,"&lt;");
  if(!r.prov||!r.monto){box.innerHTML="";return}
  const filas=r.items.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dotted #eee1ef;font-size:13px"><span>${fmtFechaCorta(x.f.fecha)} · ${esc(x.f.tipo_comprobante||"Factura")}${x.f.descripcion?" "+esc(x.f.descripcion):""}<br><small style="color:var(--muted)">Saldo ${money(saldoDe(x.f))} → ${x.salda?"<b style=\"color:#177a4d\">queda saldada</b>":"queda "+money(saldoDe(x.f)-x.monto)}</small></span><strong>${money(x.monto)}</strong></div>`).join("");
- box.innerHTML=`<div style="background:#faf5fc;border:1px solid #eadcef;border-radius:14px;padding:10px 12px"><div style="font-size:12px;font-weight:800;color:#8a7694;text-transform:uppercase;margin-bottom:4px">Se va a descontar de:</div>${filas||'<div style="font-size:13px;color:var(--muted)">No hay facturas ni remitos pendientes de este proveedor.</div>'}${r.aCuenta?`<div style="display:flex;justify-content:space-between;padding-top:6px;font-size:13px;color:#177a4d"><span>A cuenta (saldo a favor)</span><strong>${money(r.aCuenta)}</strong></div>`:""}</div>`;
+ box.innerHTML=`<div style="background:#faf5fc;border:1px solid #eadcef;border-radius:14px;padding:10px 12px"><div style="font-size:12px;font-weight:800;color:#8a7694;text-transform:uppercase;margin-bottom:4px">Se va a descontar de:</div>${filas||'<div style="font-size:13px;color:var(--muted)">No hay '+($("pagoMedio").value==="Efectivo"?"facturas ni remitos":"facturas")+' pendientes de este proveedor.</div>'}${r.aCuenta?`<div style="display:flex;justify-content:space-between;padding-top:6px;font-size:13px;color:#177a4d"><span>A cuenta (saldo a favor)</span><strong>${money(r.aCuenta)}</strong></div>`:""}</div>`;
 }
 async function guardarPago(){
  const r=calcularReparto();
@@ -313,7 +315,7 @@ async function guardarPago(){
    p_items:r.items.map(x=>({factura_id:x.f.id,monto:x.monto})),p_a_cuenta:r.aCuenta})});
   const data=await rr.json().catch(()=>null);
   if(!rr.ok){const m=(data&&(data.message||data.hint))||"error";throw new Error(/function|schema cache|does not exist/i.test(m)?"Falta correr el SQL de órdenes de pago en Supabase.":m)}
-  try{if(window.Audit)Audit.log(null,"Pago a cuenta de proveedor","Orden N° "+data+" · "+r.prov+" · "+money(r.monto)+" · descontado de "+r.items.length+" comprobante(s) más antiguos"+(r.aCuenta?" · a cuenta "+money(r.aCuenta):""))}catch(e){}
+  try{if(window.Audit)Audit.log(null,"Pago a cuenta de proveedor","Orden N° "+data+" · "+r.prov+" · "+money(r.monto)+" · descontado de "+r.items.length+" comprobante(s) más antiguos ("+$("pagoMedio").value+")"+(r.aCuenta?" · a cuenta "+money(r.aCuenta):""))}catch(e){}
   $("pagoMsg").innerHTML='<div class="ok">✅ Pago registrado y descontado de '+r.items.length+' comprobante'+(r.items.length===1?"":"s")+'.</div>';
   $("pagoMonto").value="";$("pagoNota").value="";$("pagoReparto").innerHTML="";
   await cargarTodo();
@@ -347,6 +349,7 @@ document.querySelectorAll("#saldoFilters .chip").forEach(b=>b.addEventListener("
 $("guardarPagoBtn").addEventListener("click",guardarPago);
 $("pagoMonto").addEventListener("input",renderReparto);
 $("pagoProveedor").addEventListener("change",renderReparto);
+$("pagoMedio").addEventListener("change",renderReparto);
 $("searchProv").addEventListener("input",()=>{Pag.reset("cprov");renderProveedores()});
 $("pagoFecha").value=new Date().toISOString().slice(0,10);
 
