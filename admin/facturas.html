@@ -508,6 +508,7 @@ function aplicarLecturaIA(x){
  set("fCuitProveedor",x.cuit&&String(x.cuit).replace(/\D/g,""));
  if(x.tipo_comprobante&&[...$("fTipo").options].some(o=>o.value===x.tipo_comprobante))$("fTipo").value=x.tipo_comprobante;
  actualizarTipo();
+ if(tipoEsNC())$("fNcStock").checked=false; // la IA nunca marca devolución de mercadería: solo resta el monto
  set("fFecha",x.fecha);set("fVencimiento",x.vencimiento);
  set("fPtoVta",x.punto_venta&&String(x.punto_venta).replace(/\D/g,"").slice(0,5));
  set("fNumero",x.numero&&String(x.numero).replace(/\D/g,"").slice(0,8));
@@ -528,6 +529,7 @@ function aplicarLecturaIA(x){
  const av=(x.advertencias||[]).slice();
  if(sinPrecio.length)av.push("Sin precio legible (no se cargaron): "+sinPrecio.join(", "));
  $("iaMsg").innerHTML='<div style="background:#fff7e6;border:1px solid #f3dfb0;border-radius:12px;padding:10px 12px;color:#6b4a00"><b>✨ Leída por la IA — revisá todo antes de guardar.</b> Controlá proveedor, fecha, cantidades, precios y que el total coincida (más abajo aparece el chequeo).'+
+  (tipoEsNC()?'<div style="margin-top:6px">Nota de crédito: solo resta el monto de la cuenta del proveedor, <b>no mueve stock</b>. Elegí la factura asociada abajo para descontarla de esa factura.</div>':'')+
   (av.length?'<ul style="margin:6px 0 0 18px;padding:0">'+av.map(a=>'<li>'+String(a).replace(/</g,"&lt;")+'</li>').join("")+'</ul>':"")+'</div>';
  $("fProveedor").dispatchEvent(new Event("change"));
 }
