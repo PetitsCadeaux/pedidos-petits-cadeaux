@@ -51,6 +51,7 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
 }
 </style>
 <link rel="stylesheet" href="ancho.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -84,7 +85,7 @@ tfoot td{font-weight:800;color:var(--purple);border-top:2px solid var(--purple);
   </div>
   <div class="btns-row">
    <button class="btn-main" id="aplicarBtn">Aplicar filtro</button>
-   <button class="btn-sec" id="exportBtn">⬇️ Exportar CSV</button>
+   <button class="btn-sec" id="exportBtn">⬇️ Exportar Excel</button>
    <button class="btn-sec" id="printBtn">🖨️ Imprimir resumen</button>
    <button class="btn-sec" id="printDetBtn">🖨️ Imprimir con detalle</button>
   </div>
@@ -229,20 +230,16 @@ function toggleProducto(producto){
 
 function exportarCSV(){
  if(!currentAgg.length){alert("No hay datos para exportar.");return}
- // Separador ";" y coma decimal: así Excel en español lo abre en columnas
- const num=n=>String(Math.round(n*100)/100).replace(".",",");
- let csv="Producto;Cantidad;Venta;Costo\n";
- currentAgg.forEach(p=>{
+ const filas=currentAgg.map(p=>{
   const c=costoDe(p.producto);
-  csv+=`"${String(p.producto).replace(/"/g,'""')}";${p.cantidad};${p.confirmar?"A confirmar":num(p.importe)};${c==null?"Sin costo":num(c*p.cantidad)}\n`;
+  return {"Producto":p.producto,"Cantidad":p.cantidad,
+   "Venta":p.confirmar?"A confirmar":Math.round(p.importe*100)/100,
+   "Costo":c==null?"Sin costo":Math.round(c*p.cantidad*100)/100};
  });
- const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
- a.href=url;
- a.download="reporte_pedidos_"+new Date().toISOString().slice(0,10)+".csv";
- a.click();
- URL.revokeObjectURL(url);
+ const ws=XLSX.utils.json_to_sheet(filas);
+ ws["!cols"]=[{wch:42},{wch:10},{wch:14},{wch:14}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Reporte");
+ XLSX.writeFile(wb,"reporte_pedidos_"+new Date().toISOString().slice(0,10)+".xlsx");
 }
 
 $("aplicarBtn").addEventListener("click",aplicarFiltro);
