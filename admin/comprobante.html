@@ -22,8 +22,20 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 .receipt{background:#fff;border:1px solid #d9c8db;border-radius:6px;padding:6mm;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .receipt.size-10x15{width:100mm;font-size:10px}
 .receipt.size-a5{width:190mm;min-height:135mm;font-size:13.5px}
+.receipt.size-a4copia{width:190mm;min-height:262mm;font-size:14px;padding:8mm;box-sizing:border-box}
 .receipt.size-apaisada{width:136mm;height:188mm;font-size:10.5px;overflow:hidden}
 
+.a4-page{page-break-after:always;break-after:page;display:flex;justify-content:center;margin-bottom:6mm}
+.r-copia-tag{align-self:flex-end;border:2px solid var(--purple);color:var(--purple);border-radius:6px;padding:1mm 5mm;font-weight:900;letter-spacing:2px;font-size:1.05em;margin-bottom:2mm}
+.r-pago{border:1.5px solid #333;border-radius:6px;padding:3mm 4mm;margin-top:3mm;font-size:.95em;color:var(--ink)}
+.r-pago b.t{display:block;margin-bottom:2mm;text-transform:uppercase;letter-spacing:.4px}
+.r-pago .opts{display:flex;gap:6mm;flex-wrap:wrap;font-weight:800;margin-bottom:2.5mm}
+.r-pago .box{display:inline-block;width:5mm;height:5mm;border:1.5px solid #333;vertical-align:-1mm;margin-right:1.5mm}
+.r-pago .fl{display:flex;gap:4mm;margin-top:2mm;color:var(--muted);font-size:.9em}
+.r-pago .fl span{flex:1;border-bottom:1px solid #777;height:6mm}
+.r-pago .legal{font-size:.8em;color:var(--muted);margin-top:2.5mm;line-height:1.35}
+.r-firmas{display:flex;gap:8mm;margin-top:10mm;font-size:.85em;color:var(--muted)}
+.r-firmas div{flex:1;border-top:1.5px solid #333;padding-top:1mm;text-align:center}
 /* Modo apaisado: dos remitos de tamaño fijo por hoja, ocupando cada uno
    exactamente la mitad — nunca se agrandan ni se achican según el pedido;
    si el contenido es corto, queda simplemente espacio vacío abajo. */
@@ -155,7 +167,8 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 <div class="toolbar">
  <h1>🖨️ Comprobantes</h1>
  <select id="sizeSelect">
-  <option value="apaisada" selected>Apaisado (2 por hoja)</option>
+  <option value="a4copia" selected>A4 · Original y Copia (firma)</option>
+  <option value="apaisada">Apaisado (2 por hoja)</option>
   <option value="a5">Tamaño A5</option>
   <option value="10x15">Tamaño 10×15 cm</option>
  </select>
@@ -358,6 +371,7 @@ function renderCbte(o,tipo){
 function docsDe(o,size){
  if(o._soloNC)return [renderNC(o)];
  if(o.factura_cae)return o.nc_cae?[renderFactura(o),renderNC(o)]:[renderFactura(o)];
+ if(size==="a4copia")return [renderRemito(o,size,"ORIGINAL"),renderRemito(o,size,"COPIA")];
  return [renderRemito(o,size)];
 }
 
@@ -368,7 +382,7 @@ function actualizarOrientacionPagina(size){
   style.id="pageOrientStyle";
   document.head.appendChild(style);
  }
- style.textContent=size==="apaisada"?"@page{size:landscape;margin:8mm}":"@page{size:auto;margin:10mm}";
+ style.textContent=size==="apaisada"?"@page{size:landscape;margin:8mm}":(size==="a4copia"?"@page{size:A4 portrait;margin:10mm}":"@page{size:auto;margin:10mm}");
 }
 
 function renderReceipts(orders,size){
@@ -395,12 +409,19 @@ function renderReceipts(orders,size){
   $("sheet").innerHTML=html;
   return;
  }
+ if(size==="a4copia"){
+  $("sheet").innerHTML=orders.map(o=>{
+   const esFac=o.factura_cae||o._anulada||o._soloNC;
+   return docsDe(o,size).map(h=>esFac?h:`<div class="a4-page">${h}</div>`).join("");
+  }).join("");
+  return;
+ }
  $("sheet").innerHTML=orders.map(o=>{
   return docsDe(o,size).join("");
  }).join("");
 }
 
-function renderRemito(o,size){
+function renderRemito(o,size,copia){
   const items=(o.productos||[]).map(it=>{
    const tieneDescuento=it.bonif_pct>0&&it.precio_lista!=null;
    const detalle=it.cambio
@@ -420,6 +441,7 @@ function renderRemito(o,size){
   },0);
   const numero=String(o.id).padStart(4,"0");
   return `<div class="receipt size-${size}">
+   ${copia?`<div class="r-copia-tag">${copia}${copia==="ORIGINAL"?" · DISTRIBUIDORA":" · CLIENTE"}</div>`:""}
    <div class="r-head">
     <img class="logo-r" src="${LOGO_URL}" alt="" onerror="this.style.display='none'">
     <div class="biz">Distribuidora Petits Cadeaux</div>
@@ -443,10 +465,16 @@ function renderRemito(o,size){
    <div class="r-total"><span class="lbl">TOTAL</span><span class="val">${money(o.total)}</span></div>
    <div class="r-gracias">¡Gracias por tu compra! 🐞</div>
    <div class="r-cae-pend no-print"><button class="btn-facturar" data-id="${o.id}">🧾 Facturar (ARCA)</button></div>
-   <div class="r-sign">
+   ${size==="a4copia"?`<div class="r-pago">
+    <b class="t">Forma de pago</b>
+    <div class="opts"><span><i class="box"></i>Efectivo</span><span><i class="box"></i>Transferencia</span><span><i class="box"></i>Pendiente de pago</span></div>
+    <div class="fl">Fecha de pago / compromiso: <span></span> N° de operación (transferencia): <span></span></div>
+    <div class="legal">Recibí la mercadería detallada en este remito, completa y en buen estado. Si marqué <b>Pendiente de pago</b>, reconozco adeudar <b>${money(o.total)}</b> y me comprometo a abonarlo en la fecha indicada. El pago en efectivo sólo se considera recibido si figura en este comprobante con la casilla marcada y firmada.</div>
+   </div>
+   <div class="r-firmas"><div>Firma conforme</div><div>Aclaración</div><div>DNI</div></div>`:`<div class="r-sign">
     Recibí conforme
     <div class="line"></div>
-   </div>
+   </div>`}
   </div>`;
 }
 
