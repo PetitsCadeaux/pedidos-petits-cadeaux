@@ -441,7 +441,7 @@ function renderRemito(o,size,copia){
   },0);
   const numero=String(o.id).padStart(4,"0");
   return `<div class="receipt size-${size}">
-   ${copia?`<div class="r-copia-tag">${copia}${copia==="ORIGINAL"?" · DISTRIBUIDORA":" · CLIENTE"}</div>`:""}
+   ${copia?`<div class="r-copia-tag">${copia==="ORIGINAL"?"ORIGINAL · COPIA REPARTIDOR":"DUPLICADO · COPIA PARA EL CLIENTE"}</div>`:""}
    <div class="r-head">
     <img class="logo-r" src="${LOGO_URL}" alt="" onerror="this.style.display='none'">
     <div class="biz">Distribuidora Petits Cadeaux</div>
