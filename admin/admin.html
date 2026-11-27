@@ -641,7 +641,7 @@ async function anularPedido(id){
   const ahora=new Date().toISOString();
   const r=await apiFetch("/rest/v1/pedidos_distribuidora?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({anulado:true,anulado_en:ahora,anulado_motivo:motivo||null})});
   if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((d.message||"error")+" (¿corriste sql-pedidos-v2.sql en Supabase?)")}
-  await reponerStock(o.productos,"Pedido anulado — "+(o.comercio||""));
+  if(o.canal!=="tienda")await reponerStock(o.productos,"Pedido anulado — "+(o.comercio||"")); // los de tienda los repone la base (equivalencias de packs)
   Audit.log(id,"Pedido anulado",(o.comercio||"Sin nombre")+" · total "+money(o.total)+(motivo?" · Motivo: "+motivo:""));
   o.anulado=true;o.anulado_en=ahora;o.anulado_motivo=motivo||null;
   render();
@@ -1275,7 +1275,7 @@ async function guardarEdicion(){
   }
   const productosAntes=body.productos?(o.productos||[]):null;
   Object.assign(o,body);
-  if(productosAntes)await ajustarStockPorEdicion(productosAntes,body.productos,"Pedido editado #"+editId+" — "+(o.comercio||""));
+  if(productosAntes&&o.canal!=="tienda")await ajustarStockPorEdicion(productosAntes,body.productos,"Pedido editado #"+editId+" — "+(o.comercio||""));
   if(body.created_at)orders.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   Audit.log(editId,"Pedido editado",detalle.join(" | "));
   $("editarModal").style.display="none";

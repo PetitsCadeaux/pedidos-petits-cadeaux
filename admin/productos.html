@@ -106,6 +106,11 @@ button{border:0;border-radius:13px;font:800 14px Inter,Arial,sans-serif;cursor:p
     <input id="fPrecioX5" type="number" step="0.01" placeholder="Precio x5">
    </div>
   </div>
+  <div id="stockTienda">
+   <label>Producto del stock <span style="font-weight:400;color:var(--muted)">(opcional: solo si se llama distinto en Stock; cada pack descuenta sus unidades)</span>
+    <input id="fStockProd" placeholder="Ej. Hamburguesa Clásica x4">
+   </label>
+  </div>
   <div id="precioRegaleria" style="display:none">
    <label>Precio unitario <span id="precioOpcionalNota" style="font-weight:400;color:var(--muted)"></span>
     <input id="fPrecioUnidad" type="number" step="0.01" placeholder="Precio">
@@ -238,6 +243,7 @@ function setNegocioForm(n){
  negocioForm=n;
  document.querySelectorAll("#negocioTabs button").forEach(b=>b.classList.toggle("active",b.dataset.n===n));
  $("precioTienda").style.display=n==="tienda"?"block":"none";
+ $("stockTienda").style.display=n==="tienda"?"block":"none";
  $("precioRegaleria").style.display=n==="tienda"?"none":"block";
  $("precioOpcionalNota").textContent=(n==="comercio"||n==="mayorista")?"(dejalo vacío si el precio todavía está a confirmar)":"";
  $("listNegocioLabel").textContent=NOMBRES_NEGOCIO[n]||n;
@@ -273,7 +279,7 @@ function limpiarForm(){
  editandoId=null;
  $("fNombre").value="";$("fCategoria").value="";
  $("fPrecioX1").value="";$("fPrecioX3").value="";$("fPrecioX5").value="";
- $("fPrecioUnidad").value="";$("fDescripcion").value="";
+ $("fPrecioUnidad").value="";$("fDescripcion").value="";$("fStockProd").value="";
  $("fFoto").value="";fotoFile=null;$("fotoPreviewWrap").style.display="none";
  $("formTitle").textContent="Nuevo producto";
  $("guardarBtn").textContent="Guardar producto";
@@ -293,6 +299,7 @@ function editarProducto(id){
   $("fPrecioX1").value=t[0]?t[0].precio:"";
   $("fPrecioX3").value=t[1]?t[1].precio:"";
   $("fPrecioX5").value=t[2]?t[2].precio:"";
+  $("fStockProd").value=p.stock_producto||"";
  }else{
   $("fPrecioUnidad").value=p.precio!=null?p.precio:"";
  }
@@ -330,6 +337,9 @@ async function guardarProducto(){
   if(!isNaN(x5))tiers.push({qty:5,precio:x5});
   body.tiers=tiers;
   body.precio=null;
+  const sp=$("fStockProd").value.trim();
+  const prev=editandoId?(productos.find(x=>x.id===editandoId)||{}).stock_producto:null;
+  if(sp||prev)body.stock_producto=sp||null; // requiere correr sql-stock-tienda.sql
  }else{
   const precioVal=$("fPrecioUnidad").value.trim();
   const precio=precioVal===""?null:parseFloat(precioVal);
