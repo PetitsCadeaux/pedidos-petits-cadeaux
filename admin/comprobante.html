@@ -63,7 +63,7 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 .r-pago .fl{display:flex;gap:4mm;margin-top:2mm;color:var(--muted);font-size:.9em}
 .r-pago .fl span{flex:1;border-bottom:1px solid #777;height:6mm}
 .r-pago .legal{font-size:.8em;color:var(--muted);margin-top:2.5mm;line-height:1.35}
-.r-firmas{display:flex;gap:8mm;margin-top:10mm;font-size:.85em;color:var(--muted)}
+.r-firmas{display:flex;gap:6mm;margin-top:10mm;font-size:.85em;color:var(--muted)}
 .r-firmas div{flex:1;border-top:1.5px solid #333;padding-top:1mm;text-align:center}
 /* Modo apaisado: dos remitos de tamaño fijo por hoja, ocupando cada uno
    exactamente la mitad — nunca se agrandan ni se achican según el pedido;
@@ -196,7 +196,7 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 <div class="toolbar">
  <h1>🖨️ Comprobantes</h1>
  <select id="sizeSelect">
-  <option value="a4copia" selected>A4 · Original y Copia (firma)</option>
+  <option value="a4copia" selected>Hoja A4 apaisada · Original y Copia (firma)</option>
   <option value="apaisada">Apaisado (2 por hoja)</option>
   <option value="a5">Tamaño A5</option>
   <option value="10x15">Tamaño 10×15 cm</option>
@@ -400,7 +400,7 @@ function renderCbte(o,tipo){
 function docsDe(o,size){
  if(o._soloNC)return [renderNC(o)];
  if(o.factura_cae)return o.nc_cae?[renderFactura(o),renderNC(o)]:[renderFactura(o)];
- if(size==="a4copia")return [renderRemito(o,size,"ORIGINAL"),renderRemito(o,size,"COPIA")];
+ if(size==="a4copia")return [renderRemito(o,"apaisada","ORIGINAL"),renderRemito(o,"apaisada","COPIA")];
  return [renderRemito(o,size)];
 }
 
@@ -411,12 +411,12 @@ function actualizarOrientacionPagina(size){
   style.id="pageOrientStyle";
   document.head.appendChild(style);
  }
- style.textContent=size==="apaisada"?"@page{size:landscape;margin:8mm}":(size==="a4copia"?"@page{size:A4 portrait;margin:10mm}":"@page{size:auto;margin:10mm}");
+ style.textContent=size==="apaisada"?"@page{size:landscape;margin:8mm}":(size==="a4copia"?"@page{size:A4 landscape;margin:8mm}":"@page{size:auto;margin:10mm}");
 }
 
 function renderReceipts(orders,size){
  actualizarOrientacionPagina(size);
- $("sheet").classList.toggle("sheet-apaisada",size==="apaisada");
+ $("sheet").classList.toggle("sheet-apaisada",size==="apaisada"||size==="a4copia");
  if(!orders.length){$("sheet").innerHTML='<div class="empty">No se encontraron pedidos para imprimir.</div>';return}
  if(size==="apaisada"){
   const cards=orders.flatMap(o=>docsDe(o,size).map(html=>({o,html})));
@@ -442,7 +442,7 @@ function renderReceipts(orders,size){
   $("sheet").innerHTML=orders.map(o=>{
    const esFac=o.factura_cae||o._anulada||o._soloNC;
    const d=docsDe(o,size);
-   return esFac?d.join(""):`<div class="a4-page">${d.join('<div class="cut"></div>')}</div>`;
+   return esFac?d.join(""):`<div class="page-row pair">${d.join("")}</div>`;
   }).join("");
   return;
  }
@@ -495,7 +495,7 @@ function renderRemito(o,size,copia){
    <div class="r-total"><span class="lbl">TOTAL</span><span class="val">${money(o.total)}</span></div>
    <div class="r-gracias">¡Gracias por tu compra! 🐞</div>
    <div class="r-cae-pend no-print"><button class="btn-facturar" data-id="${o.id}">🧾 Facturar (ARCA)</button></div>
-   ${size==="a4copia"?`<div class="r-pago">
+   ${copia?`<div class="r-pago">
     <b class="t">Forma de pago</b>
     <div class="opts"><span><i class="box"></i>Efectivo</span><span><i class="box"></i>Transferencia</span><span><i class="box"></i>Pendiente de pago</span></div>
     <div class="fl">Fecha de pago / compromiso: <span></span> N° de operación (transferencia): <span></span></div>
