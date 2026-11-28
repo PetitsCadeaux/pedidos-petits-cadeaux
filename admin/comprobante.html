@@ -22,10 +22,39 @@ body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9
 .receipt{background:#fff;border:1px solid #d9c8db;border-radius:6px;padding:6mm;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .receipt.size-10x15{width:100mm;font-size:10px}
 .receipt.size-a5{width:190mm;min-height:135mm;font-size:13.5px}
-.receipt.size-a4copia{width:190mm;min-height:262mm;font-size:14px;padding:8mm;box-sizing:border-box}
+.receipt.size-a4copia{width:190mm;height:135mm;font-size:10.5px;padding:3mm 6mm;box-sizing:border-box;box-shadow:none;border-radius:0;border:1px solid #bbb}
 .receipt.size-apaisada{width:136mm;height:188mm;font-size:10.5px;overflow:hidden}
 
-.a4-page{page-break-after:always;break-after:page;display:flex;justify-content:center;margin-bottom:6mm}
+.a4-page{page-break-after:always;break-after:page;display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:6mm}
+.a4-page:last-child{page-break-after:auto;break-after:auto}
+@media print{.a4-page{margin-bottom:0}}
+.a4-page .cut{width:190mm;border-top:1.5px dashed #888;margin:1mm 0;height:0}
+.size-a4copia .r-head{padding-bottom:1.2mm;margin-bottom:1.5mm;position:relative}
+.size-a4copia .r-head .biz{font-size:1.5em}
+.size-a4copia .r-head .num{margin-top:1mm}
+.size-a4copia .r-copia-tag{position:absolute;right:6mm;top:3mm;margin:0;font-size:.7em;letter-spacing:.5px;padding:.4mm 2mm}
+.size-a4copia .r-info{margin-bottom:1.5mm}
+.size-a4copia .r-info div{padding:.3mm 0}
+.size-a4copia .r-info .destacado span:last-child{font-size:1.15em}
+.size-a4copia .r-items{margin-bottom:1mm}
+.size-a4copia .r-gracias,.size-a4copia .r-ahorro{display:none}
+.size-a4copia .r-pago{padding:1.5mm 3mm;margin-top:1.5mm}
+.size-a4copia .r-pago b.t{margin-bottom:1mm}
+.size-a4copia .r-pago .opts{margin-bottom:1mm;gap:5mm}
+.size-a4copia .r-pago .box{width:3.8mm;height:3.8mm}
+.size-a4copia .r-pago .fl{margin-top:1mm}
+.size-a4copia .r-pago .fl span{height:4mm}
+.size-a4copia .r-pago .legal{margin-top:1mm;font-size:.85em}
+.size-a4copia{position:relative}
+.size-a4copia .r-head .sub,.size-a4copia .r-items h4{display:none}
+.size-a4copia .r-head .num{margin-top:.5mm}
+.size-a4copia .r-table td{padding:.35mm 0!important;line-height:1.15}
+.size-a4copia .r-table thead th{padding:0 0 .5mm}
+.size-a4copia .r-items h4{margin:0 0 1mm;padding-bottom:.5mm}
+.size-a4copia .r-total{padding:1mm 3mm;margin-bottom:1mm;border-width:2px}
+.size-a4copia .r-total .val{font-size:1.6em}
+.size-a4copia .r-notes{margin-bottom:1mm}
+.size-a4copia .r-firmas{margin-top:3mm}
 .r-copia-tag{align-self:flex-end;border:2px solid var(--purple);color:var(--purple);border-radius:6px;padding:1mm 5mm;font-weight:900;letter-spacing:2px;font-size:1.05em;margin-bottom:2mm}
 .r-pago{border:1.5px solid #333;border-radius:6px;padding:3mm 4mm;margin-top:3mm;font-size:.95em;color:var(--ink)}
 .r-pago b.t{display:block;margin-bottom:2mm;text-transform:uppercase;letter-spacing:.4px}
@@ -412,7 +441,8 @@ function renderReceipts(orders,size){
  if(size==="a4copia"){
   $("sheet").innerHTML=orders.map(o=>{
    const esFac=o.factura_cae||o._anulada||o._soloNC;
-   return docsDe(o,size).map(h=>esFac?h:`<div class="a4-page">${h}</div>`).join("");
+   const d=docsDe(o,size);
+   return esFac?d.join(""):`<div class="a4-page">${d.join('<div class="cut"></div>')}</div>`;
   }).join("");
   return;
  }
