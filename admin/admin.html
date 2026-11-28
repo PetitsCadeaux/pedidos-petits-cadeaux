@@ -761,7 +761,7 @@ function render(){
   .filter(o=>{
    if(!desde&&!hasta)return true;
    const f=$("fechaTipo").value==="entrega"?(o.fecha_entrega||null):(o.created_at?o.created_at.slice(0,10):null);
-   if(!f)return false;
+   if(!f)return $("fechaTipo").value==="entrega"; // pedido sin fecha de entrega (ej. remito recién anulado): se muestra siempre, no se pierde por el filtro
    if(desde&&f<desde)return false;
    if(hasta&&f>hasta)return false;
    return true;
